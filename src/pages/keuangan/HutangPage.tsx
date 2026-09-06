@@ -1,280 +1,307 @@
-import { useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import DataTable, { type Column } from '../../components/ui/DataTable';
-import Modal from '../../components/ui/Modal';
-import ConfirmDialog from '../../components/ui/ConfirmDialog';
-import { useHutangStore, type Hutang, type StatusHutang } from '../../store/hutangStore';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Landmark, Building2, CreditCard, AlertTriangle } from 'lucide-react';
+import TabBar from '../../components/ui/TabBar';
+import { useHutangStore, KATEGORI_HUTANG_LABELS, KATEGORI_HUTANG_COLOR, type KategoriHutang } from '../../store/hutangStore';
+import { useProyekStore } from '../../store/proyekStore';
+import { usePinjamanBankStore } from '../../store/pinjamanBankStore';
+import InputMutasiModal from './hutang/InputMutasiModal';
+import AntarProyekTab from './hutang/AntarProyekTab';
+import PinjamanBankTab from './hutang/PinjamanBankTab';
+import AgunanShmTab from './hutang/AgunanShmTab';
 
-const STATUS_LABEL: Record<StatusHutang, string> = {
-  belum_lunas: 'Belum Lunas',
-  sebagian: 'Sebagian',
-  lunas: 'Lunas',
-};
-
-const STATUS_COLOR: Record<StatusHutang, string> = {
-  belum_lunas: 'bg-red-100 text-red-700',
-  sebagian: 'bg-yellow-100 text-yellow-700',
-  lunas: 'bg-emerald-100 text-emerald-700',
-};
-
+// ── Helpers ──────────────────────────────────────────────────
 function formatRupiah(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID');
 }
 
-const EMPTY_FORM = {
-  namaKreditur: '',
-  jumlah: '',
-  tanggalHutang: '',
-  tanggalJatuhTempo: '',
-  keterangan: '',
-  status: 'belum_lunas' as StatusHutang,
-};
+function formatRupiahShort(n: number) {
+  if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} M`;
+  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} Jt`;
+  return formatRupiah(n);
+}
 
+function getCurrentBulan() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatBulanLabel(bulan: string) {
+  const [y, m] = bulan.split('-');
+  const names = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  return `${names[Number(m)]} ${y}`;
+}
+
+// ── Month selector options ───────────────────────────────────
+function getMonthOptions() {
+  const options: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = -6; i <= 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    options.push({ value: val, label: formatBulanLabel(val) });
+  }
+  return options;
+}
+
+// ── Main Component ───────────────────────────────────────────
 export default function HutangPage() {
-  const { items, add, update, remove } = useHutangStore();
-  const [page, setPage] = useState(1);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState<Partial<typeof EMPTY_FORM>>({});
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { getSaldoPerKodePembantu, getTotalHutang, getTotalByKategori } = useHutangStore();
+  const { items: proyeks } = useProyekStore();
+  const { getDueSoon } = usePinjamanBankStore();
 
-  const openAdd = () => {
-    setForm(EMPTY_FORM);
-    setErrors({});
-    setEditId(null);
-    setModalOpen(true);
-  };
+  // Filters
+  const [selectedProyek, setSelectedProyek] = useState('');
+  const [selectedKategori, setSelectedKategori] = useState<KategoriHutang | ''>('');
+  const [selectedBulan, setSelectedBulan] = useState(getCurrentBulan());
 
-  const openEdit = (item: Hutang) => {
-    setForm({
-      namaKreditur: item.namaKreditur,
-      jumlah: String(item.jumlah),
-      tanggalHutang: item.tanggalHutang,
-      tanggalJatuhTempo: item.tanggalJatuhTempo,
-      keterangan: item.keterangan,
-      status: item.status,
-    });
-    setErrors({});
-    setEditId(item.id);
-    setModalOpen(true);
-  };
+  // Tabs
+  const [activeTab, setActiveTab] = useState('saldo');
 
-  const validate = () => {
-    const e: Partial<typeof EMPTY_FORM> = {};
-    if (!form.namaKreditur.trim()) e.namaKreditur = 'Nama kreditur wajib diisi';
-    if (!form.jumlah || Number(form.jumlah) <= 0) e.jumlah = 'Jumlah harus lebih dari 0';
-    if (!form.tanggalHutang) e.tanggalHutang = 'Tanggal hutang wajib diisi';
-    if (!form.tanggalJatuhTempo) e.tanggalJatuhTempo = 'Tanggal jatuh tempo wajib diisi';
-    else if (form.tanggalHutang && form.tanggalJatuhTempo < form.tanggalHutang)
-      e.tanggalJatuhTempo = 'Jatuh tempo harus ≥ tanggal hutang';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
+  // Modals
+  const [inputOpen, setInputOpen] = useState(false);
 
-  const handleSubmit = () => {
-    if (!validate()) return;
-    const payload = {
-      namaKreditur: form.namaKreditur.trim(),
-      jumlah: Number(form.jumlah),
-      tanggalHutang: form.tanggalHutang,
-      tanggalJatuhTempo: form.tanggalJatuhTempo,
-      keterangan: form.keterangan.trim(),
-      status: form.status,
-    };
-    if (editId) {
-      update(editId, payload);
-    } else {
-      add(payload);
-    }
-    setModalOpen(false);
-    setPage(1);
-  };
+  const monthOptions = useMemo(getMonthOptions, []);
 
-  const columns: Column<Hutang>[] = [
-    { key: 'namaKreditur', label: 'Nama Kreditur' },
-    {
-      key: 'jumlah',
-      label: 'Jumlah',
-      render: (r) => formatRupiah(r.jumlah),
-    },
-    { key: 'tanggalHutang', label: 'Tgl. Hutang' },
-    { key: 'tanggalJatuhTempo', label: 'Jatuh Tempo' },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (r) => (
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[r.status]}`}>
-          {STATUS_LABEL[r.status]}
-        </span>
-      ),
-    },
-    {
-      key: 'aksi',
-      label: 'Aksi',
-      className: 'text-right',
-      render: (r) => (
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={() => openEdit(r)}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setDeleteId(r.id)}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ),
-    },
+  // Computed data
+  const saldoData = useMemo(() => {
+    return getSaldoPerKodePembantu(
+      selectedBulan,
+      selectedProyek || undefined,
+      (selectedKategori || undefined) as KategoriHutang | undefined
+    );
+  }, [getSaldoPerKodePembantu, selectedBulan, selectedProyek, selectedKategori]);
+
+  const totalHutang = useMemo(() => getTotalHutang(selectedBulan), [getTotalHutang, selectedBulan]);
+  const totalLahan = useMemo(() => getTotalByKategori(selectedBulan, 'lahan'), [getTotalByKategori, selectedBulan]);
+  const totalBank = useMemo(() => getTotalByKategori(selectedBulan, 'bank'), [getTotalByKategori, selectedBulan]);
+  const dueSoon = useMemo(() => getDueSoon(7), [getDueSoon]);
+
+  const tabs = [
+    { key: 'saldo', label: 'Saldo Berjalan' },
+    { key: 'antar_proyek', label: 'Antar Proyek' },
+    { key: 'pinjaman_bank', label: 'Pinjaman Bank' },
+    { key: 'agunan', label: 'Agunan / SHM' },
   ];
 
   return (
     <div>
       {/* Page header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Hutang</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Pencatatan data hutang Podorukun</p>
+          <p className="text-sm text-gray-500 mt-0.5">Periode {formatBulanLabel(selectedBulan)}</p>
         </div>
         <button
-          onClick={openAdd}
+          onClick={() => setInputOpen(true)}
           className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           <Plus className="h-4 w-4" />
-          Tambah Hutang
+          Input mutasi
         </button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={items}
-        keyExtractor={(r) => r.id}
-        page={page}
-        onPageChange={setPage}
-        emptyMessage="Belum ada data hutang."
-      />
-
-      {/* Form Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editId ? 'Edit Hutang' : 'Tambah Hutang'}
-        footer={
-          <>
-            <button
-              onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-            >
-              {editId ? 'Simpan Perubahan' : 'Tambah'}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {/* Nama Kreditur */}
+      {/* Due soon warning */}
+      {dueSoon.length > 0 && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Kreditur <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={form.namaKreditur}
-              onChange={(e) => setForm({ ...form, namaKreditur: e.target.value })}
-              placeholder="Nama bank / perusahaan / perorangan"
-              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.namaKreditur ? 'border-red-400' : 'border-gray-300'}`}
-            />
-            {errors.namaKreditur && <p className="mt-1 text-xs text-red-500">{errors.namaKreditur}</p>}
-          </div>
-
-          {/* Jumlah */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Jumlah (Rp) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              value={form.jumlah}
-              onChange={(e) => setForm({ ...form, jumlah: e.target.value })}
-              placeholder="0"
-              min={0}
-              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.jumlah ? 'border-red-400' : 'border-gray-300'}`}
-            />
-            {errors.jumlah && <p className="mt-1 text-xs text-red-500">{errors.jumlah}</p>}
-          </div>
-
-          {/* Tanggal */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tanggal Hutang <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={form.tanggalHutang}
-                onChange={(e) => setForm({ ...form, tanggalHutang: e.target.value })}
-                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.tanggalHutang ? 'border-red-400' : 'border-gray-300'}`}
-              />
-              {errors.tanggalHutang && <p className="mt-1 text-xs text-red-500">{errors.tanggalHutang}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Jatuh Tempo <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={form.tanggalJatuhTempo}
-                onChange={(e) => setForm({ ...form, tanggalJatuhTempo: e.target.value })}
-                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.tanggalJatuhTempo ? 'border-red-400' : 'border-gray-300'}`}
-              />
-              {errors.tanggalJatuhTempo && <p className="mt-1 text-xs text-red-500">{errors.tanggalJatuhTempo}</p>}
-            </div>
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value as StatusHutang })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="belum_lunas">Belum Lunas</option>
-              <option value="sebagian">Sebagian</option>
-              <option value="lunas">Lunas</option>
-            </select>
-          </div>
-
-          {/* Keterangan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-            <textarea
-              value={form.keterangan}
-              onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
-              rows={3}
-              placeholder="Keterangan tambahan (opsional)"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
-            />
+            <p className="text-sm font-semibold text-amber-800">
+              {dueSoon.length} pinjaman bank jatuh tempo ≤ 7 hari
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {dueSoon.map((p) => (
+                <li key={p.id} className="text-xs text-amber-700">
+                  • {p.namaBank} — jatuh tempo {p.tanggalJatuhTempo}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </Modal>
+      )}
 
-      {/* Confirm Delete */}
-      <ConfirmDialog
-        isOpen={deleteId !== null}
-        onClose={() => setDeleteId(null)}
-        onConfirm={() => deleteId && remove(deleteId)}
-        message="Apakah Anda yakin ingin menghapus data hutang ini? Tindakan ini tidak dapat dibatalkan."
-      />
+      {/* 3 Filters */}
+      <div className="mb-4 flex flex-wrap gap-3">
+        <select
+          value={selectedProyek}
+          onChange={(e) => setSelectedProyek(e.target.value)}
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        >
+          <option value="">Semua proyek</option>
+          {proyeks.map((p) => (
+            <option key={p.id} value={p.id}>{p.nama}</option>
+          ))}
+        </select>
+
+        <select
+          value={selectedKategori}
+          onChange={(e) => setSelectedKategori(e.target.value as KategoriHutang | '')}
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        >
+          <option value="">Semua kategori</option>
+          {(Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).map((k) => (
+            <option key={k} value={k}>{KATEGORI_HUTANG_LABELS[k]}</option>
+          ))}
+        </select>
+
+        <select
+          value={selectedBulan}
+          onChange={(e) => setSelectedBulan(e.target.value)}
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        >
+          {monthOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* 4 Summary Cards */}
+      <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
+              <Landmark className="h-4 w-4 text-indigo-600" />
+            </div>
+            <p className="text-xs text-gray-500">Total hutang</p>
+          </div>
+          <p className="text-lg font-bold text-gray-900">{formatRupiahShort(totalHutang)}</p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
+              <Building2 className="h-4 w-4 text-amber-600" />
+            </div>
+            <p className="text-xs text-gray-500">Hutang lahan</p>
+          </div>
+          <p className="text-lg font-bold text-gray-900">{formatRupiahShort(totalLahan)}</p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
+              <CreditCard className="h-4 w-4 text-blue-600" />
+            </div>
+            <p className="text-xs text-gray-500">Hutang bank</p>
+          </div>
+          <p className="text-lg font-bold text-gray-900">{formatRupiahShort(totalBank)}</p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+            </div>
+            <p className="text-xs text-gray-500">Jatuh tempo ≤ 7 hari</p>
+          </div>
+          <p className="text-lg font-bold text-red-600">{dueSoon.length}</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Tab content */}
+      {activeTab === 'saldo' && (
+        <div>
+          {/* Saldo berjalan table */}
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Kode pembantu</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Kategori</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Saldo awal</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Mutasi</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Saldo akhir</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {saldoData.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
+                      Tidak ada data hutang untuk filter ini.
+                    </td>
+                  </tr>
+                ) : (
+                  saldoData.map((row) => {
+                    const proyek = proyeks.find((p) => p.id === row.kodePembantu.proyekId);
+                    return (
+                      <tr
+                        key={row.kodePembantu.id}
+                        className="hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/keuangan/hutang/detail/${row.kodePembantu.id}`)}
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-gray-900">{row.kodePembantu.nama}</p>
+                          <p className="text-xs text-gray-400">{proyek?.nama ?? ''}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${KATEGORI_HUTANG_COLOR[row.kodePembantu.kategori]}`}
+                          >
+                            {KATEGORI_HUTANG_LABELS[row.kodePembantu.kategori]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-gray-700">
+                          {row.saldoAwal > 0 ? formatRupiah(row.saldoAwal) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono">
+                          {row.mutasiBulan === 0 ? (
+                            <span className="text-gray-400">—</span>
+                          ) : row.mutasiBulan < 0 ? (
+                            <span className="text-red-600">({formatRupiah(Math.abs(row.mutasiBulan))})</span>
+                          ) : (
+                            <span className="text-gray-700">{formatRupiah(row.mutasiBulan)}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-semibold text-gray-900">
+                          {formatRupiah(row.saldoAkhir)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Rekap per kategori */}
+          {saldoData.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Rekap per Kategori</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {(Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).map((kat) => {
+                  const total = saldoData
+                    .filter((s) => s.kodePembantu.kategori === kat)
+                    .reduce((sum, s) => sum + s.saldoAkhir, 0);
+                  if (total === 0) return null;
+                  return (
+                    <div key={kat} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                      <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium mb-1 ${KATEGORI_HUTANG_COLOR[kat]}`}>
+                        {KATEGORI_HUTANG_LABELS[kat]}
+                      </span>
+                      <p className="text-sm font-bold text-gray-900">{formatRupiahShort(total)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'antar_proyek' && (
+        <AntarProyekTab selectedProyekId={selectedProyek} />
+      )}
+
+      {activeTab === 'pinjaman_bank' && <PinjamanBankTab />}
+
+      {activeTab === 'agunan' && <AgunanShmTab />}
+
+      {/* Input mutasi modal */}
+      <InputMutasiModal isOpen={inputOpen} onClose={() => setInputOpen(false)} />
     </div>
   );
 }

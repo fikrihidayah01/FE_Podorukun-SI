@@ -10,6 +10,7 @@ import NotFoundPage from '../pages/NotFoundPage';
 
 // Keuangan pages
 import HutangPage from '../pages/keuangan/HutangPage';
+import DetailKodePembantuPage from '../pages/keuangan/hutang/DetailKodePembantuPage';
 import PiutangPage from '../pages/keuangan/PiutangPage';
 import CoaPage from '../pages/keuangan/CoaPage';
 import JurnalPage from '../pages/keuangan/JurnalPage';
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
             element: <RoleGuard allowedRoles={['keuangan']} />,
             children: [
               { path: '/keuangan/hutang',   element: <HutangPage /> },
+              { path: '/keuangan/hutang/detail/:kodePembantuId', element: <DetailKodePembantuPage /> },
               { path: '/keuangan/piutang',  element: <PiutangPage /> },
               { path: '/keuangan/coa',      element: <CoaPage /> },
               { path: '/keuangan/jurnal',   element: <JurnalPage /> },
