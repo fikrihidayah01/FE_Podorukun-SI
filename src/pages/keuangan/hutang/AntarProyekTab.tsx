@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useHutangStore, KATEGORI_HUTANG_LABELS, KATEGORI_HUTANG_COLOR, type KategoriHutang } from '../../../store/hutangStore';
+import { useHutangStore } from '../../../store/hutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import { ArrowRight, ArrowLeftRight } from 'lucide-react';
 

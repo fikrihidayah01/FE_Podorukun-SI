@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useHutangStore, type KategoriHutang, KATEGORI_HUTANG_LABELS, KATEGORI_HUTANG_COLOR } from '../../../store/hutangStore';
+import { useHutangStore, type KategoriHutang, KATEGORI_HUTANG_LABELS } from '../../../store/hutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import { useCoaStore } from '../../../store/coaStore';
 import Modal from '../../../components/ui/Modal';
