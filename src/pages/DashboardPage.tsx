@@ -211,22 +211,24 @@ export default function DashboardPage() {
   const timeGreet = hour < 12 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Page header */}
-      <div className="mb-6">
+      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full">
         <h1 className="text-xl font-bold text-gray-900">
           {timeGreet}, {user?.name?.split(' ')[0]} 👋
         </h1>
         <p className="mt-1 text-sm text-gray-500">{greeting} — {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
 
-      {/* Widget grid */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {widgets}
+      {/* Main summary grid container (1 baris 4 cards) */}
+      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-4">
+          {widgets}
+        </div>
       </div>
 
       {/* Placeholder info box */}
-      <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
+      <div className="rounded-xl border border-dashed border-gray-300 bg-white shadow-sm p-6 text-center">
         <p className="text-sm font-medium text-gray-500">Area Konten Tambahan</p>
         <p className="mt-1 text-xs text-gray-400">
           Grafik, tabel, dan komponen lanjutan akan ditambahkan di sini

@@ -10,6 +10,8 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** Footer berisi tombol aksi */
   footer?: React.ReactNode;
+  /** Elemen aksi tambahan di sebelah kiri tombol tutup (silang) */
+  headerActions?: React.ReactNode;
 }
 
 const SIZE_CLASS = {
@@ -19,7 +21,7 @@ const SIZE_CLASS = {
   xl: 'max-w-4xl',
 };
 
-export default function Modal({ isOpen, onClose, title, children, size = 'md', footer }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, size = 'md', footer, headerActions }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   // Tutup saat tekan Escape
@@ -56,13 +58,16 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-            aria-label="Tutup"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {headerActions}
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer transition-colors"
+              aria-label="Tutup"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Body */}

@@ -31,9 +31,11 @@ export default function ShmRiwayatModal({ shm, isOpen, onClose }: ShmRiwayatModa
           <div>
             <span className="text-gray-500">Status saat ini:</span>{' '}
             <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_SHM_COLOR[shm.status]}`}
+              className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full px-3 py-0.5 text-xs font-medium ${STATUS_SHM_COLOR[shm.status]}`}
             >
-              {STATUS_SHM_LABELS[shm.status]}
+              {shm.status === 'lainnya' && shm.statusKustom
+                ? shm.statusKustom
+                : STATUS_SHM_LABELS[shm.status]}
             </span>
           </div>
         </div>
@@ -68,13 +70,13 @@ export default function ShmRiwayatModal({ shm, isOpen, onClose }: ShmRiwayatModa
               {/* Status transition */}
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_SHM_COLOR[r.dariStatus]}`}
+                  className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full px-3 py-0.5 text-xs font-medium ${STATUS_SHM_COLOR[r.dariStatus]}`}
                 >
                   {STATUS_SHM_LABELS[r.dariStatus]}
                 </span>
                 <span className="text-gray-400 text-xs">→</span>
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_SHM_COLOR[r.keStatus]}`}
+                  className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full px-3 py-0.5 text-xs font-medium ${STATUS_SHM_COLOR[r.keStatus]}`}
                 >
                   {STATUS_SHM_LABELS[r.keStatus]}
                 </span>

@@ -12,37 +12,13 @@ interface SummaryCardProps {
   };
 }
 
-const COLOR_MAP = {
-  indigo: {
-    bg: 'bg-indigo-50',
-    iconBg: 'bg-indigo-600',
-    text: 'text-indigo-700',
-  },
-  emerald: {
-    bg: 'bg-emerald-50',
-    iconBg: 'bg-emerald-600',
-    text: 'text-emerald-700',
-  },
-  blue: {
-    bg: 'bg-blue-50',
-    iconBg: 'bg-blue-600',
-    text: 'text-blue-700',
-  },
-  purple: {
-    bg: 'bg-purple-50',
-    iconBg: 'bg-purple-600',
-    text: 'text-purple-700',
-  },
-  orange: {
-    bg: 'bg-orange-50',
-    iconBg: 'bg-orange-600',
-    text: 'text-orange-700',
-  },
-  red: {
-    bg: 'bg-red-50',
-    iconBg: 'bg-red-600',
-    text: 'text-red-700',
-  },
+const GRADIENT_MAP = {
+  indigo: 'from-indigo-500 to-indigo-600',
+  emerald: 'from-emerald-500 to-emerald-600',
+  blue: 'from-blue-500 to-blue-600',
+  purple: 'from-purple-500 to-purple-600',
+  orange: 'from-amber-500 to-amber-600',
+  red: 'from-red-500 to-red-600',
 };
 
 export default function SummaryCard({
@@ -53,43 +29,47 @@ export default function SummaryCard({
   color = 'indigo',
   trend,
 }: SummaryCardProps) {
-  const c = COLOR_MAP[color];
+  const gradient = GRADIENT_MAP[color] || GRADIENT_MAP.indigo;
 
   return (
-    <div className={`rounded-xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
-          {subtitle && <p className="mt-0.5 text-xs text-gray-400">{subtitle}</p>}
-
-          {trend && (
-            <div className="mt-2 flex items-center gap-1">
-              <span
-                className={`text-xs font-medium ${
-                  trend.direction === 'up'
-                    ? 'text-emerald-600'
-                    : trend.direction === 'down'
-                    ? 'text-red-500'
-                    : 'text-gray-400'
-                }`}
-              >
-                {trend.direction === 'up' ? '▲' : trend.direction === 'down' ? '▼' : '—'}{' '}
-                {trend.value}
-              </span>
-              <span className="text-xs text-gray-400">vs bulan lalu</span>
-            </div>
-          )}
+    <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-4 md:p-5 flex flex-col justify-between gap-3">
+      {/* Nominal & Subtitle Box (White with stroke) */}
+      <div className="rounded-xl bg-white border border-gray-200 p-3.5 flex items-stretch justify-start gap-3.5">
+        <div className={`flex items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shrink-0 px-3.5 py-2.5 shadow-sm min-h-[52px]`}>
+          <Icon className="h-6 w-6 text-white" />
         </div>
-
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${c.iconBg}`}>
-          <Icon className="h-5 w-5 text-white" />
+        <div className="flex-1 min-w-0 flex flex-col justify-center">
+          <span className="text-2xl md:text-3xl font-bold text-gray-900 truncate leading-tight">
+            {value}
+          </span>
+          {subtitle && (
+            <p className="text-xs font-medium text-gray-500 mt-1 truncate">
+              {subtitle}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Bottom accent bar */}
-      <div className={`mt-4 h-1 w-full rounded-full ${c.bg}`}>
-        <div className={`h-1 w-1/2 rounded-full ${c.iconBg} opacity-60`} />
+      {/* Title & Trend */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-0.5 pt-0.5">
+        <p className="text-base font-bold text-gray-900">{title}</p>
+
+        {trend && (
+          <div className="flex items-center gap-1 shrink-0 bg-white border border-gray-200 px-2.5 py-1 rounded-lg text-xs font-semibold self-start sm:self-auto">
+            <span
+              className={
+                trend.direction === 'up'
+                  ? 'text-emerald-600'
+                  : trend.direction === 'down'
+                  ? 'text-red-500'
+                  : 'text-gray-500'
+              }
+            >
+              {trend.direction === 'up' ? '▲' : trend.direction === 'down' ? '▼' : '—'} {trend.value}
+            </span>
+            <span className="text-gray-400 font-normal">vs bulan lalu</span>
+          </div>
+        )}
       </div>
     </div>
   );

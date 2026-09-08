@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, FileText, Pencil, Trash2, Clock, ExternalLink } from 'lucide-react';
+import { Plus, FileText, Pencil, Trash2, Clock, ExternalLink, Square } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSrpStore, type SrpDoc } from '../../store/srpStore';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -72,9 +72,24 @@ export default function SrpPage() {
     handleCloseModal();
   };
 
+  const handleOpenFullPage = () => {
+    let targetId = editingId;
+    if (!targetId) {
+      targetId = create(formJudul.trim() || 'Dokumen Baru', formContent);
+    } else {
+      update(targetId, {
+        judul: formJudul.trim() || 'Tanpa Judul',
+        content: formContent,
+      });
+    }
+
+    handleCloseModal();
+    navigate(`/keuangan/srp/${targetId}`);
+  };
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">SRP — Dokumen</h1>
           <p className="text-sm text-gray-500 mt-0.5">Buat dan kelola dokumen SRP keuangan</p>
@@ -90,7 +105,7 @@ export default function SrpPage() {
 
       {docs.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-12 max-w-sm w-full">
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white shadow-sm p-12 max-w-sm w-full">
             <FileText className="mx-auto mb-3 h-10 w-10 text-gray-300" />
             <p className="font-medium text-gray-500">Belum ada dokumen SRP</p>
             <p className="mt-1 text-sm text-gray-400">Klik "Buat Dokumen" untuk membuat dokumen baru</p>
@@ -101,7 +116,7 @@ export default function SrpPage() {
           {docs.map((doc) => (
             <div
               key={doc.id}
-              className="group relative rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-all cursor-pointer"
+              className="group relative rounded-xl bg-white p-5 shadow-sm transition-all cursor-pointer"
               onClick={() => handleOpenEdit(doc)}
             >
               <div className="flex items-start gap-3">
@@ -169,6 +184,17 @@ export default function SrpPage() {
         onClose={handleCloseModal}
         title={editingId ? 'Edit Dokumen SRP' : 'Buat Dokumen SRP Baru'}
         size="xl"
+        headerActions={
+          <button
+            type="button"
+            onClick={handleOpenFullPage}
+            title="Buka Halaman Penuh"
+            aria-label="Buka Halaman Penuh"
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors cursor-pointer"
+          >
+            <Square className="h-4 w-4" />
+          </button>
+        }
         footer={
           <>
             <button

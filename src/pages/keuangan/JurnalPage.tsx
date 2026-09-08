@@ -93,9 +93,9 @@ export default function JurnalPage() {
     {
       key: 'aksi',
       label: 'Aksi',
-      className: 'text-right',
+      className: 'text-left',
       render: (r) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-start gap-2">
           <button onClick={() => setDetailJurnal(r)} className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600">
             <Eye className="h-4 w-4" />
           </button>
@@ -109,14 +109,14 @@ export default function JurnalPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Jurnal Umum</h1>
           <p className="text-sm text-gray-500 mt-0.5">Pencatatan transaksi debit-kredit</p>
         </div>
         <button
           onClick={openForm}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors"
         >
           <Plus className="h-4 w-4" />
           Input Jurnal
@@ -208,8 +208,8 @@ export default function JurnalPage() {
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 w-64">Akun</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Keterangan</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 w-32">Debit (Rp)</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 w-32">Kredit (Rp)</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 w-32">Debit (Rp)</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 w-32">Kredit (Rp)</th>
                   <th className="w-10" />
                 </tr>
               </thead>
@@ -246,7 +246,7 @@ export default function JurnalPage() {
                         onChange={(e) => updateRow(row.id, 'debit', Number(e.target.value))}
                         min={0}
                         placeholder="0"
-                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -256,7 +256,7 @@ export default function JurnalPage() {
                         onChange={(e) => updateRow(row.id, 'kredit', Number(e.target.value))}
                         min={0}
                         placeholder="0"
-                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       />
                     </td>
                     <td className="px-2 py-2">
@@ -274,10 +274,10 @@ export default function JurnalPage() {
                 {/* Totals */}
                 <tr className="bg-gray-50 font-semibold">
                   <td className="px-3 py-2 text-sm text-gray-600" colSpan={2}>Total</td>
-                  <td className={`px-3 py-2 text-sm text-right ${isBalanced ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <td className={`px-3 py-2 text-sm text-left ${isBalanced ? 'text-emerald-600' : 'text-red-500'}`}>
                     {formatRupiah(totalDebit)}
                   </td>
-                  <td className={`px-3 py-2 text-sm text-right ${isBalanced ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <td className={`px-3 py-2 text-sm text-left ${isBalanced ? 'text-emerald-600' : 'text-red-500'}`}>
                     {formatRupiah(totalKredit)}
                   </td>
                   <td />
@@ -314,8 +314,8 @@ export default function JurnalPage() {
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Akun</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Keterangan</th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">Debit</th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">Kredit</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Debit</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Kredit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -323,14 +323,14 @@ export default function JurnalPage() {
                   <tr key={r.id}>
                     <td className="px-4 py-2 font-mono text-xs">{getAkunLabel(r.akunId)}</td>
                     <td className="px-4 py-2 text-gray-500">{r.keterangan || '-'}</td>
-                    <td className="px-4 py-2 text-right">{r.debit ? formatRupiah(r.debit) : '-'}</td>
-                    <td className="px-4 py-2 text-right">{r.kredit ? formatRupiah(r.kredit) : '-'}</td>
+                    <td className="px-4 py-2 text-left">{r.debit ? formatRupiah(r.debit) : '-'}</td>
+                    <td className="px-4 py-2 text-left">{r.kredit ? formatRupiah(r.kredit) : '-'}</td>
                   </tr>
                 ))}
                 <tr className="bg-gray-50 font-semibold text-emerald-700">
                   <td className="px-4 py-2" colSpan={2}>Total</td>
-                  <td className="px-4 py-2 text-right">{formatRupiah(detailJurnal.rows.reduce((s, r) => s + r.debit, 0))}</td>
-                  <td className="px-4 py-2 text-right">{formatRupiah(detailJurnal.rows.reduce((s, r) => s + r.kredit, 0))}</td>
+                  <td className="px-4 py-2 text-left">{formatRupiah(detailJurnal.rows.reduce((s, r) => s + r.debit, 0))}</td>
+                  <td className="px-4 py-2 text-left">{formatRupiah(detailJurnal.rows.reduce((s, r) => s + r.kredit, 0))}</td>
                 </tr>
               </tbody>
             </table>

@@ -71,7 +71,7 @@ export default function SrpEditorPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)]">
       {/* Top bar */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm w-full flex items-center gap-3">
         <button
           onClick={() => {
             handleSave();
@@ -131,7 +131,7 @@ export default function SrpEditorPage() {
       </div>
 
       {/* Editor card with Summernote */}
-      <div className="flex-1 flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm p-4 overflow-y-auto">
+      <div className="flex-1 flex flex-col rounded-xl bg-white shadow-sm p-4 overflow-y-auto">
         <SummernoteEditor
           value={content}
           onChange={setContent}

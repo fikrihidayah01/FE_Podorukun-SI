@@ -20,10 +20,16 @@ import SrpEditorPage from '../pages/keuangan/SrpEditorPage';
 // Placeholder for pages under development
 function PlaceholderPage({ title }: { title: string }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-      <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 max-w-sm w-full">
-        <p className="text-lg font-semibold text-gray-600">{title}</p>
-        <p className="mt-2 text-sm text-gray-400">Halaman ini sedang dalam pengembangan</p>
+    <div className="space-y-6">
+      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full">
+        <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Modul {title}</p>
+      </div>
+      <div className="flex flex-col items-center justify-center min-h-[30vh] text-center">
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 max-w-sm w-full">
+          <p className="text-lg font-semibold text-gray-600">{title}</p>
+          <p className="mt-2 text-sm text-gray-400">Halaman ini sedang dalam pengembangan</p>
+        </div>
       </div>
     </div>
   );
