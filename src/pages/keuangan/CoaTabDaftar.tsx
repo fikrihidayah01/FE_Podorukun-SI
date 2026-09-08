@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, History, Lock } from 'lucide-react';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -15,6 +15,8 @@ import {
   KLASIFIKASI_AKUN_LABELS,
   KATEGORI_HUTANG_PIUTANG_LABELS
 } from '../../store/coaStore';
+import { useJurnalStore } from '../../store/jurnalStore';
+import { useSaldoAwalStore } from '../../store/saldoAwalStore';
 
 const EMPTY_FORM: Partial<Akun> = {
   kodeAkun: '',
@@ -31,7 +33,10 @@ const EMPTY_FORM: Partial<Akun> = {
 };
 
 export default function DaftarAkunTab() {
-  const { items, add, update, remove } = useCoaStore();
+  const { items, riwayat, add, update, remove } = useCoaStore();
+  const jurnals = useJurnalStore(s => s.items);
+  const periodes = useSaldoAwalStore(s => s.periodes);
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filterKategori, setFilterKategori] = useState<string>('all');
@@ -42,6 +47,14 @@ export default function DaftarAkunTab() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [riwayatId, setRiwayatId] = useState<string | null>(null);
+  const [statusConfirm, setStatusConfirm] = useState<{ id: string, payload: any } | null>(null);
+
+  const hasTransactions = (akunId: string) => {
+    const inJurnal = jurnals.some(j => j.rows.some(r => r.akunId === akunId));
+    const inSaldoAwal = periodes.some(p => p.saldo.some(s => s.akunId === akunId && (s.debit > 0 || s.kredit > 0)));
+    return inJurnal || inSaldoAwal;
+  };
 
   // Parent IDs to determine if an account is a parent
   const parentIds = useMemo(() => new Set(items.map(a => a.akunIndukId).filter(Boolean)), [items]);
@@ -110,11 +123,23 @@ export default function DaftarAkunTab() {
       kategoriHutangPiutang: ['hutang', 'aktiva'].includes(form.kategori as string) ? form.kategoriHutangPiutang : undefined,
     };
     if (editId) {
-      update(editId, payload);
+      if (form.status === 'nonaktif' && items.find(i => i.id === editId)?.status === 'aktif' && hasTransactions(editId)) {
+        setStatusConfirm({ id: editId, payload });
+        return;
+      }
+      update(editId, payload, 'Siti Rahayu');
     } else {
-      add(payload);
+      add(payload, 'Siti Rahayu');
     }
     setModalOpen(false);
+  };
+
+  const handleConfirmStatus = () => {
+    if (statusConfirm) {
+      update(statusConfirm.id, statusConfirm.payload, 'Siti Rahayu');
+      setStatusConfirm(null);
+      setModalOpen(false);
+    }
   };
 
   const columns: Column<Akun>[] = [
@@ -204,16 +229,28 @@ export default function DaftarAkunTab() {
       key: 'aksi',
       label: 'Aksi',
       className: 'text-left',
-      render: (r) => (
-        <div className="flex justify-start gap-2">
-          <button onClick={() => openEdit(r)} className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600">
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button onClick={() => setDeleteId(r.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600">
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ),
+      render: (r) => {
+        const inUse = hasTransactions(r.id);
+        return (
+          <div className="flex justify-start gap-2">
+            <button onClick={() => setRiwayatId(r.id)} title="Riwayat perubahan" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+              <History className="h-4 w-4" />
+            </button>
+            <button onClick={() => openEdit(r)} className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600">
+              <Pencil className="h-4 w-4" />
+            </button>
+            {inUse ? (
+              <button disabled title="Akun sudah memiliki transaksi" className="rounded-lg p-1.5 text-gray-300 cursor-not-allowed">
+                <Lock className="h-4 w-4" />
+              </button>
+            ) : (
+              <button onClick={() => setDeleteId(r.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -328,7 +365,8 @@ export default function DaftarAkunTab() {
                 value={form.kodeAkun}
                 onChange={(e) => setForm({ ...form, kodeAkun: e.target.value })}
                 placeholder="mis: 213020"
-                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.kodeAkun ? 'border-red-400' : 'border-gray-300'}`}
+                disabled={editId ? hasTransactions(editId) : false}
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.kodeAkun ? 'border-red-400' : 'border-gray-300'} ${editId && hasTransactions(editId) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
               />
               {errors.kodeAkun && <p className="mt-1 text-xs text-red-500">{errors.kodeAkun}</p>}
             </div>
@@ -471,6 +509,73 @@ export default function DaftarAkunTab() {
         }}
         message="Hapus akun ini? Pastikan akun tidak sedang digunakan di jurnal sebelum dihapus."
       />
+
+      <ConfirmDialog
+        isOpen={statusConfirm !== null}
+        onClose={() => setStatusConfirm(null)}
+        onConfirm={handleConfirmStatus}
+        title="Nonaktifkan Akun"
+        message="Akun ini masih memiliki saldo atau pernah digunakan dalam transaksi. Jika dinonaktifkan, akun ini tidak akan muncul lagi di form pembuatan jurnal, namun riwayat saldonya akan tetap tersimpan di laporan. Lanjutkan?"
+      />
+
+      <Modal
+        isOpen={riwayatId !== null}
+        onClose={() => setRiwayatId(null)}
+        title={
+          riwayatId 
+            ? `${items.find(i => i.id === riwayatId)?.kodeAkun} — ${items.find(i => i.id === riwayatId)?.namaAkun}` 
+            : 'Riwayat perubahan'
+        }
+        size="lg"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500 -mt-2 mb-2">Riwayat perubahan</p>
+
+          {riwayatId && hasTransactions(riwayatId) && (
+            <div className="rounded-xl bg-orange-50 border border-orange-100 p-4 flex gap-3 text-orange-800">
+              <Lock className="h-5 w-5 shrink-0 mt-0.5 text-orange-600" />
+              <div className="text-sm">
+                Akun sudah memiliki transaksi. Kode akun tidak dapat diubah dan akun tidak dapat dihapus, hanya dinonaktifkan.
+              </div>
+            </div>
+          )}
+
+          <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm mt-4">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Waktu</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Field</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Nilai lama</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Nilai baru</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Oleh</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {riwayat.filter(r => r.akunId === riwayatId).sort((a, b) => new Date(b.waktu).getTime() - new Date(a.waktu).getTime()).map(r => (
+                  <tr key={r.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-700">
+                      {new Date(r.waktu).toLocaleString('id-ID', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      }).replace('.', ':')}
+                    </td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">{r.field}</td>
+                    <td className="px-4 py-3 text-gray-600">{r.nilaiLama}</td>
+                    <td className="px-4 py-3 text-gray-900">{r.nilaiBaru}</td>
+                    <td className="px-4 py-3 text-gray-600">{r.oleh}</td>
+                  </tr>
+                ))}
+                {riwayat.filter(r => r.akunId === riwayatId).length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400">Tidak ada riwayat.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

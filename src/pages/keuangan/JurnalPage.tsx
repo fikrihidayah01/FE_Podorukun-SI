@@ -223,7 +223,7 @@ export default function JurnalPage() {
                         className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       >
                         <option value="">-- Pilih Akun --</option>
-                        {akuns.filter(a => !akuns.some(child => child.akunIndukId === a.id)).map((a) => (
+                        {akuns.filter(a => a.status === 'aktif' && !akuns.some(child => child.akunIndukId === a.id)).map((a) => (
                           <option key={a.id} value={a.id}>
                             {a.kodeAkun} — {a.namaAkun}
                           </option>

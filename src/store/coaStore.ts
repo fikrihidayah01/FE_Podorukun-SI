@@ -25,10 +25,21 @@ export interface Akun {
   kategoriHutangPiutang?: KategoriHutangPiutang;
 }
 
+export interface RiwayatAkun {
+  id: string;
+  akunId: string;
+  waktu: string; // ISO string
+  field: string;
+  nilaiLama: string;
+  nilaiBaru: string;
+  oleh: string;
+}
+
 interface CoaState {
   items: Akun[];
-  add: (data: Omit<Akun, 'id'>) => void;
-  update: (id: string, data: Partial<Omit<Akun, 'id'>>) => void;
+  riwayat: RiwayatAkun[];
+  add: (data: Omit<Akun, 'id'>, oleh?: string) => void;
+  update: (id: string, data: Partial<Omit<Akun, 'id'>>, oleh?: string) => void;
   remove: (id: string) => void;
 }
 
@@ -129,22 +140,87 @@ export const useCoaStore = create<CoaState>()(
   persist(
     (set) => ({
       items: DUMMY_AKUN,
+      riwayat: [],
 
-      add: (data) =>
-        set((state) => ({
-          items: [...state.items, { ...data, id: crypto.randomUUID() }],
-        })),
+      add: (data, oleh = 'System') =>
+        set((state) => {
+          const newId = crypto.randomUUID();
+          const newRiwayat: RiwayatAkun = {
+            id: crypto.randomUUID(),
+            akunId: newId,
+            waktu: new Date().toISOString(),
+            field: 'Akun dibuat',
+            nilaiLama: '—',
+            nilaiBaru: '—',
+            oleh
+          };
+          return {
+            items: [...state.items, { ...data, id: newId }],
+            riwayat: [...state.riwayat, newRiwayat]
+          };
+        }),
 
-      update: (id, data) =>
-        set((state) => ({
-          items: state.items.map((item) =>
-            item.id === id ? { ...item, ...data } : item
-          ),
-        })),
+      update: (id, data, oleh = 'System') =>
+        set((state) => {
+          const oldItem = state.items.find(i => i.id === id);
+          if (!oldItem) return state;
+
+          const newRiwayats: RiwayatAkun[] = [];
+          
+          Object.keys(data).forEach(key => {
+            const k = key as keyof typeof data;
+            const oldVal = oldItem[k];
+            const newVal = data[k];
+
+            if (oldVal !== newVal) {
+              let fieldLabel = key;
+              let nLama = String(oldVal ?? '—');
+              let nBaru = String(newVal ?? '—');
+
+              if (key === 'wajibProyek' || key === 'wajibKodePembantu' || key === 'isKasBank') {
+                nLama = oldVal ? 'Ya' : 'Tidak';
+                nBaru = newVal ? 'Ya' : 'Tidak';
+                if (key === 'wajibProyek') fieldLabel = 'Wajib proyek';
+                if (key === 'wajibKodePembantu') fieldLabel = 'Wajib kode pembantu';
+                if (key === 'isKasBank') fieldLabel = 'Akun kas/bank';
+              } else if (key === 'kategoriHutangPiutang') {
+                fieldLabel = 'Kategori hutang/piutang';
+                nLama = KATEGORI_HUTANG_PIUTANG_LABELS[oldVal as KategoriHutangPiutang] || nLama;
+                nBaru = KATEGORI_HUTANG_PIUTANG_LABELS[newVal as KategoriHutangPiutang] || nBaru;
+              } else if (key === 'namaAkun') {
+                fieldLabel = 'Nama akun';
+              } else if (key === 'status') {
+                fieldLabel = 'Status';
+                nLama = oldVal === 'aktif' ? 'Aktif' : 'Nonaktif';
+                nBaru = newVal === 'aktif' ? 'Aktif' : 'Nonaktif';
+              } else if (key === 'kodeAkun') {
+                fieldLabel = 'Kode akun';
+              }
+
+              newRiwayats.push({
+                id: crypto.randomUUID(),
+                akunId: id,
+                waktu: new Date().toISOString(),
+                field: fieldLabel,
+                nilaiLama: nLama,
+                nilaiBaru: nBaru,
+                oleh
+              });
+            }
+          });
+
+          return {
+            items: state.items.map((item) =>
+              item.id === id ? { ...item, ...data } : item
+            ),
+            riwayat: [...state.riwayat, ...newRiwayats]
+          };
+        }),
 
       remove: (id) =>
         set((state) => ({
           items: state.items.filter((item) => item.id !== id),
+          riwayat: state.riwayat.filter(r => r.akunId !== id)
         })),
     }),
     { name: 'si-coa-v2' }
