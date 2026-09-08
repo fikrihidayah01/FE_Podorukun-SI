@@ -59,7 +59,7 @@ export default function PinjamanBankDetailModal({
   const akuns = useCoaStore((s) => s.items);
 
   const kasBankAkuns = useMemo(() => {
-    return akuns.filter(a => a.tipe === 'aset' && (a.namaAkun.toLowerCase().includes('kas') || a.namaAkun.toLowerCase().includes('bank')));
+    return akuns.filter(a => a.isKasBank);
   }, [akuns]);
 
   const [payForm, setPayForm] = useState<PaymentForm>({
@@ -293,7 +293,7 @@ export default function PinjamanBankDetailModal({
               {freshPinjaman.topUps.map((t) => (
                 <div key={t.id} className="py-1.5 flex items-center justify-between text-gray-600">
                   <span>{formatDate(t.tanggal)} — {t.keterangan || 'Top-up pinjaman'}</span>
-                  <span className="font-mono font-medium text-gray-900">+{formatRupiah(t.nominal)}</span>
+                  <span className="font-medium text-gray-900">+{formatRupiah(t.nominal)}</span>
                 </div>
               ))}
             </div>
@@ -330,7 +330,7 @@ export default function PinjamanBankDetailModal({
                           <span className="ml-1 text-[9px] text-red-500">(Menunggu Rincian)</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-left font-mono font-medium text-gray-900">
+                      <td className="px-3 py-2 text-left font-medium text-gray-900">
                         {formatRupiah(entry.nominal)}
                         {entry.jenis === 'gabungan' && entry.statusRincian === 'lengkap' && (
                           <div className="text-[10px] text-gray-500 font-normal mt-0.5">
@@ -485,7 +485,7 @@ export default function PinjamanBankDetailModal({
                       <th className="px-4 py-2 text-left font-semibold text-gray-600">Kredit</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white font-mono">
+                  <tbody className="divide-y divide-gray-100 bg-white">
                     {/* DEBIT ROW(S) */}
                     {(currentJenis === 'pokok' || currentJenis === 'gabungan') && (
                       <tr>

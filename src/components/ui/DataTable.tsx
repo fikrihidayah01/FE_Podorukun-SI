@@ -15,6 +15,7 @@ interface DataTableProps<T> {
   pageSize?: number;
   onPageChange: (page: number) => void;
   emptyMessage?: string;
+  rowClassName?: (row: T) => string;
 }
 
 export default function DataTable<T>({
@@ -25,6 +26,7 @@ export default function DataTable<T>({
   pageSize = 10,
   onPageChange,
   emptyMessage = 'Tidak ada data.',
+  rowClassName,
 }: DataTableProps<T>) {
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
   const paginated = data.slice((page - 1) * pageSize, page * pageSize);
@@ -60,7 +62,7 @@ export default function DataTable<T>({
               paginated.map((row) => (
                 <tr
                   key={keyExtractor(row)}
-                  className="hover:bg-gray-50 transition-colors"
+                  className={`hover:bg-gray-50 transition-colors ${rowClassName ? rowClassName(row) : ''}`}
                 >
                   {columns.map((col) => (
                     <td

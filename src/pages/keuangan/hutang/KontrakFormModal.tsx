@@ -19,8 +19,8 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
   const proyeks = useProyekStore((s) => s.items);
   const akuns = useCoaStore((s) => s.items);
 
-  const persediaanAkuns = useMemo(() => akuns.filter((a) => a.tipe === 'aset' && a.namaAkun.toLowerCase().includes('persediaan')), [akuns]);
-  const hutangAkuns = useMemo(() => akuns.filter((a) => a.tipe === 'kewajiban' && a.namaAkun.toLowerCase().includes('kontraktor')), [akuns]);
+  const persediaanAkuns = useMemo(() => akuns.filter((a) => a.kategori === 'aktiva' && a.namaAkun.toLowerCase().includes('persediaan')), [akuns]);
+  const hutangAkuns = useMemo(() => akuns.filter((a) => a.kategori === 'hutang' && a.namaAkun.toLowerCase().includes('kontraktor')), [akuns]);
 
   const [form, setForm] = useState({
     proyekId: '',
@@ -130,11 +130,11 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
 
           <div>
             <label className="block text-sm text-gray-700 mb-1">Nilai kontrak</label>
-            <input type="number" value={form.nilaiKontrak} onChange={(e) => setForm({...form, nilaiKontrak: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 font-mono" placeholder="347800000" />
+            <input type="number" value={form.nilaiKontrak} onChange={(e) => setForm({...form, nilaiKontrak: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400" placeholder="347800000" />
           </div>
           <div>
             <label className="block text-sm text-gray-700 mb-1">Nilai RAB</label>
-            <input type="number" value={form.rab} onChange={(e) => setForm({...form, rab: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 font-mono" placeholder="352000000" />
+            <input type="number" value={form.rab} onChange={(e) => setForm({...form, rab: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400" placeholder="352000000" />
           </div>
           <div className="sm:col-span-2">
             <label className="block text-sm text-gray-700 mb-1">Keterangan</label>
@@ -182,7 +182,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
                   <th className="px-4 py-2.5 text-left font-semibold text-gray-700">Kredit</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 bg-white font-mono">
+              <tbody className="divide-y divide-gray-100 bg-white">
                 <tr>
                   <td className="px-4 py-3 text-gray-900">{selectedPersediaan ? `${selectedPersediaan.kodeAkun} — ${selectedPersediaan.namaAkun}` : '131010 — Persediaan kavling'}</td>
                   <td className="px-4 py-3 text-left text-gray-900">{pNilai > 0 ? formatRupiah(pNilai) : '—'}</td>

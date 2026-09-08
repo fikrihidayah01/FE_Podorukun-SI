@@ -127,7 +127,7 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
                       {m.jenisMutasi === 'kredit' ? 'Kredit' : 'Debit'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-left font-mono text-gray-700">
+                  <td className="px-4 py-3 text-left text-gray-700">
                     {m.jenisMutasi === 'debit' ? (
                       <span className="text-red-600">({formatRupiah(m.nominal)})</span>
                     ) : (

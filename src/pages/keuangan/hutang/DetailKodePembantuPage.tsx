@@ -146,21 +146,21 @@ export default function DetailKodePembantuPage() {
                 <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{formatDate(row.tanggal)}</td>
                   <td className="px-4 py-3 text-gray-600">{row.uraian}</td>
-                  <td className="px-4 py-3 text-left font-mono">
+                  <td className="px-4 py-3 text-left">
                     {row.jenisMutasi === 'debit' ? (
                       <span className="text-red-600">{formatRupiah(row.nominal)}</span>
                     ) : (
                       <span className="text-gray-300">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-left font-mono">
+                  <td className="px-4 py-3 text-left">
                     {row.jenisMutasi === 'kredit' ? (
                       <span className="text-emerald-600">{formatRupiah(row.nominal)}</span>
                     ) : (
                       <span className="text-gray-300">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-left font-mono font-semibold text-gray-900">
+                  <td className="px-4 py-3 text-left font-semibold text-gray-900">
                     {formatRupiah(row.saldo)}
                   </td>
                 </tr>

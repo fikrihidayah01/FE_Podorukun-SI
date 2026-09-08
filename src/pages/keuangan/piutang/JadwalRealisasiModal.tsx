@@ -221,12 +221,12 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                     </td>
 
                     {/* Tagihan */}
-                    <td className="px-3.5 py-3 text-left font-mono text-gray-800">
+                    <td className="px-3.5 py-3 text-left text-gray-800">
                       {formatRupiah(row.tagihan)}
                     </td>
 
                     {/* Dibayar */}
-                    <td className="px-3.5 py-3 text-left font-mono text-gray-800">
+                    <td className="px-3.5 py-3 text-left text-gray-800">
                       {isEditing ? (
                         <input
                           type="number"
@@ -242,7 +242,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                     </td>
 
                     {/* Sisa */}
-                    <td className="px-3.5 py-3 text-left font-mono font-medium">
+                    <td className="px-3.5 py-3 text-left font-medium">
                       {sisa === 0 ? (
                         <span className="text-emerald-600 font-bold">Rp 0</span>
                       ) : (
@@ -298,13 +298,13 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
               <tr>
                 <td className="px-3.5 py-3 text-left">Total</td>
                 <td colSpan={2} className="px-3.5 py-3"></td>
-                <td className="px-3.5 py-3 text-left font-mono">
+                <td className="px-3.5 py-3 text-left">
                   {formatRupiah(totals.tagihan)}
                 </td>
-                <td className="px-3.5 py-3 text-left font-mono text-emerald-700">
+                <td className="px-3.5 py-3 text-left text-emerald-700">
                   {formatRupiah(totals.dibayar)}
                 </td>
-                <td className="px-3.5 py-3 text-left font-mono">
+                <td className="px-3.5 py-3 text-left">
                   {formatRupiah(totals.sisa)}
                 </td>
                 <td colSpan={2} className="px-3.5 py-3"></td>
@@ -368,7 +368,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                         {p.tipe.replace('_', ' ')}
                       </td>
                       <td className="px-3 py-2 text-gray-600">{fmtDateFull(p.tanggal)}</td>
-                      <td className="px-3 py-2 text-left font-mono font-medium text-gray-900">
+                      <td className="px-3 py-2 text-left font-medium text-gray-900">
                         {formatRupiah(p.nominal)}
                       </td>
                       <td className="px-3 py-2 text-gray-500">{p.keterangan ?? '—'}</td>

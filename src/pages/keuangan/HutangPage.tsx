@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Landmark, Building2, CreditCard, AlertTriangle, Lock, Unlock } from 'lucide-react';
+import { Plus, Landmark, Building2, CreditCard, AlertTriangle, Lock, Unlock, ExternalLink } from 'lucide-react';
 import TabBar from '../../components/ui/TabBar';
 import ExportButton from '../../components/ui/ExportButton';
-import Modal from '../../components/ui/Modal';
+
 import {
   useHutangStore,
   KATEGORI_HUTANG_LABELS,
@@ -13,13 +13,14 @@ import {
 } from '../../store/hutangStore';
 import { useProyekStore } from '../../store/proyekStore';
 import { usePinjamanBankStore } from '../../store/pinjamanBankStore';
-import { useCoaStore } from '../../store/coaStore';
+
 import { buildFilename } from '../../utils/exportUtils';
 import InputMutasiModal from './hutang/InputMutasiModal';
 import AntarProyekTab from './hutang/AntarProyekTab';
 import PinjamanBankTab from './hutang/PinjamanBankTab';
 import AgunanShmTab from './hutang/AgunanShmTab';
 import KontraktorTab from './hutang/KontraktorTab';
+import SaldoBerjalanDetailModal from './hutang/SaldoBerjalanDetailModal';
 
 // ── Helpers ──────────────────────────────────────────────────
 function formatRupiah(n: number) {
@@ -34,13 +35,7 @@ function formatRupiahShort(n: number) {
   return formatRupiah(n);
 }
 
-function formatDateFull(iso: string) {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
+
 
 function getCurrentBulan() {
   const now = new Date();
@@ -68,10 +63,9 @@ function getMonthOptions() {
 // ── Main Component ───────────────────────────────────────────
 export default function HutangPage() {
   const navigate = useNavigate();
-  const { getSaldoPerKodePembantu, getTotalHutang, getTotalByKategori, getMutasiByKodePembantu } = useHutangStore();
+  const { getSaldoPerKodePembantu, getTotalHutang, getTotalByKategori } = useHutangStore();
   const { items: proyeks } = useProyekStore();
   const { getDueReminders } = usePinjamanBankStore();
-  const { items: coaList } = useCoaStore();
 
   // Filters
   const [selectedProyek, setSelectedProyek] = useState('');
@@ -112,20 +106,7 @@ export default function HutangPage() {
     { key: 'kontraktor', label: 'Kontraktor' },
   ];
 
-  // Jurnal list for detail modal
-  const relatedJurnalEntries = useMemo(() => {
-    if (!selectedJurnalRow) return [];
-    const kpMutasis = getMutasiByKodePembantu(selectedJurnalRow.kodePembantu.id);
-    return kpMutasis.map((m, idx) => ({
-      id: m.id,
-      noJurnal: `JU-${selectedBulan.replace('-', '')}-${String(idx + 1).padStart(3, '0')}`,
-      tanggal: formatDateFull(m.tanggal),
-      uraian: m.uraian,
-      debit: m.jenisMutasi === 'debit' ? m.nominal : 0,
-      kredit: m.jenisMutasi === 'kredit' ? m.nominal : 0,
-      akun: coaList.find((a) => a.id === m.akunCoaId)?.namaAkun || 'Hutang Usaha',
-    }));
-  }, [selectedJurnalRow, getMutasiByKodePembantu, selectedBulan, coaList]);
+
 
   return (
     <div className="space-y-6">
@@ -375,31 +356,41 @@ export default function HutangPage() {
                         </td>
 
                         {/* Saldo Awal */}
-                        <td className="px-4 py-3.5 text-left font-mono text-gray-700">
+                        <td className="px-4 py-3.5 text-left text-gray-700">
                           {row.saldoAwal > 0 ? formatRupiah(row.saldoAwal) : '—'}
                         </td>
 
                         {/* Mutasi (Click opens jurnal pembentuk modal - FE-06a) */}
                         <td
                           onClick={() => setSelectedJurnalRow(row)}
-                          className="px-4 py-3.5 text-left font-mono cursor-pointer group"
-                          title="Klik untuk melihat daftar jurnal pembentuk"
+                          className="px-4 py-3.5 text-left cursor-pointer"
                         >
-                          {row.mutasiBulan === 0 ? (
-                            <span className="text-gray-400">—</span>
-                          ) : row.mutasiBulan < 0 ? (
-                            <span className="text-red-600 group-hover:underline">
-                              ({formatRupiah(Math.abs(row.mutasiBulan))})
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedJurnalRow(row);
+                            }}
+                            className={`group inline-flex items-center gap-1.5 text-sm transition-all cursor-pointer ${
+                              row.mutasiBulan === 0
+                                ? 'text-gray-400 hover:text-gray-600'
+                                : row.mutasiBulan < 0
+                                ? 'text-red-600 hover:text-red-700'
+                                : 'text-green-700 hover:text-green-900'
+                            }`}
+                            title="Klik untuk melihat rincian jurnal pembentuk mutasi"
+                          >
+                            <span className="group-hover:underline">
+                              {row.mutasiBulan === 0
+                                ? '—'
+                                : formatRupiah(Math.abs(row.mutasiBulan))}
                             </span>
-                          ) : (
-                            <span className="text-gray-800 group-hover:underline">
-                              {formatRupiah(row.mutasiBulan)}
-                            </span>
-                          )}
+                            <ExternalLink className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
+                          </button>
                         </td>
 
                         {/* Saldo Akhir */}
-                        <td className="px-4 py-3.5 text-left font-mono font-semibold text-gray-900">
+                        <td className="px-4 py-3.5 text-left font-semibold text-gray-900">
                           {formatRupiah(row.saldoAkhir)}
                         </td>
                       </tr>
@@ -463,71 +454,14 @@ export default function HutangPage() {
       {/* ── Input Mutasi Modal ───────────────────────────────── */}
       <InputMutasiModal isOpen={inputOpen} onClose={() => setInputOpen(false)} />
 
-      {/* ── Modal Jurnal Pembentuk Mutasi (FE-06a) ────────────── */}
-      <Modal
+      <SaldoBerjalanDetailModal
         isOpen={selectedJurnalRow !== null}
         onClose={() => setSelectedJurnalRow(null)}
-        title={`Jurnal Pembentuk Mutasi — ${selectedJurnalRow?.kodePembantu.nama || ''}`}
-        size="lg"
-        footer={
-          <button
-            onClick={() => setSelectedJurnalRow(null)}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Tutup
-          </button>
-        }
-      >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
-            <span>
-              Kategori: <strong>{selectedJurnalRow ? KATEGORI_HUTANG_LABELS[selectedJurnalRow.kodePembantu.kategori] : ''}</strong>
-            </span>
-            <span>
-              Periode: <strong>{formatBulanLabel(selectedBulan)}</strong>
-            </span>
-          </div>
-
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 text-xs">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">Tgl (dd/mm/yyyy)</th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">No. Bukti</th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">Akun</th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">Uraian</th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">Debit</th>
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">Kredit</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {relatedJurnalEntries.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-3 py-6 text-center text-gray-400">
-                      Tidak ada mutasi jurnal pada periode ini.
-                    </td>
-                  </tr>
-                ) : (
-                  relatedJurnalEntries.map((je) => (
-                    <tr key={je.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{je.tanggal}</td>
-                      <td className="px-3 py-2 font-mono text-indigo-600">{je.noJurnal}</td>
-                      <td className="px-3 py-2 text-gray-700">{je.akun}</td>
-                      <td className="px-3 py-2 text-gray-600">{je.uraian}</td>
-                      <td className="px-3 py-2 text-left font-mono">
-                        {je.debit > 0 ? formatRupiah(je.debit) : '—'}
-                      </td>
-                      <td className="px-3 py-2 text-left font-mono">
-                        {je.kredit > 0 ? formatRupiah(je.kredit) : '—'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Modal>
+        rowData={selectedJurnalRow}
+        periodeLabel={formatBulanLabel(selectedBulan)}
+        selectedBulan={selectedBulan}
+        isPeriodeTerkunci={isPeriodeTerkunci}
+      />
     </div>
   );
 }

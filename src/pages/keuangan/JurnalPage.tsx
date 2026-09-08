@@ -82,7 +82,7 @@ export default function JurnalPage() {
   };
 
   const columns: Column<Jurnal>[] = [
-    { key: 'nomorJurnal', label: 'No. Jurnal', className: 'font-mono' },
+    { key: 'nomorJurnal', label: 'No. Jurnal' },
     { key: 'tanggal', label: 'Tanggal' },
     { key: 'keterangan', label: 'Keterangan' },
     {
@@ -223,7 +223,7 @@ export default function JurnalPage() {
                         className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       >
                         <option value="">-- Pilih Akun --</option>
-                        {akuns.map((a) => (
+                        {akuns.filter(a => !akuns.some(child => child.akunIndukId === a.id)).map((a) => (
                           <option key={a.id} value={a.id}>
                             {a.kodeAkun} — {a.namaAkun}
                           </option>
@@ -321,7 +321,7 @@ export default function JurnalPage() {
               <tbody className="divide-y divide-gray-100">
                 {detailJurnal.rows.map((r) => (
                   <tr key={r.id}>
-                    <td className="px-4 py-2 font-mono text-xs">{getAkunLabel(r.akunId)}</td>
+                    <td className="px-4 py-2 text-xs">{getAkunLabel(r.akunId)}</td>
                     <td className="px-4 py-2 text-gray-500">{r.keterangan || '-'}</td>
                     <td className="px-4 py-2 text-left">{r.debit ? formatRupiah(r.debit) : '-'}</td>
                     <td className="px-4 py-2 text-left">{r.kredit ? formatRupiah(r.kredit) : '-'}</td>

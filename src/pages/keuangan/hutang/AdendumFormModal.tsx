@@ -74,7 +74,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">No. SPK Rujukan</label>
-            <input type="text" value={kontrak.noSpk} disabled className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500 font-mono" />
+            <input type="text" value={kontrak.noSpk} disabled className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Adendum <span className="text-red-500">*</span></label>
@@ -133,7 +133,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
                       <th className="px-4 py-2 text-left font-semibold text-gray-600">Kredit</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white font-mono">
+                  <tbody className="divide-y divide-gray-100 bg-white">
                     {selisih > 0 ? (
                       <>
                         <tr>

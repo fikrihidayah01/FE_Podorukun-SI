@@ -19,7 +19,7 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
   const akuns = useCoaStore((s) => s.items);
 
   const kasBankAkuns = useMemo(() => {
-    return akuns.filter(a => a.tipe === 'aset' && (a.namaAkun.toLowerCase().includes('kas') || a.namaAkun.toLowerCase().includes('bank')));
+    return akuns.filter(a => a.isKasBank);
   }, [akuns]);
 
   const [form, setForm] = useState({
@@ -134,7 +134,7 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
                       <th className="px-4 py-2 text-left font-semibold text-gray-600">Kredit</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white font-mono">
+                  <tbody className="divide-y divide-gray-100 bg-white">
                     <tr>
                       <td className="px-4 py-2 text-gray-700">Hutang Kontraktor</td>
                       <td className="px-4 py-2 text-left">{formatRupiah(pNominal)}</td>

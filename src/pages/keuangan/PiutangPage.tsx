@@ -346,17 +346,17 @@ export default function PiutangPage() {
                     </td>
 
                     {/* Nilai SPPR */}
-                    <td className="px-5 py-3.5 text-left font-mono font-medium text-gray-900">
+                    <td className="px-5 py-3.5 text-left font-medium text-gray-900">
                       {formatRupiah(kv.nilaiSppr)}
                     </td>
 
                     {/* Dibayar */}
-                    <td className="px-5 py-3.5 text-left font-mono text-gray-700">
+                    <td className="px-5 py-3.5 text-left text-gray-700">
                       {formatRupiah(dibayar)}
                     </td>
 
                     {/* Sisa */}
-                    <td className="px-5 py-3.5 text-left font-mono font-semibold">
+                    <td className="px-5 py-3.5 text-left font-semibold">
                       {sisa === 0 ? (
                         <span className="text-emerald-600 font-bold">Rp 0</span>
                       ) : (

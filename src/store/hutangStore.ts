@@ -107,12 +107,20 @@ const DUMMY_KODE_PEMBANTU: KodePembantu[] = [
   { id: 'kp6', nama: 'Kantor Pajak', proyekId: 'p1', kategori: 'ppn' },
 ];
 
+const now = new Date();
+const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
 const DUMMY_MUTASI: MutasiHutang[] = [
   // Pak Warsito — lahan — saldo awal 2.476.557.881
   {
     id: 'm1', proyekId: 'p1', kodePembantuId: 'kp1', kategori: 'lahan',
     tanggal: '2026-01-01', uraian: 'Saldo awal hutang lahan', jenisMutasi: 'kredit',
     nominal: 2476557881, createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'm1_curr', proyekId: 'p1', kodePembantuId: 'kp1', kategori: 'lahan',
+    tanggal: `${currentYm}-05`, uraian: 'Pembayaran termin lahan tahap 3', jenisMutasi: 'debit',
+    nominal: 150000000, createdAt: `${currentYm}-05T00:00:00Z`,
   },
   // Bank Mandiri — bank — saldo awal 40.900.400.000, mutasi debit 300jt
   {
@@ -122,10 +130,10 @@ const DUMMY_MUTASI: MutasiHutang[] = [
   },
   {
     id: 'm3', proyekId: 'p2', kodePembantuId: 'kp2', kategori: 'bank',
-    tanggal: '2026-06-15', uraian: 'Pembayaran angsuran pokok', jenisMutasi: 'debit',
-    nominal: 300000000, createdAt: '2026-06-15T00:00:00Z',
+    tanggal: `${currentYm}-15`, uraian: 'Pembayaran angsuran pokok', jenisMutasi: 'debit',
+    nominal: 300000000, createdAt: `${currentYm}-15T00:00:00Z`,
   },
-  // Aya Sophia — antar proyek — saldo awal 2.161.240.190, kredit 10jt
+  // Aya Sophia — antar proyek — saldo awal 2.161.240.190, kredit 25jt
   {
     id: 'm4', proyekId: 'p1', kodePembantuId: 'kp3', kategori: 'antar_proyek',
     tanggal: '2026-01-01', uraian: 'Saldo awal hutang antar proyek', jenisMutasi: 'kredit',
@@ -133,9 +141,9 @@ const DUMMY_MUTASI: MutasiHutang[] = [
   },
   {
     id: 'm5', proyekId: 'p1', kodePembantuId: 'kp3', kategori: 'antar_proyek',
-    tanggal: '2026-06-20', uraian: 'Pinjaman operasional dari Aya Sophia', jenisMutasi: 'kredit',
-    nominal: 10000000, proyekLawanId: 'p3', mirrorMutasiId: 'm5_mirror',
-    createdAt: '2026-06-20T00:00:00Z',
+    tanggal: `${currentYm}-12`, uraian: 'Pinjaman operasional dari Aya Sophia', jenisMutasi: 'kredit',
+    nominal: 25000000, proyekLawanId: 'p3', mirrorMutasiId: 'm5_mirror',
+    createdAt: `${currentYm}-12T00:00:00Z`,
   },
   // Investor Arohma — pihak ketiga — saldo awal 5mily, debit 500jt
   {
@@ -145,8 +153,8 @@ const DUMMY_MUTASI: MutasiHutang[] = [
   },
   {
     id: 'm7', proyekId: 'p2', kodePembantuId: 'kp4', kategori: 'pihak_ketiga',
-    tanggal: '2026-06-10', uraian: 'Pengembalian investasi sebagian', jenisMutasi: 'debit',
-    nominal: 500000000, createdAt: '2026-06-10T00:00:00Z',
+    tanggal: `${currentYm}-10`, uraian: 'Pengembalian investasi sebagian', jenisMutasi: 'debit',
+    nominal: 500000000, createdAt: `${currentYm}-10T00:00:00Z`,
   },
 ];
 
@@ -341,6 +349,6 @@ export const useHutangStore = create<HutangState>()(
           .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
       },
     }),
-    { name: 'si-hutang-v2' }
+    { name: 'si-hutang-v3' }
   )
 );

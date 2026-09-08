@@ -258,17 +258,17 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
                     </td>
 
                     {/* Total Pencairan */}
-                    <td className="px-4 py-3.5 text-left font-mono font-medium text-gray-900">
+                    <td className="px-4 py-3.5 text-left font-medium text-gray-900">
                       {formatRupiah(p.totalPencairan)}
                     </td>
 
                     {/* Sisa Pokok */}
-                    <td className="px-4 py-3.5 text-left font-mono text-gray-800">
+                    <td className="px-4 py-3.5 text-left text-gray-800">
                       {formatRupiah(p.sisaPokok)}
                     </td>
 
                     {/* Penebusan (Warning if negative) */}
-                    <td className="px-4 py-3.5 text-left font-mono font-medium">
+                    <td className="px-4 py-3.5 text-left font-medium">
                       {isNegativePenebusan ? (
                         <span className="flex items-center justify-start gap-1 text-red-600">
                           <AlertTriangle className="h-3.5 w-3.5" />
@@ -458,7 +458,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
               >
                 <option value="">Pilih Akun Hutang</option>
-                {akuns.filter((a) => a.tipe === 'kewajiban').map((a) => (
+                {akuns.filter((a) => a.kategori === 'hutang').map((a) => (
                   <option key={a.id} value={a.id}>{a.kodeAkun} — {a.namaAkun}</option>
                 ))}
               </select>
@@ -474,7 +474,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
               >
                 <option value="">Pilih Akun Beban</option>
-                {akuns.filter((a) => a.tipe === 'beban').map((a) => (
+                {akuns.filter((a) => a.kategori === 'beban').map((a) => (
                   <option key={a.id} value={a.id}>{a.kodeAkun} — {a.namaAkun}</option>
                 ))}
               </select>
