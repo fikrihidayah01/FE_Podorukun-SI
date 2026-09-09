@@ -200,7 +200,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
           <button type="button" onClick={onClose} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Batal</button>
-          <button type="submit" className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Simpan dan buat jurnal</button>
+          <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors">Simpan dan buat jurnal</button>
         </div>
       </form>
     </Modal>

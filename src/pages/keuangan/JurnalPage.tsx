@@ -222,25 +222,25 @@ export default function JurnalPage() {
   return (
     <div className="space-y-6">
       {/* Header Info */}
-      <div className="rounded-2xl bg-[#1c1c1c] p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Jurnal umum</h1>
-          <p className="text-gray-400 mt-1">Periode September 2026</p>
+          <h1 className="text-xl font-bold text-gray-900">Jurnal umum</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Periode September 2026</p>
         </div>
         <div className="flex items-center gap-3">
           {isPeriodeTerbuka ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700">
               Periode terbuka
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-700 px-3 py-1.5 text-sm font-medium text-gray-300">
-              <Lock className="h-4 w-4" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600">
+              <Lock className="h-3.5 w-3.5" />
               Periode terkunci
             </span>
           )}
           <button
             onClick={openForm}
-            className="flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium text-white hover:bg-white/20 transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             Buat jurnal
@@ -315,86 +315,84 @@ export default function JurnalPage() {
         title="Input jurnal umum"
         size="xl"
       >
-        <div className="space-y-4 bg-[#111111] -mx-6 -mt-6 p-6 rounded-t-2xl text-white">
-          <p className="text-sm text-gray-400 mb-4">Mutasi akan tercatat di saldo berjalan sesuai akun dan kode pembantu</p>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">Mutasi akan tercatat di saldo berjalan sesuai akun dan kode pembantu</p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Tanggal <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Tanggal <span className="text-red-500">*</span></label>
               <input
                 type="date"
                 value={tanggal}
                 onChange={(e) => setTanggal(e.target.value)}
-                className="w-full rounded-lg border border-gray-700 bg-[#1c1c1c] text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="w-full rounded-xl border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">No. bukti <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">No. bukti <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={dummyNomorBukti}
                 disabled
-                className="w-full rounded-lg border border-gray-700 bg-[#1c1c1c] text-gray-400 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-500 px-3 py-2 text-sm cursor-not-allowed"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Proyek <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Proyek <span className="text-red-500">*</span></label>
               <select
                 value={formProyekId}
                 onChange={(e) => setFormProyekId(e.target.value)}
-                className="w-full rounded-lg border border-gray-700 bg-[#1c1c1c] text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="w-full rounded-xl border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
               >
-                <option value="">-- Pilih --</option>
+                <option value="">-- Pilih Proyek --</option>
                 {proyeks.map(p => <option key={p.id} value={p.id}>{p.nama}</option>)}
               </select>
             </div>
             <div className="md:col-span-3">
-              <label className="block text-sm font-medium text-gray-300 mb-1">Keterangan <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Keterangan <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={keterangan}
                 onChange={(e) => setKeterangan(e.target.value)}
-                placeholder="Pembayaran lahan kavling A-08..."
-                className="w-full rounded-lg border border-gray-700 bg-[#1c1c1c] text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
+                placeholder="Contoh: Pembayaran lahan kavling A-08..."
+                className="w-full rounded-xl border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </div>
           </div>
-        </div>
 
-        <div className="bg-[#111111] text-white -mx-6 p-6 pt-0 space-y-4 rounded-b-2xl">
           {formErrors.length > 0 && (
-            <div className="rounded-lg bg-red-900/50 border border-red-800 p-3">
+            <div className="rounded-xl bg-red-50 border border-red-200 p-3">
               <ul className="list-disc list-inside space-y-1">
                 {formErrors.map((e, i) => (
-                  <li key={i} className="text-xs text-red-400">{e}</li>
+                  <li key={i} className="text-xs text-red-600 font-medium">{e}</li>
                 ))}
               </ul>
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-xl border border-gray-800 bg-[#1c1c1c]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-2xs">
             <table className="min-w-full text-sm">
-              <thead className="border-b border-gray-800">
+              <thead className="bg-gray-50/80 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 w-56">Akun</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 w-48">Kode pembantu</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Keterangan</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 w-32">Debit</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 w-32">Kredit</th>
+                  <th className="px-3.5 py-2.5 text-left text-xs font-semibold text-gray-600 w-56">Akun</th>
+                  <th className="px-3.5 py-2.5 text-left text-xs font-semibold text-gray-600 w-44">Kode pembantu</th>
+                  <th className="px-3.5 py-2.5 text-left text-xs font-semibold text-gray-600">Keterangan</th>
+                  <th className="px-3.5 py-2.5 text-right text-xs font-semibold text-gray-600 w-32">Debit</th>
+                  <th className="px-3.5 py-2.5 text-right text-xs font-semibold text-gray-600 w-32">Kredit</th>
                   <th className="w-10" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-gray-100">
                 {rows.map((row) => {
                   const selectedAkun = getAkun(row.akunId);
                   const isWajib = selectedAkun?.wajibKodePembantu;
                   return (
-                    <tr key={row.id}>
-                      <td className="px-4 py-2">
+                    <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-3 py-2">
                         <select
                           value={row.akunId}
                           onChange={(e) => updateRow(row.id, 'akunId', e.target.value)}
-                          className="w-full bg-transparent text-sm focus:outline-none text-white [&>option]:bg-[#1c1c1c]"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                         >
                           <option value="">-- Pilih --</option>
                           {akuns.filter(a => a.status === 'aktif' && !akuns.some(child => child.akunIndukId === a.id)).map((a) => (
@@ -402,35 +400,35 @@ export default function JurnalPage() {
                           ))}
                         </select>
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-3 py-2">
                         {selectedAkun ? (
                           <div className="flex items-center gap-1">
                             <select
                               value={row.kodePembantuId || ''}
                               onChange={(e) => updateRow(row.id, 'kodePembantuId', e.target.value)}
-                              className="w-full bg-transparent text-sm focus:outline-none text-white [&>option]:bg-[#1c1c1c]"
+                              className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                             >
                               <option value="">{isWajib ? 'Pilih' : 'Tidak wajib'}</option>
                               {DUMMY_KODE_PEMBANTU.map(kp => (
                                 <option key={kp.id} value={kp.id}>{kp.id}</option>
                               ))}
                             </select>
-                            {isWajib && <span className="text-red-500 text-lg">*</span>}
+                            {isWajib && <span className="text-red-500 font-bold text-base">*</span>}
                           </div>
                         ) : (
-                          <span className="text-gray-600 text-sm">-</span>
+                          <span className="text-gray-400 text-xs px-2.5">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-3 py-2">
                         <input
                           type="text"
                           value={row.keterangan}
                           onChange={(e) => updateRow(row.id, 'keterangan', e.target.value)}
                           placeholder="Opsional"
-                          className="w-full bg-transparent text-sm focus:outline-none text-gray-300 placeholder-gray-600"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                         />
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-3 py-2">
                         <input
                           type="number"
                           value={row.debit || ''}
@@ -438,10 +436,10 @@ export default function JurnalPage() {
                           disabled={row.kredit > 0}
                           min={0}
                           placeholder="0"
-                          className="w-full bg-transparent text-sm text-right focus:outline-none text-white placeholder-gray-600 disabled:opacity-30"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-right text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         />
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-3 py-2">
                         <input
                           type="number"
                           value={row.kredit || ''}
@@ -449,14 +447,15 @@ export default function JurnalPage() {
                           disabled={row.debit > 0}
                           min={0}
                           placeholder="0"
-                          className="w-full bg-transparent text-sm text-right focus:outline-none text-white placeholder-gray-600 disabled:opacity-30"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-right text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         />
                       </td>
                       <td className="px-2 py-2 text-center">
                         <button
+                          type="button"
                           onClick={() => removeRow(row.id)}
                           disabled={rows.length <= 2}
-                          className="text-gray-500 hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -467,54 +466,72 @@ export default function JurnalPage() {
               </tbody>
             </table>
             
-            <div className="px-4 py-3 flex items-center border-t border-gray-800">
-              <button onClick={addRow} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white font-medium">
+            <div className="px-3.5 py-2.5 border-t border-gray-100 bg-gray-50/50 flex items-center">
+              <button
+                type="button"
+                onClick={addRow}
+                className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
+              >
                 <Plus className="h-4 w-4" /> Tambah baris
               </button>
             </div>
           </div>
           
-          <div className="flex justify-end pt-2 px-4 gap-8 text-right">
+          <div className="flex justify-end pt-1 px-2 gap-8 text-right">
             <div>
-              <p className="text-sm text-gray-400 mb-1">Total debit</p>
-              <p className="text-lg font-semibold text-white">{formatRupiah(totalDebit)}</p>
+              <p className="text-xs text-gray-500 font-medium mb-0.5">Total debit</p>
+              <p className="text-base font-bold text-gray-900">{formatRupiah(totalDebit)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-400 mb-1">Total kredit</p>
-              <p className="text-lg font-semibold text-white">{formatRupiah(totalKredit)}</p>
+              <p className="text-xs text-gray-500 font-medium mb-0.5">Total kredit</p>
+              <p className="text-base font-bold text-gray-900">{formatRupiah(totalKredit)}</p>
             </div>
           </div>
 
           {/* Posting Readiness */}
-          <div className={`rounded-xl p-4 flex gap-3 text-sm font-medium border ${isBalanced && !hasEmptyWajibKodePembantu ? 'bg-[#e6f4ea] border-[#a8dab5] text-[#137333]' : 'bg-[#1c1c1c] border-gray-800 text-gray-400'}`}>
-            <span>{isBalanced && !hasEmptyWajibKodePembantu ? '✓ Seimbang. Siap diposting.' : 'Belum seimbang atau data belum lengkap.'}</span>
+          <div className={`rounded-xl p-3.5 flex items-center gap-2 text-sm font-medium border ${
+            isBalanced && !hasEmptyWajibKodePembantu
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-amber-50 border-amber-200 text-amber-800'
+          }`}>
+            <span>
+              {isBalanced && !hasEmptyWajibKodePembantu
+                ? '✓ Seimbang. Siap diposting.'
+                : 'Belum seimbang atau data belum lengkap.'}
+            </span>
           </div>
 
           {/* Dynamic Notice Impact */}
           {noticeText && (
-            <div className="rounded-xl p-4 bg-[#e8f0fe] border border-[#aebce1] text-[#1967d2] text-sm">
-              <div className="font-medium mb-1 flex items-center gap-1.5">
-                <span className="text-lg leading-none">→</span> Akan tercatat di saldo berjalan
+            <div className="rounded-xl p-3.5 bg-blue-50 border border-blue-200 text-blue-900 text-sm">
+              <div className="font-semibold mb-1 flex items-center gap-1.5 text-blue-800">
+                <span className="text-base leading-none">→</span> Akan tercatat di saldo berjalan
               </div>
-              <div>{noticeText}</div>
+              <div className="text-blue-700">{noticeText}</div>
             </div>
           )}
 
           {/* Footer actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <button onClick={() => setFormOpen(false)} className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+            >
               Batal
             </button>
             <button
+              type="button"
               onClick={() => handleSubmit('draft')}
-              className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100/70 transition-colors shadow-2xs cursor-pointer"
             >
               Simpan draft
             </button>
             <button
+              type="button"
               onClick={() => handleSubmit('diposting')}
               disabled={!isBalanced || hasEmptyWajibKodePembantu}
-              className="rounded-lg bg-white text-black px-4 py-2 text-sm font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors cursor-pointer"
             >
               Simpan dan posting
             </button>
