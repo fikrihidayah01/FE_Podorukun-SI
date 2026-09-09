@@ -1,9 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type JurnalStatus = 'draft' | 'diposting' | 'dikoreksi';
+
 export interface JurnalRow {
   id: string;
   akunId: string;
+  kodePembantuId?: string;
   keterangan: string;
   debit: number;
   kredit: number;
@@ -14,6 +17,9 @@ export interface Jurnal {
   nomorJurnal: string;
   tanggal: string;
   keterangan: string;
+  proyekId?: string;
+  sumber: string;
+  status: JurnalStatus;
   rows: JurnalRow[];
   createdAt: string;
 }
@@ -22,6 +28,7 @@ interface JurnalState {
   items: Jurnal[];
   counter: number;
   add: (data: Omit<Jurnal, 'id' | 'nomorJurnal' | 'createdAt'>) => void;
+  updateStatus: (id: string, status: JurnalStatus) => void;
   remove: (id: string) => void;
 }
 
@@ -48,11 +55,15 @@ export const useJurnalStore = create<JurnalState>()(
           };
         }),
 
+      updateStatus: (id, status) => set(state => ({
+        items: state.items.map(item => item.id === id ? { ...item, status } : item)
+      })),
+
       remove: (id) =>
         set((state) => ({
           items: state.items.filter((item) => item.id !== id),
         })),
     }),
-    { name: 'si-jurnal' }
+    { name: 'si-jurnal-v2' }
   )
 );

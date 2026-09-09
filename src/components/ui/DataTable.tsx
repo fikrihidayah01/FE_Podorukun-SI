@@ -7,29 +7,31 @@ export interface Column<T> {
   className?: string;
 }
 
-interface DataTableProps<T> {
-  columns: Column<T>[];
+export interface DataTableProps<T> {
   data: T[];
-  keyExtractor: (row: T) => string | number;
-  page: number;
+  columns: Column<T>[];
+  keyExtractor: (item: T) => string;
+  onRowClick?: (item: T) => void;
+  page?: number;
   pageSize?: number;
-  onPageChange: (page: number) => void;
+  onPageChange?: (page: number) => void;
   emptyMessage?: string;
-  rowClassName?: (row: T) => string;
+  rowClassName?: (item: T) => string;
 }
 
 export default function DataTable<T>({
   columns,
   data,
   keyExtractor,
-  page,
+  onRowClick,
+  page = 1,
   pageSize = 10,
   onPageChange,
   emptyMessage = 'Tidak ada data.',
   rowClassName,
 }: DataTableProps<T>) {
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
-  const paginated = data.slice((page - 1) * pageSize, page * pageSize);
+  const paginated = onPageChange ? data.slice((page - 1) * pageSize, page * pageSize) : data;
 
   return (
     <div>
@@ -62,7 +64,8 @@ export default function DataTable<T>({
               paginated.map((row) => (
                 <tr
                   key={keyExtractor(row)}
-                  className={`hover:bg-gray-50 transition-colors ${rowClassName ? rowClassName(row) : ''}`}
+                  onClick={() => onRowClick?.(row)}
+                  className={`hover:bg-gray-50 transition-colors ${rowClassName ? rowClassName(row) : ''} ${onRowClick ? 'cursor-pointer' : ''}`}
                 >
                   {columns.map((col) => (
                     <td
@@ -85,12 +88,12 @@ export default function DataTable<T>({
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
           <p>
-            Menampilkan {Math.min((page - 1) * pageSize + 1, data.length)}–
+            Menampilkan {Math.min((page - 1) * pageSize + 1, data.length)}—
             {Math.min(page * pageSize, data.length)} dari {data.length} data
           </p>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => onPageChange(page - 1)}
+              onClick={() => onPageChange?.(page - 1)}
               disabled={page <= 1}
               className="rounded-lg p-1.5 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -99,7 +102,7 @@ export default function DataTable<T>({
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button
                 key={p}
-                onClick={() => onPageChange(p)}
+                onClick={() => onPageChange?.(p)}
                 className={`min-w-[2rem] rounded-lg px-2 py-1 text-xs font-medium ${
                   p === page
                     ? 'bg-indigo-600 text-white'
@@ -110,7 +113,7 @@ export default function DataTable<T>({
               </button>
             ))}
             <button
-              onClick={() => onPageChange(page + 1)}
+              onClick={() => onPageChange?.(page + 1)}
               disabled={page >= totalPages}
               className="rounded-lg p-1.5 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
             >
