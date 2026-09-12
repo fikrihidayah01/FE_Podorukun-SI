@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Trash2, Bell, AlertTriangle, Building2 } from 'lucide-react';
+import { MdAdd, MdDeleteOutline, MdNotifications, MdWarning, MdApartment } from 'react-icons/md';
 import {
   usePinjamanBankStore,
   type PinjamanBank,
@@ -126,7 +126,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
       {/* ── Jatuh Tempo Mendekat Banner ───── */}
       {reminders.length > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3.5 text-red-900 shadow-sm">
-          <Bell className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+          <MdNotifications className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
           <div className="text-sm">
             <p className="font-semibold text-red-900">Jatuh tempo mendekat</p>
             <p className="mt-0.5 text-xs text-red-700">
@@ -137,7 +137,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
       )}
 
       {/* ── Action Toolbar: Title / Count + Export + Add Button ─ */}
-      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+      <div className="rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3">
         <h3 className="text-sm font-bold text-gray-900">
           {filteredPinjamans.length} pinjaman tercatat
         </h3>
@@ -190,9 +190,9 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
 
           <button
             onClick={openAdd}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-colors"
           >
-            <Plus className="h-4 w-4" />
+            <MdAdd className="h-4 w-4" />
             Tambah pinjaman
           </button>
         </div>
@@ -201,7 +201,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
       {/* ── Table matching media_1788804430820.png ───────────── */}
       {filteredPinjamans.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 text-gray-400 bg-white shadow-sm">
-          <Building2 className="h-10 w-10 mb-2 text-gray-300" />
+          <MdApartment className="h-10 w-10 mb-2 text-gray-300" />
           <p className="text-sm font-medium text-gray-500">Belum ada pinjaman bank.</p>
         </div>
       ) : (
@@ -271,7 +271,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
                     <td className="px-4 py-3.5 text-left font-medium">
                       {isNegativePenebusan ? (
                         <span className="flex items-center justify-start gap-1 text-red-600">
-                          <AlertTriangle className="h-3.5 w-3.5" />
+                          <MdWarning className="h-3.5 w-3.5" />
                           ({formatRupiah(Math.abs(p.penebusan))})
                         </span>
                       ) : p.penebusan === 0 ? (
@@ -297,7 +297,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
                         className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                         aria-label="Hapus pinjaman"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <MdDeleteOutline className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { MdClose } from 'react-icons/md';
 
 interface ModalProps {
   isOpen: boolean;
@@ -65,7 +65,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
               className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer transition-colors"
               aria-label="Tutup"
             >
-              <X className="h-4 w-4" />
+              <MdClose className="h-5 w-5" />
             </button>
           </div>
         </div>

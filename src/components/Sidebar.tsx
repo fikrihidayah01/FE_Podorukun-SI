@@ -4,13 +4,13 @@ import { useAuthStore } from '../store/authStore';
 import menuConfig from '../config/menuConfig';
 import type { UserRole } from '../store/authStore';
 import {
-  ChevronRight,
-  ChevronDown,
-  Bell,
-  LogOut,
-  User,
-  X,
-} from 'lucide-react';
+  MdChevronRight,
+  MdKeyboardArrowDown,
+  MdNotifications,
+  MdLogout,
+  MdPerson,
+  MdClose,
+} from 'react-icons/md';
 import type { MenuItem } from '../config/menuConfig';
 
 interface SidebarProps {
@@ -62,9 +62,9 @@ function AccordionItem({ item, onClose }: { item: MenuItem; onClose: () => void 
         />
         <span className="flex-1">{item.label}</span>
         {open ? (
-          <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+          <MdKeyboardArrowDown className="h-4 w-4 text-gray-400" />
         ) : (
-          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <MdChevronRight className="h-4 w-4 text-gray-400" />
         )}
       </button>
 
@@ -128,10 +128,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar panel */}
       <aside
         className={`
-          fixed left-4 top-4 z-50 flex h-[calc(100vh-2rem)] w-72 flex-col
-          overflow-hidden rounded-2xl bg-white shadow-sm py-2
+          fixed left-0 top-0 bottom-0 z-50 flex h-screen w-72 flex-col
+          overflow-hidden border-r border-gray-200 bg-white py-2
           transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)]'}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
         `}
       >
@@ -154,7 +154,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
               title="Notifikasi"
             >
-              <Bell className="h-4 w-4" />
+              <MdNotifications className="h-4 w-4" />
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
             </button>
 
@@ -165,7 +165,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 lg:hidden"
               aria-label="Tutup sidebar"
             >
-              <X className="h-5 w-5" />
+              <MdClose className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -226,14 +226,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             className="flex w-full items-center justify-start gap-2.5 rounded-xl border border-[#F4F6F8] bg-transparent px-3.5 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 transition-all"
             title="Keluar dari akun"
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            <MdLogout className="h-4 w-4 shrink-0" />
             <span>Keluar (Logout)</span>
           </button>
 
           {/* User profile card (with indigo border, larger avatar & font) */}
           <div className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/30 p-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-              <User className="h-5 w-5" />
+              <MdPerson className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-gray-900 leading-tight">

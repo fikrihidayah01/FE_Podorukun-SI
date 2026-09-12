@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useKontrakStore, type Kontrak } from '../../../store/kontrakStore';
 import { useCoaStore } from '../../../store/coaStore';
 import Modal from '../../../components/ui/Modal';
-import { Info } from 'lucide-react';
+import { MdInfo } from 'react-icons/md';
 
 function formatRupiah(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID');
@@ -70,7 +70,7 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
       <form onSubmit={handleSubmit} className="space-y-5">
         
         <div className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900">
-          <Info className="h-5 w-5 mt-0.5 shrink-0 text-sky-600" />
+          <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-sky-600" />
           <p className="text-sm">
             Pembayaran ini akan dicatat sebagai 2 baris jurnal: mengurangi kewajiban (Hutang Kontraktor) dan mengurangi saldo Kas/Bank.
           </p>

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import type { UserRole } from '../store/authStore';
 import { useEffect } from 'react';
-import { LogIn } from 'lucide-react';
+import { MdLogin } from 'react-icons/md';
 
 const ROLES: { value: UserRole; label: string; description: string; color: string }[] = [
   {
@@ -61,7 +61,7 @@ export default function LoginPage() {
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center gap-2">
-            <LogIn className="h-4 w-4 text-indigo-600" />
+            <MdLogin className="h-4 w-4 text-indigo-600" />
             <p className="text-sm font-semibold text-gray-700">Masuk sebagai</p>
           </div>
 

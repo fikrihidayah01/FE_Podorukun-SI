@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useHutangStore } from '../../../store/hutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
-import { ArrowRight, ArrowLeftRight } from 'lucide-react';
+import { MdArrowForward, MdSwapHoriz } from 'react-icons/md';
 import ExportButton from '../../../components/ui/ExportButton';
 import { buildFilename } from '../../../utils/exportUtils';
 
@@ -37,9 +37,9 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
   return (
     <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
       {/* Header toolbar */}
-      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+      <div className="rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3">
         <div className="flex items-center gap-2">
-          <ArrowLeftRight className="h-5 w-5 text-teal-600" />
+          <MdSwapHoriz className="h-5 w-5 text-teal-600" />
           <div>
             <h3 className="text-sm font-bold text-gray-900">Riwayat Hutang Antar Proyek</h3>
             <p className="text-xs text-gray-500">
@@ -83,7 +83,7 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
       {/* Table */}
       {mutasis.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-          <ArrowLeftRight className="mx-auto mb-2 h-8 w-8 text-gray-300" />
+          <MdSwapHoriz className="mx-auto mb-2 h-8 w-8 text-gray-300" />
           <p className="text-sm font-medium text-gray-500">Belum ada transaksi antar proyek</p>
           <p className="mt-1 text-xs text-gray-400">
             Input mutasi dengan kategori "Hutang antar proyek" untuk memulai
@@ -113,7 +113,7 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
                   <td className="px-4 py-3 text-gray-600">
                     {m.proyekLawanId ? (
                       <span className="flex items-center gap-1">
-                        <ArrowRight className="h-3 w-3 text-gray-400" />
+                        <MdArrowForward className="h-3 w-3 text-gray-400" />
                         {proyekMap.get(m.proyekLawanId) ?? m.proyekLawanId}
                       </span>
                     ) : '-'}
@@ -138,7 +138,7 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
                   <td className="px-4 py-3 text-left">
                     {m.mirrorMutasiId ? (
                       <span className="w-32 inline-flex items-center justify-start text-left whitespace-nowrap gap-1 rounded-full bg-teal-100 px-3 py-0.5 text-xs font-medium text-teal-700">
-                        <ArrowLeftRight className="h-2.5 w-2.5" />
+                        <MdSwapHoriz className="h-2.5 w-2.5" />
                         Mirror
                       </span>
                     ) : (

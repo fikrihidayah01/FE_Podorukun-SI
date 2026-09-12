@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useProyekStore } from '../../store/proyekStore';
 import { useCoaStore, KATEGORI_AKUN_LABELS } from '../../store/coaStore';
 import { useSaldoAwalStore } from '../../store/saldoAwalStore';
-import { AlertTriangle, Info, Lock, Unlock } from 'lucide-react';
+import { MdWarning, MdInfo, MdLock, MdLockOpen } from 'react-icons/md';
 
 function formatRupiah(n: number) {
   if (n === 0) return 'Rp 0';
@@ -100,12 +100,12 @@ export default function CoaTabSaldoAwal() {
         <div>
           {isTerbuka ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800">
-              <Unlock className="h-4 w-4" />
+              <MdLockOpen className="h-4 w-4" />
               Periode terbuka
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
-              <Lock className="h-4 w-4" />
+              <MdLock className="h-4 w-4" />
               Periode terkunci
             </span>
           )}
@@ -113,7 +113,7 @@ export default function CoaTabSaldoAwal() {
       </div>
 
       <div className="rounded-2xl bg-blue-50 p-4 flex gap-3 text-blue-800 border border-blue-100 shadow-sm">
-        <Info className="h-5 w-5 shrink-0 mt-0.5 text-blue-600" />
+        <MdInfo className="h-5 w-5 shrink-0 mt-0.5 text-blue-600" />
         <div className="text-sm">
           <p className="font-semibold mb-1">Penting: Fungsi Saldo Awal</p>
           <p>
@@ -152,7 +152,7 @@ export default function CoaTabSaldoAwal() {
 
         {!isSeimbang && isTerbuka && (
           <div className="rounded-xl bg-red-50 p-4 border border-red-100 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <MdWarning className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-red-800">Saldo belum seimbang</p>
               <p className="text-sm text-red-700 mt-0.5">

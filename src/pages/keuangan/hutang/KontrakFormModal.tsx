@@ -3,7 +3,7 @@ import { useKontrakStore } from '../../../store/kontrakStore';
 import { useCoaStore } from '../../../store/coaStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import Modal from '../../../components/ui/Modal';
-import { AlertTriangle, Check } from 'lucide-react';
+import { MdWarning, MdCheck } from 'react-icons/md';
 
 function formatRupiah(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID');
@@ -101,7 +101,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
         )}
 
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#fffbeb] px-4 py-3 text-amber-900">
-          <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
+          <MdWarning className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
           <p className="text-sm">
             Hutang diakui penuh saat SPK disimpan. Perubahan nilai setelah ini harus lewat adendum.
           </p>
@@ -144,7 +144,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
 
         {(pRab > 0 && pNilai > 0) && (
           <div className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm ${selisih >= 0 ? 'bg-[#ecfdf5] border-[#a7f3d0] text-[#065f46]' : 'bg-red-50 border-red-200 text-red-700'}`}>
-            {selisih >= 0 ? <Check className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+            {selisih >= 0 ? <MdCheck className="h-5 w-5" /> : <MdWarning className="h-5 w-5" />}
             <p>
               {selisih >= 0 
                 ? `Di bawah RAB. Selisih ${formatRupiah(selisih)}.` 

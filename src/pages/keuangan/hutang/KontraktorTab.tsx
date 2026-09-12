@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useKontrakStore, type Kontrak } from '../../../store/kontrakStore';
 import { useProyekStore } from '../../../store/proyekStore';
-import { ChevronDown, ChevronRight, Plus, FileText, CheckCircle2, Wallet } from 'lucide-react';
+import { MdKeyboardArrowDown, MdChevronRight, MdAdd, MdDescription, MdCheckCircle, MdAccountBalanceWallet } from 'react-icons/md';
 import KontrakFormModal from './KontrakFormModal';
 import AdendumFormModal from './AdendumFormModal';
 import CatatPembayaranKontrakModal from './CatatPembayaranKontrakModal';
@@ -71,13 +71,13 @@ export default function KontraktorTab() {
   return (
     <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-5">
       {/* Header toolbar wrapped in #FCFBFC box with stroke */}
-      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+      <div className="rounded-2xl py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-base font-bold text-gray-900">Monitoring hutang per kavling ke kontraktor</h2>
         <div className="flex flex-wrap items-center gap-3">
           <select
             value={selectedProyek}
             onChange={(e) => setSelectedProyek(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <option value="">Semua proyek</option>
             {proyeks.map(p => <option key={p.id} value={p.id}>{p.nama}</option>)}
@@ -85,16 +85,16 @@ export default function KontraktorTab() {
           <select
             value={selectedKontraktor}
             onChange={(e) => setSelectedKontraktor(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <option value="">Semua kontraktor</option>
             {allKontraktors.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
           <button
             onClick={() => setIsKontrakModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-1.5 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-indigo-600 px-4 py-3 text-sm text-white font-medium hover:bg-gray-50 transition-colors shadow-sm"
           >
-            <Plus className="h-4 w-4" />
+            <MdAdd className="h-4 w-4" />
             Tambah kontrak
           </button>
         </div>
@@ -105,7 +105,7 @@ export default function KontraktorTab() {
         <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
           <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shrink-0">
-              <FileText className="h-6 w-6 text-white" />
+              <MdDescription className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
               {formatRupiahShort(totalNilai)}
@@ -117,7 +117,7 @@ export default function KontraktorTab() {
         <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
           <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shrink-0">
-              <CheckCircle2 className="h-6 w-6 text-white" />
+              <MdCheckCircle className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
               {formatRupiahShort(totalTerbayar)}
@@ -129,7 +129,7 @@ export default function KontraktorTab() {
         <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
           <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shrink-0">
-              <Wallet className="h-6 w-6 text-white" />
+              <MdAccountBalanceWallet className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
               {formatRupiahShort(totalSisa)}
@@ -165,7 +165,7 @@ export default function KontraktorTab() {
                   <tr className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => setExpandedRow(expandedRow === row.id ? null : row.id)}>
                     <td className="px-4 py-4 flex items-center gap-2">
                       <span className="text-gray-400">
-                        {expandedRow === row.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        {expandedRow === row.id ? <MdKeyboardArrowDown className="h-4 w-4" /> : <MdChevronRight className="h-4 w-4" />}
                       </span>
                       <span className="font-semibold text-gray-900">{row.kavling || '—'}</span>
                     </td>
@@ -234,10 +234,10 @@ export default function KontraktorTab() {
                         {row.status !== 'batal' ? (
                           <div className="flex items-center gap-3">
                             <button onClick={() => setBayarKontrak(row)} className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                              <Plus className="h-4 w-4" /> Catat pembayaran
+                              <MdAdd className="h-4 w-4" /> Catat pembayaran
                             </button>
                             <button onClick={() => setAdendumKontrak(row)} className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                              <Plus className="h-4 w-4" /> Adendum
+                              <MdAdd className="h-4 w-4" /> Adendum
                             </button>
                           </div>
                         ) : (

@@ -7,7 +7,7 @@ import {
   type StatusPeriode,
   type PeriodeAngsuran,
 } from '../../../store/piutangStore';
-import { AlertCircle, Edit2, Check, X } from 'lucide-react';
+import { MdErrorOutline, MdEdit, MdCheck, MdClose } from 'react-icons/md';
 
 // ── Props ─────────────────────────────────────────────────────
 
@@ -268,14 +268,14 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                             className="rounded p-1 text-emerald-600 hover:bg-emerald-50"
                             title="Simpan koreksi"
                           >
-                            <Check className="h-4 w-4" />
+                            <MdCheck className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setEditingPeriode(null)}
                             className="rounded p-1 text-gray-400 hover:bg-gray-100"
                             title="Batal"
                           >
-                            <X className="h-4 w-4" />
+                            <MdClose className="h-4 w-4" />
                           </button>
                         </div>
                       ) : (
@@ -284,7 +284,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                           className="rounded p-1 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
                           title="Koreksi alokasi manual"
                         >
-                          <Edit2 className="h-3.5 w-3.5" />
+                          <MdEdit className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </td>
@@ -339,7 +339,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
 
         {/* Explanatory note */}
         <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg p-3 border border-gray-200">
-          <AlertCircle className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+          <MdErrorOutline className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
           <p>
             <strong>Keterangan:</strong> Tunggakan jatuh tempo adalah sisa dari periode yang sudah lewat jatuh tempo saja, sedangkan Total belum terbayar mencakup seluruh sisa termasuk yang belum jatuh tempo.
           </p>

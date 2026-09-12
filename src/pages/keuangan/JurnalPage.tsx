@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Lock, Trash2 } from 'lucide-react';
+import { MdAdd, MdSearch, MdLock, MdDeleteOutline } from 'react-icons/md';
 import { useJurnalStore, type Jurnal, type JurnalRow } from '../../store/jurnalStore';
 import { useCoaStore } from '../../store/coaStore';
 import { useProyekStore } from '../../store/proyekStore';
@@ -220,9 +220,9 @@ export default function JurnalPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1">
       {/* Header Info */}
-      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 md:px-8 md:py-5 w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Jurnal umum</h1>
           <p className="text-sm text-gray-500 mt-0.5">Periode September 2026</p>
@@ -234,7 +234,7 @@ export default function JurnalPage() {
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600">
-              <Lock className="h-3.5 w-3.5" />
+              <MdLock className="h-3.5 w-3.5" />
               Periode terkunci
             </span>
           )}
@@ -242,16 +242,17 @@ export default function JurnalPage() {
             onClick={openForm}
             className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
           >
-            <Plus className="h-4 w-4" />
+            <MdAdd className="h-4 w-4" />
             Buat jurnal
           </button>
         </div>
       </div>
 
-      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <MdSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={search}
@@ -306,6 +307,7 @@ export default function JurnalPage() {
           emptyMessage="Tidak ada data jurnal yang cocok."
           onRowClick={(r) => setDetailJurnal(r)}
         />
+      </div>
       </div>
 
       {/* Form Input Jurnal */}
@@ -457,7 +459,7 @@ export default function JurnalPage() {
                           disabled={rows.length <= 2}
                           className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <MdDeleteOutline className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>
@@ -472,7 +474,7 @@ export default function JurnalPage() {
                 onClick={addRow}
                 className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
               >
-                <Plus className="h-4 w-4" /> Tambah baris
+                <MdAdd className="h-4 w-4" /> Tambah baris
               </button>
             </div>
           </div>

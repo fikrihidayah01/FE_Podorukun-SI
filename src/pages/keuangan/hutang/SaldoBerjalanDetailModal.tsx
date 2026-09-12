@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Info, Edit, RotateCcw } from 'lucide-react';
+import { MdInfo, MdEdit, MdUndo } from 'react-icons/md';
 import Modal from '../../../components/ui/Modal';
 import { useHutangStore, KATEGORI_HUTANG_LABELS, type SaldoKodePembantu } from '../../../store/hutangStore';
 import { useCoaStore } from '../../../store/coaStore';
@@ -71,7 +71,7 @@ export default function SaldoBerjalanDetailModal({
       footer={
         <div className="flex items-center justify-end gap-3 w-full">
           <button
-            onClick={() => navigate('/keuangan/coa')}
+            onClick={() => navigate('/keuangan/coa?tab=saldo_awal')}
             disabled={isPeriodeTerkunci}
             title={isPeriodeTerkunci ? 'Periode sedang terkunci, saldo awal tidak dapat diubah' : 'Buka halaman Saldo Awal di COA'}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
@@ -132,7 +132,7 @@ export default function SaldoBerjalanDetailModal({
 
         {/* Info Banner */}
         <div className="flex items-start gap-3 bg-blue-50 text-blue-800 p-3 rounded-lg border border-blue-100">
-          <Info className="h-5 w-5 text-blue-600 shrink-0" />
+          <MdInfo className="h-5 w-5 text-blue-600 shrink-0" />
           <p className="text-sm">
             Angka di tabel dihitung dari jurnal. Perbaikan dilakukan pada jurnalnya, bukan pada baris ini.
           </p>
@@ -179,12 +179,12 @@ export default function SaldoBerjalanDetailModal({
                       <td className="px-4 py-3 text-right">
                         {je.status === 'draft' ? (
                           <button className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700">
-                            <Edit className="h-3.5 w-3.5" />
+                            <MdEdit className="h-3.5 w-3.5" />
                             Edit
                           </button>
                         ) : (
                           <button className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700">
-                            <RotateCcw className="h-3.5 w-3.5" />
+                            <MdUndo className="h-3.5 w-3.5" />
                             Jurnal balik
                           </button>
                         )}

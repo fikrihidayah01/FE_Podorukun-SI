@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useKontrakStore, type Kontrak } from '../../../store/kontrakStore';
 import Modal from '../../../components/ui/Modal';
-import { FileUp, Info } from 'lucide-react';
+import { MdUploadFile, MdInfo } from 'react-icons/md';
 
 function formatRupiah(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID');
@@ -63,7 +63,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
     <Modal isOpen={isOpen} onClose={onClose} title="Adendum Kontrak" size="lg">
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="flex items-start gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-indigo-900">
-          <Info className="h-5 w-5 mt-0.5 shrink-0 text-indigo-600" />
+          <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-indigo-600" />
           <p className="text-sm">
             Adendum akan mengubah nilai sisa kontrak dan <strong>otomatis membentuk jurnal penyesuaian</strong> (Persediaan terhadap Hutang) sebesar selisih nilai.
           </p>
@@ -113,7 +113,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
             <label className="block text-sm font-medium text-gray-700 mb-1">Lampiran Dokumen</label>
             <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <FileUp className="w-6 h-6 mb-2 text-gray-500" />
+                <MdUploadFile className="w-6 h-6 mb-2 text-gray-500" />
                 <p className="text-xs text-gray-500">{lampiranObj ? lampiranObj.name : 'Klik untuk unggah dokumen (PDF/Word)'}</p>
               </div>
               <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => e.target.files && setLampiranObj(e.target.files[0])} />

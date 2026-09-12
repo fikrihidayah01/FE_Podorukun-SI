@@ -3,12 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSrpStore } from '../../store/srpStore';
 import SummernoteEditor from '../../components/ui/SummernoteEditor';
 import {
-  Save,
-  ArrowLeft,
-  Download,
-  FileDown,
-  CheckCircle,
-} from 'lucide-react';
+  MdSave,
+  MdArrowBack,
+  MdDownload,
+  MdFileDownload,
+  MdCheckCircle,
+} from 'react-icons/md';
 
 export default function SrpEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,37 +26,24 @@ export default function SrpEditorPage() {
   const handleSave = useCallback(() => {
     if (!id) return;
     setIsSaving(true);
-    update(id, {
-      judul: judul.trim() || 'Tanpa Judul',
-      content,
-    });
-    setTimeout(() => {
-      setIsSaving(false);
-      setSavedAt(new Date());
-    }, 200);
+    update(id, { judul, content });
+    setSavedAt(new Date());
+    setTimeout(() => setIsSaving(false), 300);
   }, [id, judul, content, update]);
 
-  // Auto-save setiap 30 detik
+  // Auto-save debounced 2 detik
   useEffect(() => {
-    const interval = setInterval(handleSave, 30000);
-    return () => clearInterval(interval);
-  }, [handleSave]);
-
-  // Ctrl+S shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
+    const timer = setTimeout(() => {
+      if (id && (judul !== doc?.judul || content !== doc?.content)) {
         handleSave();
       }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [handleSave]);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [judul, content, id, doc, handleSave]);
 
   if (!doc) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center gap-3">
+      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
         <p className="text-gray-500 font-medium">Dokumen tidak ditemukan.</p>
         <button
           onClick={() => navigate('/keuangan/srp')}
@@ -69,9 +56,9 @@ export default function SrpEditorPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)]">
+    <div className="flex flex-col flex-1 min-h-[calc(100vh-4rem)]">
       {/* Top bar */}
-      <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm w-full flex items-center gap-3">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 md:px-8 md:py-4 w-full flex items-center gap-3">
         <button
           onClick={() => {
             handleSave();
@@ -79,7 +66,7 @@ export default function SrpEditorPage() {
           }}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <MdArrowBack className="h-4 w-4" />
           Kembali
         </button>
 
@@ -95,7 +82,7 @@ export default function SrpEditorPage() {
           {/* Save status */}
           {savedAt && !isSaving && (
             <span className="flex items-center gap-1 text-xs text-emerald-600">
-              <CheckCircle className="h-3.5 w-3.5" />
+              <MdCheckCircle className="h-3.5 w-3.5" />
               Tersimpan {savedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
@@ -106,7 +93,7 @@ export default function SrpEditorPage() {
             title="Export PDF (segera hadir)"
             className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50 cursor-not-allowed opacity-60"
           >
-            <FileDown className="h-3.5 w-3.5" />
+            <MdFileDownload className="h-3.5 w-3.5" />
             PDF
           </button>
           <button
@@ -114,7 +101,7 @@ export default function SrpEditorPage() {
             title="Export Word (segera hadir)"
             className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50 cursor-not-allowed opacity-60"
           >
-            <Download className="h-3.5 w-3.5" />
+            <MdDownload className="h-3.5 w-3.5" />
             Word
           </button>
 
@@ -124,20 +111,22 @@ export default function SrpEditorPage() {
             disabled={isSaving}
             className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-70 cursor-pointer shadow-sm"
           >
-            <Save className="h-4 w-4" />
+            <MdSave className="h-4 w-4" />
             {isSaving ? 'Menyimpan...' : 'Simpan'}
           </button>
         </div>
       </div>
 
       {/* Editor card with Summernote */}
-      <div className="flex-1 flex flex-col rounded-xl bg-white shadow-sm p-4 overflow-y-auto">
-        <SummernoteEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Tulis uraian pengajuan atau isi dokumen SRP..."
-          height={480}
-        />
+      <div className="p-4 sm:p-6 lg:p-8 flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col rounded-xl bg-white shadow-sm p-4 overflow-y-auto">
+          <SummernoteEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Tulis uraian pengajuan atau isi dokumen SRP..."
+            height={480}
+          />
+        </div>
       </div>
     </div>
   );

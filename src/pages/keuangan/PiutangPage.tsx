@@ -1,5 +1,12 @@
 import { useState, useMemo } from 'react';
-import { RefreshCw, AlertTriangle, Info, FileText, CheckCircle2, Wallet } from 'lucide-react';
+import {
+  MdSync,
+  MdWarning,
+  MdInfo,
+  MdDescription,
+  MdCheckCircle,
+  MdAccountBalanceWallet,
+} from 'react-icons/md';
 import {
   usePiutangStore,
   TIPE_TRANSAKSI_LABELS,
@@ -111,77 +118,23 @@ export default function PiutangPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1">
       {/* ── Page Header ──────────────────────────────────────── */}
-      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 md:px-8 md:py-5 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Tagihan user</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Kavling belum serah terima · {periode}
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <ExportButton
-            getColumns={() => [
-              { header: 'Nama User', key: 'namaUser', width: 25 },
-              { header: 'No. Kavling', key: 'nomorKavling', width: 15 },
-              { header: 'Proyek', key: 'proyek', width: 20 },
-              { header: 'Tipe Transaksi', key: 'tipe', width: 15 },
-              { header: 'Nilai SPPR', key: 'nilaiSppr', isNumber: true, width: 18 },
-              { header: 'Total Dibayar', key: 'dibayar', isNumber: true, width: 18 },
-              { header: 'Sisa Tagihan', key: 'sisa', isNumber: true, width: 18 },
-              { header: 'Status BAST', key: 'statusBast', width: 15 },
-            ]}
-            getData={() => [
-              ...filteredItems.map((kv) => ({
-                namaUser: kv.namaUser,
-                nomorKavling: kv.nomorKavling,
-                proyek: getProyekNama(kv.proyekId),
-                tipe: TIPE_TRANSAKSI_LABELS[kv.tipeTransaksi],
-                nilaiSppr: kv.nilaiSppr,
-                dibayar: getRowDibayar(kv),
-                sisa: getRowSisa(kv),
-                statusBast: kv.statusBast === 'belum_bast' ? 'Belum BAST' : 'Sudah BAST',
-              })),
-              {
-                namaUser: 'TOTAL',
-                nomorKavling: '',
-                proyek: '',
-                tipe: '',
-                nilaiSppr: totalNilaiKontrak,
-                dibayar: totalDibayar,
-                sisa: totalSisa,
-                statusBast: '',
-              },
-            ]}
-            opts={{
-              namaLaporan: 'Laporan Tagihan User per Kavling (Pre-BAST)',
-              proyek: selectedProyek ? getProyekNama(selectedProyek) : 'Semua Proyek',
-              periode,
-              filenameBase: buildFilename(
-                'Tagihan_User',
-                selectedProyek ? getProyekNama(selectedProyek) : undefined,
-                periode
-              ),
-            }}
-          />
-
-          <button
-            onClick={handleSinkron}
-            disabled={syncLoading}
-            className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 text-white ${syncLoading ? 'animate-spin' : ''}`} />
-            Sinkron Podo Rukun Track
-          </button>
-        </div>
       </div>
 
-      {/* ── API Error State Banner (Requirement) ─────────────── */}
+      {/* ── Page Content ─────────────────────────────────────── */}
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* ── API Error State Banner (Requirement) ─────────────── */}
       {apiError && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-          <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0 text-red-600" />
+          <MdWarning className="h-5 w-5 mt-0.5 shrink-0 text-red-600" />
           <div className="flex-1 text-sm">
             <p className="font-semibold">Gagal memuat data dari Podo Rukun Track</p>
             <p className="mt-0.5 text-xs text-red-700">
@@ -198,91 +151,175 @@ export default function PiutangPage() {
       )}
 
       {/* ── Main Summary & Filter White Card ───────────── */}
-      <div className="rounded-2xl bg-white p-4 md:p-5 shadow-sm w-full space-y-4">
         {/* ── 3 Filters wrapped in #FCFBFC box with stroke ────────────────────── */}
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-wrap items-center gap-3 shadow-sm">
-          {/* Proyek */}
-          <select
-            value={selectedProyek}
-            onChange={(e) => setSelectedProyek(e.target.value)}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="">Semua proyek</option>
-            {proyeks.map((p) => (
-              <option key={p.id} value={p.id}>{p.nama}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Proyek */}
+            <select
+              value={selectedProyek}
+              onChange={(e) => setSelectedProyek(e.target.value)}
+              className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              <option value="">Semua proyek</option>
+              {proyeks.map((p) => (
+                <option key={p.id} value={p.id}>{p.nama}</option>
+              ))}
+            </select>
 
-          {/* Status BAST */}
-          <select
-            value={selectedBast}
-            onChange={(e) => setSelectedBast(e.target.value as StatusBast | 'semua')}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="belum_bast">Belum BAST</option>
-            <option value="sudah_bast">Sudah BAST</option>
-            <option value="semua">Semua status</option>
-          </select>
+            {/* Status BAST */}
+            <select
+              value={selectedBast}
+              onChange={(e) => setSelectedBast(e.target.value as StatusBast | 'semua')}
+              className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              <option value="belum_bast">Belum BAST</option>
+              <option value="sudah_bast">Sudah BAST</option>
+              <option value="semua">Semua status</option>
+            </select>
 
-          {/* Tipe Transaksi */}
-          <select
-            value={selectedTipe}
-            onChange={(e) => setSelectedTipe(e.target.value as TipeTransaksi | '')}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="">Semua tipe</option>
-            <option value="cash">Cash</option>
-            <option value="kpr">KPR</option>
-            <option value="in_house">In house</option>
-          </select>
+            {/* Tipe Transaksi */}
+            <select
+              value={selectedTipe}
+              onChange={(e) => setSelectedTipe(e.target.value as TipeTransaksi | '')}
+              className="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              <option value="">Semua tipe</option>
+              <option value="cash">Cash</option>
+              <option value="kpr">KPR</option>
+              <option value="in_house">In house</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ExportButton
+              getColumns={() => [
+                { header: 'Nama User', key: 'namaUser', width: 25 },
+                { header: 'No. Kavling', key: 'nomorKavling', width: 15 },
+                { header: 'Proyek', key: 'proyek', width: 20 },
+                { header: 'Tipe Transaksi', key: 'tipe', width: 15 },
+                { header: 'Nilai SPPR', key: 'nilaiSppr', isNumber: true, width: 18 },
+                { header: 'Total Dibayar', key: 'dibayar', isNumber: true, width: 18 },
+                { header: 'Sisa Tagihan', key: 'sisa', isNumber: true, width: 18 },
+                { header: 'Status BAST', key: 'statusBast', width: 15 },
+              ]}
+              getData={() => [
+                ...filteredItems.map((kv) => ({
+                  namaUser: kv.namaUser,
+                  nomorKavling: kv.nomorKavling,
+                  proyek: getProyekNama(kv.proyekId),
+                  tipe: TIPE_TRANSAKSI_LABELS[kv.tipeTransaksi],
+                  nilaiSppr: kv.nilaiSppr,
+                  dibayar: getRowDibayar(kv),
+                  sisa: getRowSisa(kv),
+                  statusBast: kv.statusBast === 'belum_bast' ? 'Belum BAST' : 'Sudah BAST',
+                })),
+                {
+                  namaUser: 'TOTAL',
+                  nomorKavling: '',
+                  proyek: '',
+                  tipe: '',
+                  nilaiSppr: totalNilaiKontrak,
+                  dibayar: totalDibayar,
+                  sisa: totalSisa,
+                  statusBast: '',
+                },
+              ]}
+              opts={{
+                namaLaporan: 'Laporan Tagihan User per Kavling (Pre-BAST)',
+                proyek: selectedProyek ? getProyekNama(selectedProyek) : 'Semua Proyek',
+                periode,
+                filenameBase: buildFilename(
+                  'Tagihan_User',
+                  selectedProyek ? getProyekNama(selectedProyek) : undefined,
+                  periode
+                ),
+              }}
+            />
+
+            <button
+              onClick={handleSinkron}
+              disabled={syncLoading}
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <MdSync className={`h-4 w-4 text-white ${syncLoading ? 'animate-spin' : ''}`} />
+              Sinkron Podo Rukun Track
+            </button>
+          </div>
         </div>
 
         {/* ── 3 Summary Cards ────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          {/* Nilai Kontrak */}
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
-            <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shrink-0">
-                <FileText className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
+
+          {/* NILAI KONTRAK */}
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-4 md:p-5 flex flex-col gap-3 shadow-sm transition-all">
+            {/* Radial blur layer di pojok kanan bawah */}
+            <div
+              className="pointer-events-none absolute -bottom-30 -right-10 h-44 w-44 rounded-full blur-2xl bg-indigo-500/30"
+              aria-hidden="true"
+            />
+
+            {/* Title + Icon */}
+            <div className="relative z-10 flex items-center justify-between">
+              <p className="text-lg font-bold text-indigo-600">Nilai Kontrak</p>
+              <MdDescription className="h-8 w-8 text-indigo-600" />
+            </div>
+
+            {/* Nominal */}
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-2xl md:text-3xl font-bold text-indigo-600 truncate leading-tight">
                 {formatRupiahShort(totalNilaiKontrak)}
               </span>
             </div>
-            <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Nilai kontrak</p>
           </div>
 
-          {/* Sudah Dibayar */}
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
-            <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shrink-0">
-                <CheckCircle2 className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
+          {/* SUDAH DIBAYAR */}
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-4 md:p-5 flex flex-col gap-3 shadow-sm transition-all">
+            {/* Radial blur layer di pojok kanan bawah */}
+            <div
+              className="pointer-events-none absolute -bottom-30 -right-10 h-44 w-44 rounded-full blur-2xl bg-emerald-500/30"
+              aria-hidden="true"
+            />
+
+            {/* Title + Icon */}
+            <div className="relative z-10 flex items-center justify-between">
+              <p className="text-lg font-bold text-emerald-600">Sudah Dibayar</p>
+              <MdCheckCircle className="h-8 w-8 text-emerald-600" />
+            </div>
+
+            {/* Nominal */}
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-2xl md:text-3xl font-bold text-emerald-600 truncate leading-tight">
                 {formatRupiahShort(totalDibayar)}
               </span>
             </div>
-            <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Sudah dibayar</p>
           </div>
 
-          {/* Sisa Tagihan */}
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
-            <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shrink-0">
-                <Wallet className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
+          {/* SISA TAGIHAN */}
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-4 md:p-5 flex flex-col gap-3 shadow-sm transition-all">
+            {/* Radial blur layer di pojok kanan bawah */}
+            <div
+              className="pointer-events-none absolute -bottom-30 -right-10 h-44 w-44 rounded-full blur-2xl bg-amber-500/30"
+              aria-hidden="true"
+            />
+
+            {/* Title + Icon */}
+            <div className="relative z-10 flex items-center justify-between">
+              <p className="text-lg font-bold text-amber-600">Sisa Tagihan</p>
+              <MdAccountBalanceWallet className="h-8 w-8 text-amber-600" />
+            </div>
+
+            {/* Nominal */}
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-2xl md:text-3xl font-bold text-amber-600 truncate leading-tight">
                 {formatRupiahShort(totalSisa)}
               </span>
             </div>
-            <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Sisa tagihan</p>
           </div>
         </div>
-      </div>
 
       {/* ── Info Banner (Accounting Note) ────────────────────── */}
       <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900">
-        <Info className="h-5 w-5 mt-0.5 shrink-0 text-sky-600" />
+        <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-sky-600" />
         <p className="text-xs sm:text-sm text-sky-800">
           Sisa tagihan bersifat operasional, belum diakui sebagai piutang di neraca. Saldo akuntansi tercatat sebagai uang muka penjualan.
         </p>
@@ -369,6 +406,7 @@ export default function PiutangPage() {
             )}
           </tbody>
         </table>
+      </div>
       </div>
 
       {/* ── Jadwal vs Realisasi Modal ────────────────────────── */}

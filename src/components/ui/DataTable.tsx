@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
 
 export interface Column<T> {
   key: keyof T | string;
@@ -97,7 +97,7 @@ export default function DataTable<T>({
               disabled={page <= 1}
               className="rounded-lg p-1.5 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <MdChevronLeft className="h-4 w-4" />
             </button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button
@@ -117,7 +117,7 @@ export default function DataTable<T>({
               disabled={page >= totalPages}
               className="rounded-lg p-1.5 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <ChevronRight className="h-4 w-4" />
+              <MdChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>

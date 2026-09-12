@@ -1,6 +1,6 @@
 import { type Shm, STATUS_SHM_LABELS, STATUS_SHM_COLOR } from '../../../store/shmStore';
 import Modal from '../../../components/ui/Modal';
-import { Clock, FileText } from 'lucide-react';
+import { MdSchedule, MdDescription } from 'react-icons/md';
 
 interface ShmRiwayatModalProps {
   shm: Shm | null;
@@ -20,7 +20,7 @@ export default function ShmRiwayatModal({ shm, isOpen, onClose }: ShmRiwayatModa
       {/* Header info */}
       <div className="mb-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
         <div className="flex items-center gap-2 mb-2">
-          <FileText className="h-4 w-4 text-gray-500" />
+          <MdDescription className="h-4 w-4 text-gray-500" />
           <span className="text-sm font-semibold text-gray-900">{shm.nomorShm}</span>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
@@ -44,7 +44,7 @@ export default function ShmRiwayatModal({ shm, isOpen, onClose }: ShmRiwayatModa
       {/* Timeline */}
       {sortedRiwayat.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-          <Clock className="h-8 w-8 mb-2" />
+          <MdSchedule className="h-8 w-8 mb-2" />
           <p className="text-sm">Belum ada riwayat perubahan status.</p>
         </div>
       ) : (

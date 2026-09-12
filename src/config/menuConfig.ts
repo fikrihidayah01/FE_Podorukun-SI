@@ -1,27 +1,27 @@
+import type { IconType } from 'react-icons';
 import {
-  LayoutDashboard,
-  FileText,
-  Wrench,
-  CalendarDays,
-  ClipboardList,
-  Users,
-  Target,
-  Megaphone,
-  Building2,
-  Network,
-  BarChart3,
-  CreditCard,
-  BookOpen,
-  ScrollText,
-  Wallet,
-  type LucideIcon,
-} from 'lucide-react';
+  MdDashboard,
+  MdDescription,
+  MdHandyman,
+  MdCalendarMonth,
+  MdAssignment,
+  MdPeople,
+  MdTrackChanges,
+  MdCampaign,
+  MdApartment,
+  MdLan,
+  MdBarChart,
+  MdCreditCard,
+  MdMenuBook,
+  MdReceiptLong,
+  MdAccountBalanceWallet,
+} from 'react-icons/md';
 import type { UserRole } from '../store/authStore';
 
 export interface MenuItem {
   label: string;
   path: string;
-  icon: LucideIcon;
+  icon: IconType;
   allowedRoles: UserRole[];
   /** Sub-items untuk accordion dropdown */
   children?: Omit<MenuItem, 'children'>[];
@@ -39,7 +39,7 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
         {
           label: 'Dashboard',
           path: '/dashboard',
-          icon: LayoutDashboard,
+          icon: MdDashboard,
           allowedRoles: ['keuangan'],
         },
       ],
@@ -50,37 +50,37 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
         {
           label: 'Keuangan',
           path: '/keuangan',
-          icon: Wallet,
+          icon: MdAccountBalanceWallet,
           allowedRoles: ['keuangan'],
           children: [
             {
               label: 'Hutang',
               path: '/keuangan/hutang',
-              icon: CreditCard,
+              icon: MdCreditCard,
               allowedRoles: ['keuangan'],
             },
             {
               label: 'Piutang',
               path: '/keuangan/piutang',
-              icon: FileText,
+              icon: MdDescription,
               allowedRoles: ['keuangan'],
             },
             {
               label: 'Akun (COA)',
               path: '/keuangan/coa',
-              icon: BookOpen,
+              icon: MdMenuBook,
               allowedRoles: ['keuangan'],
             },
             {
               label: 'Jurnal Umum',
               path: '/keuangan/jurnal',
-              icon: ScrollText,
+              icon: MdReceiptLong,
               allowedRoles: ['keuangan'],
             },
             {
               label: 'SRP',
               path: '/keuangan/srp',
-              icon: ClipboardList,
+              icon: MdAssignment,
               allowedRoles: ['keuangan'],
             },
           ],
@@ -95,7 +95,7 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
         {
           label: 'Dashboard',
           path: '/dashboard',
-          icon: LayoutDashboard,
+          icon: MdDashboard,
           allowedRoles: ['teknisi'],
         },
       ],
@@ -106,19 +106,19 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
         {
           label: 'Pekerjaan',
           path: '/teknisi/pekerjaan',
-          icon: Wrench,
+          icon: MdHandyman,
           allowedRoles: ['teknisi'],
         },
         {
           label: 'Jadwal',
           path: '/teknisi/jadwal',
-          icon: CalendarDays,
+          icon: MdCalendarMonth,
           allowedRoles: ['teknisi'],
         },
         {
           label: 'Laporan Teknis',
           path: '/teknisi/laporan',
-          icon: ClipboardList,
+          icon: MdAssignment,
           allowedRoles: ['teknisi'],
         },
       ],
@@ -131,7 +131,7 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
         {
           label: 'Dashboard',
           path: '/dashboard',
-          icon: LayoutDashboard,
+          icon: MdDashboard,
           allowedRoles: ['marketing'],
         },
       ],
@@ -142,25 +142,25 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
         {
           label: 'Prospek',
           path: '/marketing/prospek',
-          icon: Target,
+          icon: MdTrackChanges,
           allowedRoles: ['marketing'],
         },
         {
           label: 'Klien',
           path: '/marketing/klien',
-          icon: Users,
+          icon: MdPeople,
           allowedRoles: ['marketing'],
         },
         {
           label: 'Campaign',
           path: '/marketing/campaign',
-          icon: Megaphone,
+          icon: MdCampaign,
           allowedRoles: ['marketing'],
         },
         {
           label: 'Statistik',
           path: '/marketing/statistik',
-          icon: BarChart3,
+          icon: MdBarChart,
           allowedRoles: ['marketing'],
         },
       ],
@@ -173,7 +173,7 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
         {
           label: 'Dashboard',
           path: '/dashboard',
-          icon: LayoutDashboard,
+          icon: MdDashboard,
           allowedRoles: ['kontraktor'],
         },
       ],
@@ -184,19 +184,19 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
         {
           label: 'Proyek',
           path: '/kontraktor/proyek',
-          icon: Building2,
+          icon: MdApartment,
           allowedRoles: ['kontraktor'],
         },
         {
           label: 'Subkontraktor',
           path: '/kontraktor/subkontraktor',
-          icon: Network,
+          icon: MdLan,
           allowedRoles: ['kontraktor'],
         },
         {
           label: 'Progres',
           path: '/kontraktor/progres',
-          icon: BarChart3,
+          icon: MdBarChart,
           allowedRoles: ['kontraktor'],
         },
       ],

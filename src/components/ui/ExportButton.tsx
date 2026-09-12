@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
+import { MdTableChart, MdDescription, MdSync } from 'react-icons/md';
 import { exportExcel, exportPDF, type ExportColumn, type ExportOptions } from '../../utils/exportUtils';
 
 interface ExportButtonProps {
@@ -45,27 +45,27 @@ export default function ExportButton({ getColumns, getData, opts, className = ''
         onClick={() => handle('excel')}
         disabled={loading !== null}
         title="Export Excel"
-        className="flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-emerald-800 disabled:opacity-50 transition-colors"
+        className="flex items-center gap-2 rounded-xl bg-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-xs hover:bg-emerald-800 disabled:opacity-50 transition-colors cursor-pointer"
       >
         {loading === 'excel' ? (
-          <Loader2 className="h-4 w-4 animate-spin text-white" />
+          <MdSync className="h-4 w-4 animate-spin text-white" />
         ) : (
-          <FileSpreadsheet className="h-4 w-4 text-white" />
+          <MdTableChart className="h-4 w-4 text-white" />
         )}
-        Excel
+        Export Excel
       </button>
       <button
         onClick={() => handle('pdf')}
         disabled={loading !== null}
         title="Export PDF"
-        className="flex items-center gap-2 rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-800 disabled:opacity-50 transition-colors"
+        className="flex items-center gap-2 rounded-xl bg-red-700 px-6 py-3 text-sm font-semibold text-white shadow-xs hover:bg-red-800 disabled:opacity-50 transition-colors cursor-pointer"
       >
         {loading === 'pdf' ? (
-          <Loader2 className="h-4 w-4 animate-spin text-white" />
+          <MdSync className="h-4 w-4 animate-spin text-white" />
         ) : (
-          <FileText className="h-4 w-4 text-white" />
+          <MdDescription className="h-4 w-4 text-white" />
         )}
-        PDF
+        Export PDF
       </button>
       {loading && (
         <span className="text-xs text-gray-400 ml-1">Mengekspor...</span>

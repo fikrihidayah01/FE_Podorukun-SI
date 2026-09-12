@@ -3,7 +3,7 @@ import { useHutangStore, type KategoriHutang, KATEGORI_HUTANG_LABELS } from '../
 import { useProyekStore } from '../../../store/proyekStore';
 import { useCoaStore } from '../../../store/coaStore';
 import Modal from '../../../components/ui/Modal';
-import { ArrowLeftRight, Info } from 'lucide-react';
+import { MdSwapHoriz, MdInfo } from 'react-icons/md';
 
 interface InputMutasiModalProps {
   isOpen: boolean;
@@ -173,7 +173,7 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
         {/* Antar proyek info banner */}
         {isAntarProyek && (
           <div className="flex items-start gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3">
-            <ArrowLeftRight className="h-4 w-4 text-indigo-600 mt-0.5 shrink-0" />
+            <MdSwapHoriz className="h-5 w-5 text-indigo-600 mt-0.5 shrink-0" />
             <p className="text-xs text-indigo-700">
               Sistem otomatis mencatat piutang di proyek lawan. Tidak perlu input ulang di sisi pemberi pinjaman.
             </p>
@@ -333,7 +333,7 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Lampiran bukti</label>
           <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
-            <Info className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+            <MdInfo className="mx-auto h-8 w-8 text-gray-300 mb-2" />
             <p className="text-xs text-gray-500">
               Unggah bukti transfer atau dokumen pendukung
             </p>

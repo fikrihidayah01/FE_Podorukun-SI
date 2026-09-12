@@ -1,6 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Landmark, Building2, CreditCard, AlertTriangle, Lock, Unlock, ExternalLink } from 'lucide-react';
+import {
+  MdAdd,
+  MdAccountBalance,
+  MdApartment,
+  MdCreditCard,
+  MdWarning,
+  MdLock,
+  MdLockOpen,
+  MdOpenInNew,
+} from 'react-icons/md';
 import TabBar from '../../components/ui/TabBar';
 import ExportButton from '../../components/ui/ExportButton';
 
@@ -109,9 +118,9 @@ export default function HutangPage() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1">
       {/* ── Page Header with Status Periode Indicator (FE-06a) ─ */}
-      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 md:px-8 md:py-5 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">Hutang</h1>
@@ -126,12 +135,12 @@ export default function HutangPage() {
             >
               {isPeriodeTerkunci ? (
                 <>
-                  <Lock className="h-3 w-3" />
+                  <MdLock className="h-3.5 w-3.5" />
                   Periode Terkunci
                 </>
               ) : (
                 <>
-                  <Unlock className="h-3 w-3" />
+                  <MdLockOpen className="h-3.5 w-3.5" />
                   Periode Terbuka
                 </>
               )}
@@ -141,104 +150,147 @@ export default function HutangPage() {
             Periode {formatBulanLabel(selectedBulan)}
           </p>
         </div>
-
-        <button
-          onClick={() => setInputOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Input mutasi
-        </button>
       </div>
 
+      {/* ── Page Content ─────────────────────────────────────── */}
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+
       {/* ── Main Summary & Filter White Card ───────────── */}
-      <div className="rounded-2xl bg-white p-4 md:p-5 shadow-sm w-full space-y-4">
-        {/* ── 3 Filters wrapped in #FCFBFC box with stroke ────────────────────── */}
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-wrap items-center gap-3 shadow-sm">
-          <select
-            value={selectedProyek}
-            onChange={(e) => setSelectedProyek(e.target.value)}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="">Semua proyek</option>
-            {proyeks.map((p) => (
-              <option key={p.id} value={p.id}>{p.nama}</option>
-            ))}
-          </select>
+        {/* ── 3 Filters wrapped in # FCFBFC box with stroke ────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={selectedProyek}
+              onChange={(e) => setSelectedProyek(e.target.value)}
+              className="flex-1 rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              <option value="">Semua proyek</option>
+              {proyeks.map((p) => (
+                <option key={p.id} value={p.id}>{p.nama}</option>
+              ))}
+            </select>
 
-          <select
-            value={selectedKategori}
-            onChange={(e) => setSelectedKategori(e.target.value as KategoriHutang | '')}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="">Semua kategori</option>
-            {(Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).map((k) => (
-              <option key={k} value={k}>{KATEGORI_HUTANG_LABELS[k]}</option>
-            ))}
-          </select>
+            <select
+              value={selectedKategori}
+              onChange={(e) => setSelectedKategori(e.target.value as KategoriHutang | '')}
+              className="flex-1 rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              <option value="">Semua kategori</option>
+              {(Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).map((k) => (
+                <option key={k} value={k}>{KATEGORI_HUTANG_LABELS[k]}</option>
+              ))}
+            </select>
 
-          <select
-            value={selectedBulan}
-            onChange={(e) => setSelectedBulan(e.target.value)}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            <select
+              value={selectedBulan}
+              onChange={(e) => setSelectedBulan(e.target.value)}
+              className="flex-1 rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              {monthOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => setInputOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors"
           >
-            {monthOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+            <MdAdd className="h-4 w-4" />
+            Input mutasi
+          </button>
         </div>
 
         {/* ── 4 Summary Cards ────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-col justify-between shadow-sm">
-            <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shrink-0">
-                <Landmark className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
+          {/* TOTAL HUTANG */}
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-4 md:p-5 flex flex-col gap-3 shadow-sm transition-all">
+            {/* Radial blur layer di pojok kanan bawah */}
+            <div
+              className="pointer-events-none absolute -bottom-30 -right-10 h-44 w-44 rounded-full blur-2xl bg-indigo-500/30"
+              aria-hidden="true"
+            />
+
+            {/* Title + Icon */}
+            <div className="relative z-10 flex items-center justify-between">
+              <p className="text-lg font-bold text-indigo-600">Total hutang</p>
+              <MdAccountBalance className="h-8 w-8 text-indigo-600" />
+            </div>
+
+            {/* Nominal */}
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-2xl md:text-3xl font-bold text-indigo-600 truncate leading-tight">
                 {formatRupiahShort(totalHutang)}
               </span>
             </div>
-            <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Total hutang</p>
           </div>
 
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
-            <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shrink-0">
-                <Building2 className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
+          {/* HUTANG LAHAN */}
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-4 md:p-5 flex flex-col gap-3 shadow-sm transition-all">
+            {/* Radial blur layer di pojok kanan bawah */}
+            <div
+              className="pointer-events-none absolute -bottom-30 -right-10 h-44 w-44 rounded-full blur-2xl bg-amber-500/30"
+              aria-hidden="true"
+            />
+
+            {/* Title + Icon */}
+            <div className="relative z-10 flex items-center justify-between">
+              <p className="text-lg font-bold text-amber-600">Hutang Lahan</p>
+              <MdApartment className="h-8 w-8 text-amber-600" />
+            </div>
+
+            {/* Nominal */}
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-2xl md:text-3xl font-bold text-amber-600 truncate leading-tight">
                 {formatRupiahShort(totalLahan)}
               </span>
             </div>
-            <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Hutang lahan</p>
           </div>
 
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
-            <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shrink-0">
-                <CreditCard className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl md:text-2xl font-bold text-gray-900 truncate">
+          {/* HUTANG BANK */}
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-4 md:p-5 flex flex-col gap-3 shadow-sm transition-all">
+            {/* Radial blur layer di pojok kanan bawah */}
+            <div
+              className="pointer-events-none absolute -bottom-30 -right-10 h-44 w-44 rounded-full blur-2xl bg-blue-500/30"
+              aria-hidden="true"
+            />
+
+            {/* Title + Icon */}
+            <div className="relative z-10 flex items-center justify-between">
+              <p className="text-lg font-bold text-blue-600">Hutang Bank</p>
+              <MdCreditCard className="h-8 w-8 text-blue-600" />
+            </div>
+
+            {/* Nominal */}
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-2xl md:text-3xl font-bold text-blue-600 truncate leading-tight">
                 {formatRupiahShort(totalBank)}
               </span>
             </div>
-            <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Hutang bank</p>
           </div>
 
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
-            <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 text-white shrink-0">
-                <AlertTriangle className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl md:text-2xl font-bold text-red-600 truncate">
+          {/* JATUH TEMPO */}
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-4 md:p-5 flex flex-col gap-3 shadow-sm transition-all">
+            {/* Radial blur layer di pojok kanan bawah */}
+            <div
+              className="pointer-events-none absolute -bottom-30 -right-10 h-44 w-44 rounded-full blur-2xl bg-red-500/30"
+              aria-hidden="true"
+            />
+
+            {/* Title + Icon */}
+            <div className="relative z-10 flex items-center justify-between">
+              <p className="text-lg font-bold text-red-600">Jatuh tempo &le; 7 hari</p>
+              <MdWarning className="h-8 w-8 text-red-600" />
+            </div>
+
+            {/* Nominal */}
+            <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-2xl md:text-3xl font-bold text-red-600 truncate leading-tight">
                 {dueReminders.length}
               </span>
             </div>
-            <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Jatuh tempo &le; 7 hari</p>
           </div>
         </div>
-      </div>
 
       {/* ── Tabs ─────────────────────────────────────────────── */}
       <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -248,7 +300,7 @@ export default function HutangPage() {
         <>
           <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
           {/* Export toolbar */}
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="rounded-2xl  flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3">
             <p className="text-sm font-bold text-gray-900">
               {saldoData.length} kode pembantu &middot; Tabel baca saja
             </p>
@@ -385,7 +437,7 @@ export default function HutangPage() {
                                 ? '—'
                                 : formatRupiah(Math.abs(row.mutasiBulan))}
                             </span>
-                            <ExternalLink className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
+                            <MdOpenInNew className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
                           </button>
                         </td>
 
@@ -450,6 +502,7 @@ export default function HutangPage() {
       {activeTab === 'kontraktor' && (
         <KontraktorTab />
       )}
+      </div>
 
       {/* ── Input Mutasi Modal ───────────────────────────────── */}
       <InputMutasiModal isOpen={inputOpen} onClose={() => setInputOpen(false)} />

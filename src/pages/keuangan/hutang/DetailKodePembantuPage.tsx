@@ -4,7 +4,7 @@ import { useHutangStore, KATEGORI_HUTANG_LABELS, KATEGORI_HUTANG_COLOR } from '.
 import { useProyekStore } from '../../../store/proyekStore';
 import ExportButton from '../../../components/ui/ExportButton';
 import { buildFilename } from '../../../utils/exportUtils';
-import { ArrowLeft } from 'lucide-react';
+import { MdArrowBack } from 'react-icons/md';
 
 function formatRupiah(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID');
@@ -55,14 +55,14 @@ export default function DetailKodePembantuPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1">
       {/* Back + header */}
-      <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full">
+      <div className="bg-white border-b border-gray-200 px-6 py-4 md:px-8 md:py-5 w-full">
         <button
           onClick={() => navigate('/keuangan/hutang')}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-3 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-3 transition-colors cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <MdArrowBack className="h-4 w-4" />
           Kembali ke Hutang
         </button>
 
@@ -112,8 +112,9 @@ export default function DetailKodePembantuPage() {
         </div>
       </div>
 
-      {/* Mutation history table with dd/mm/yyyy date format (FE-06a) */}
-      <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Mutation history table with dd/mm/yyyy date format (FE-06a) */}
+        <div className="overflow-x-auto rounded-xl bg-white shadow-sm border border-gray-100">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
@@ -168,6 +169,7 @@ export default function DetailKodePembantuPage() {
             )}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );

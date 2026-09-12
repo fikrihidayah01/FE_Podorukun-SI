@@ -6,7 +6,7 @@ import {
 } from '../../../store/pinjamanBankStore';
 import { useCoaStore } from '../../../store/coaStore';
 import Modal from '../../../components/ui/Modal';
-import { TrendingUp, Info, Check } from 'lucide-react';
+import { MdTrendingUp, MdInfo, MdCheck } from 'react-icons/md';
 
 function formatRupiah(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID');
@@ -198,7 +198,7 @@ export default function PinjamanBankDetailModal({
         {/* ── Banner Info Pola ──────────────────────────────── */}
         {freshPinjaman.pola === 'terpisah' && (
           <div className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900">
-            <Info className="h-5 w-5 mt-0.5 shrink-0 text-sky-600" />
+            <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-sky-600" />
             <p className="text-sm">
               Pola terpisah. Pokok dan bunga ditransfer sebagai dua transaksi berbeda.
             </p>
@@ -206,7 +206,7 @@ export default function PinjamanBankDetailModal({
         )}
         {freshPinjaman.pola === 'satu_transfer' && (
           <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-            <Info className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
+            <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
             <p className="text-sm">
               Satu transfer. Komposisi pokok dan bunga ditentukan bank. Isi rincian setelah menerima keterangan dari bank.
             </p>
@@ -214,7 +214,7 @@ export default function PinjamanBankDetailModal({
         )}
         {freshPinjaman.pola === 'bunga_rutin' && (
           <div className="flex items-start gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-indigo-900">
-            <Info className="h-5 w-5 mt-0.5 shrink-0 text-indigo-600" />
+            <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-indigo-600" />
             <p className="text-sm">
               Bunga rutin. Pokok tidak dicicil, dilunasi sekaligus di akhir tenor. Sisa pokok tetap sampai pelunasan.
             </p>
@@ -261,7 +261,7 @@ export default function PinjamanBankDetailModal({
         <div className="border rounded-xl border-gray-200 p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700">
-              <TrendingUp className="h-4 w-4 text-indigo-600" />
+              <MdTrendingUp className="h-4 w-4 text-indigo-600" />
               Top-Up Pinjaman ({freshPinjaman.topUps?.length || 0})
             </div>
             <button onClick={() => setShowTopUp(!showTopUp)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
@@ -425,7 +425,7 @@ export default function PinjamanBankDetailModal({
                   </div>
                   {isRincianCocok && (
                     <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 border border-emerald-200">
-                      <Check className="h-4 w-4" /> Rincian cocok dengan total transfer.
+                      <MdCheck className="h-4 w-4" /> Rincian cocok dengan total transfer.
                     </div>
                   )}
                 </div>

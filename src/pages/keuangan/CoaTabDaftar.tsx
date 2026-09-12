@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Search, History, Lock } from 'lucide-react';
+import { MdAdd, MdEdit, MdDeleteOutline, MdSearch, MdHistory, MdLock } from 'react-icons/md';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -233,19 +233,19 @@ export default function DaftarAkunTab() {
         const inUse = hasTransactions(r.id);
         return (
           <div className="flex justify-start gap-2">
-            <button onClick={() => setRiwayatId(r.id)} title="Riwayat perubahan" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
-              <History className="h-4 w-4" />
+            <button onClick={() => setRiwayatId(r.id)} title="Riwayat perubahan" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 cursor-pointer">
+              <MdHistory className="h-4 w-4" />
             </button>
-            <button onClick={() => openEdit(r)} className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600">
-              <Pencil className="h-4 w-4" />
+            <button onClick={() => openEdit(r)} className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer">
+              <MdEdit className="h-4 w-4" />
             </button>
             {inUse ? (
               <button disabled title="Akun sudah memiliki transaksi" className="rounded-lg p-1.5 text-gray-300 cursor-not-allowed">
-                <Lock className="h-4 w-4" />
+                <MdLock className="h-4 w-4" />
               </button>
             ) : (
-              <button onClick={() => setDeleteId(r.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600">
-                <Trash2 className="h-4 w-4" />
+              <button onClick={() => setDeleteId(r.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 cursor-pointer">
+                <MdDeleteOutline className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -263,9 +263,9 @@ export default function DaftarAkunTab() {
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors"
+          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
         >
-          <Plus className="h-4 w-4" />
+          <MdAdd className="h-4 w-4" />
           Tambah akun
         </button>
       </div>
@@ -273,7 +273,7 @@ export default function DaftarAkunTab() {
       <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
         <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-col sm:flex-row gap-3 shadow-sm">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <MdSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={search}
@@ -533,7 +533,7 @@ export default function DaftarAkunTab() {
 
           {riwayatId && hasTransactions(riwayatId) && (
             <div className="rounded-xl bg-orange-50 border border-orange-100 p-4 flex gap-3 text-orange-800">
-              <Lock className="h-5 w-5 shrink-0 mt-0.5 text-orange-600" />
+              <MdLock className="h-5 w-5 shrink-0 mt-0.5 text-orange-600" />
               <div className="text-sm">
                 Akun sudah memiliki transaksi. Kode akun tidak dapat diubah dan akun tidak dapat dihapus, hanya dinonaktifkan.
               </div>
