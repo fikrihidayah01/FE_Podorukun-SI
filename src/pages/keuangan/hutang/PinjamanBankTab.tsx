@@ -137,7 +137,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
       )}
 
       {/* ── Action Toolbar: Title / Count + Export + Add Button ─ */}
-      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
         <h3 className="text-sm font-bold text-gray-900">
           {filteredPinjamans.length} pinjaman tercatat
         </h3>

@@ -271,7 +271,7 @@ export default function DaftarAkunTab() {
       </div>
 
       <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-col sm:flex-row gap-3">
+        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-col sm:flex-row gap-3 shadow-sm">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input

@@ -174,7 +174,7 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
   return (
     <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
       {/* Toolbar & Filters wrapped in #FCFBFC box with stroke */}
-      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm">
         <p className="text-sm font-bold text-gray-900">
           Satu baris per kavling &middot; SHM dan PBG ({filtered.length} dokumen)
         </p>

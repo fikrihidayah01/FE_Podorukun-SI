@@ -32,10 +32,10 @@ export default function SummaryCard({
   const gradient = GRADIENT_MAP[color] || GRADIENT_MAP.indigo;
 
   return (
-    <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-4 md:p-5 flex flex-col justify-between gap-3">
+    <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-4 md:p-5 flex flex-col justify-between gap-3 shadow-sm">
       {/* Nominal & Subtitle Box (White with stroke) */}
-      <div className="rounded-xl bg-white border border-gray-200 p-3.5 flex items-stretch justify-start gap-3.5">
-        <div className={`flex items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shrink-0 px-3.5 py-2.5 shadow-sm min-h-[52px]`}>
+      <div className="rounded-xl bg-white border border-gray-200 p-3.5 flex items-center justify-start gap-3.5">
+        <div className={`flex items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shrink-0 w-12 h-12 aspect-square shadow-sm`}>
           <Icon className="h-6 w-6 text-white" />
         </div>
         <div className="flex-1 min-w-0 flex flex-col justify-center">

@@ -37,7 +37,7 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
   return (
     <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
       {/* Header toolbar */}
-      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-2">
           <ArrowLeftRight className="h-5 w-5 text-teal-600" />
           <div>

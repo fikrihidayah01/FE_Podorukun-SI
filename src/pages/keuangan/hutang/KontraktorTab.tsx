@@ -71,7 +71,7 @@ export default function KontraktorTab() {
   return (
     <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-5">
       {/* Header toolbar wrapped in #FCFBFC box with stroke */}
-      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <h2 className="text-base font-bold text-gray-900">Monitoring hutang per kavling ke kontraktor</h2>
         <div className="flex flex-wrap items-center gap-3">
           <select
@@ -102,7 +102,7 @@ export default function KontraktorTab() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
           <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shrink-0">
               <FileText className="h-6 w-6 text-white" />
@@ -114,7 +114,7 @@ export default function KontraktorTab() {
           <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Nilai kontrak</p>
         </div>
 
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
           <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shrink-0">
               <CheckCircle2 className="h-6 w-6 text-white" />
@@ -126,7 +126,7 @@ export default function KontraktorTab() {
           <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Sudah dibayar</p>
         </div>
 
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
           <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shrink-0">
               <Wallet className="h-6 w-6 text-white" />

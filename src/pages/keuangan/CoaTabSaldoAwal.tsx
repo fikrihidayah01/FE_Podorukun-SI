@@ -124,7 +124,7 @@ export default function CoaTabSaldoAwal() {
       </div>
 
       <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3 rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3">
+        <div className="flex flex-col sm:flex-row gap-3 rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 shadow-sm">
           <div className="w-full sm:w-72">
             <select
               value={selectedProyekId}

@@ -3,6 +3,7 @@
 @theme {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --font-mono: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --shadow-sm: 0 6px 20px -2px rgba(0, 0, 0, 0.12), 0 2px 8px -1px rgba(0, 0, 0, 0.08);
 }
 
 *,
@@ -30,4 +31,9 @@ body {
 #root {
   width: 100%;
   min-height: 100svh;
+}
+
+/* Drop shadow lebih jelas untuk setiap card */
+.shadow-sm {
+  box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.12), 0 2px 8px -1px rgba(0, 0, 0, 0.08) !important;
 }

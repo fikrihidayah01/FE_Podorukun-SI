@@ -200,7 +200,7 @@ export default function PiutangPage() {
       {/* ── Main Summary & Filter White Card ───────────── */}
       <div className="rounded-2xl bg-white p-4 md:p-5 shadow-sm w-full space-y-4">
         {/* ── 3 Filters wrapped in #FCFBFC box with stroke ────────────────────── */}
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-wrap items-center gap-3">
+        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-wrap items-center gap-3 shadow-sm">
           {/* Proyek */}
           <select
             value={selectedProyek}
@@ -240,7 +240,7 @@ export default function PiutangPage() {
         {/* ── 3 Summary Cards ────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           {/* Nilai Kontrak */}
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
             <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shrink-0">
                 <FileText className="h-6 w-6 text-white" />
@@ -253,7 +253,7 @@ export default function PiutangPage() {
           </div>
 
           {/* Sudah Dibayar */}
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
             <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shrink-0">
                 <CheckCircle2 className="h-6 w-6 text-white" />
@@ -266,7 +266,7 @@ export default function PiutangPage() {
           </div>
 
           {/* Sisa Tagihan */}
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
             <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shrink-0">
                 <Wallet className="h-6 w-6 text-white" />

@@ -154,7 +154,7 @@ export default function HutangPage() {
       {/* ── Main Summary & Filter White Card ───────────── */}
       <div className="rounded-2xl bg-white p-4 md:p-5 shadow-sm w-full space-y-4">
         {/* ── 3 Filters wrapped in #FCFBFC box with stroke ────────────────────── */}
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-wrap items-center gap-3">
+        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-wrap items-center gap-3 shadow-sm">
           <select
             value={selectedProyek}
             onChange={(e) => setSelectedProyek(e.target.value)}
@@ -190,7 +190,7 @@ export default function HutangPage() {
 
         {/* ── 4 Summary Cards ────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-col justify-between shadow-sm">
             <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shrink-0">
                 <Landmark className="h-6 w-6 text-white" />
@@ -202,7 +202,7 @@ export default function HutangPage() {
             <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Total hutang</p>
           </div>
 
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
             <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shrink-0">
                 <Building2 className="h-6 w-6 text-white" />
@@ -214,7 +214,7 @@ export default function HutangPage() {
             <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Hutang lahan</p>
           </div>
 
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
             <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shrink-0">
                 <CreditCard className="h-6 w-6 text-white" />
@@ -226,7 +226,7 @@ export default function HutangPage() {
             <p className="mt-3 text-base font-bold text-gray-900 px-0.5">Hutang bank</p>
           </div>
 
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
             <div className="rounded-xl bg-white border border-gray-200 p-2.5 flex items-center justify-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 text-white shrink-0">
                 <AlertTriangle className="h-6 w-6 text-white" />
@@ -248,7 +248,7 @@ export default function HutangPage() {
         <>
           <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
           {/* Export toolbar */}
-          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <p className="text-sm font-bold text-gray-900">
               {saldoData.length} kode pembantu &middot; Tabel baca saja
             </p>
@@ -415,7 +415,7 @@ export default function HutangPage() {
               if (total === 0 && !['ppn', 'lahan', 'pihak_ketiga', 'antar_proyek', 'bank'].includes(kat)) return null;
 
               return (
-                <div key={kat} className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between">
+                <div key={kat} className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col justify-between shadow-sm">
                   <span
                     className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full border px-3 py-0.5 text-xs font-semibold mb-2 ${KATEGORI_HUTANG_COLOR[kat]}`}
                   >
