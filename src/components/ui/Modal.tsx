@@ -101,31 +101,31 @@ export default function Modal({ isOpen, onClose, title, description, children, s
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
-        className={`relative flex max-h-[92dvh] w-full animate-dialog-in flex-col rounded-t-xl bg-surface shadow-pop outline-none sm:max-h-[90dvh] sm:rounded-xl ${SIZE_CLASS[size]}`}
+        className={`relative flex max-h-[92dvh] w-full animate-dialog-in flex-col rounded-t-2xl bg-white shadow-pop outline-none sm:max-h-[90dvh] sm:rounded-2xl ring-1 ring-black/[0.03] ${SIZE_CLASS[size]}`}
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line/40 px-6 py-5">
           <div className="min-w-0">
-            <h2 id={titleId} className="text-base font-bold text-ink">
+            <h2 id={titleId} className="text-lg font-bold tracking-tight text-ink">
               {title}
             </h2>
             {description && (
-              <p id={descId} className="mt-0.5 text-[13px] text-ink-3">
+              <p id={descId} className="mt-1 text-sm font-medium text-ink-3">
                 {description}
               </p>
             )}
           </div>
-          <div className="-mr-1.5 -mt-1 flex items-center gap-1">
+          <div className="-mr-2 -mt-1.5 flex items-center gap-1">
             {headerActions}
             <IconButton icon={PiX} label="Tutup" onClick={onClose} />
           </div>
         </div>
 
-        <div data-modal-body className="flex-1 overflow-y-auto px-5 py-5">
+        <div data-modal-body className="flex-1 overflow-y-auto p-6">
           {children}
         </div>
 
         {footer && (
-          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-line bg-subtle px-5 py-3.5 sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-line/40 bg-subtle/50 px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
             {footer}
           </div>
         )}

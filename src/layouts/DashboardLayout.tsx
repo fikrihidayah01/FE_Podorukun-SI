@@ -8,10 +8,10 @@ export default function DashboardLayout() {
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   return (
-    <div className="min-h-dvh bg-canvas">
+    <div className="min-h-dvh bg-canvas selection:bg-brand-100 selection:text-brand-800">
       <a
         href="#konten"
-        className="fixed left-3 top-3 z-[60] -translate-y-20 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white focus:translate-y-0"
+        className="fixed left-3 top-3 z-[60] -translate-y-20 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white focus:translate-y-0"
       >
         Lewati ke konten
       </a>
@@ -19,23 +19,23 @@ export default function DashboardLayout() {
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
 
       <div className="flex min-h-dvh flex-col lg:pl-64">
-        <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-2 lg:hidden">
+        {/* Mobile Header - Floating / Glassy */}
+        <div className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 bg-white/80 px-4 backdrop-blur-md lg:hidden">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
             aria-expanded={sidebarOpen}
-            className="tap-target inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-ink hover:bg-neutral-soft"
+            className="tap-target inline-flex h-10 items-center gap-2 rounded-xl text-sm font-semibold text-ink hover:bg-neutral-soft"
           >
             <PiList className="h-5 w-5" aria-hidden />
-            Menu
           </button>
-          <Link to="/dashboard" className="ml-auto mr-2 flex items-center gap-2 rounded-lg">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-white">SI</span>
-            <span className="text-sm font-bold text-ink">SI-Podorukun</span>
+          <Link to="/dashboard" className="ml-auto flex items-center gap-2 rounded-lg">
+            <span className="text-sm font-bold tracking-tight text-ink">SI-Podorukun</span>
           </Link>
         </div>
 
-        <main id="konten" tabIndex={-1} className="flex flex-1 flex-col outline-none">
+        {/* Main Content Area */}
+        <main id="konten" tabIndex={-1} className="flex flex-1 flex-col outline-none w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
