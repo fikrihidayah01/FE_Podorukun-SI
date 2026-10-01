@@ -24,14 +24,14 @@ export function StatTile({
 }: StatTileProps) {
   return (
     <div
-      className="relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden rounded-2xl p-4 text-white shadow-sm transition-transform hover:-translate-y-0.5 sm:p-5 min-h-[116px] sm:min-h-[124px]"
+      className="relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden p-4 text-white sm:p-5 min-h-[112px] sm:min-h-[120px]"
       style={{
         backgroundImage: `linear-gradient(135deg, ${color} 0%, ${shade(color, 60)} 100%)`,
       }}
     >
       {Icon && (
         <Icon
-          className="pointer-events-none absolute -bottom-3 -right-2 h-20 w-20 text-white/15 sm:-bottom-4 sm:-right-3 sm:h-24 sm:w-24"
+          className="pointer-events-none absolute -bottom-4 -right-3 h-24 w-24 text-white/15"
           aria-hidden
         />
       )}
@@ -59,12 +59,12 @@ export function StatTile({
 }
 
 /**
- * Grid kartu ringkasan angka dengan elevasi dan spasi terpisah antar kartu.
+ * Ringkasan angka dalam satu panel div utuh bersekat (gap-px dengan border line luar).
  */
 export function StatGrid({ children, columns = 4 }: { children: ReactNode; columns?: 3 | 4 }) {
   const cols = columns === 3 ? 'sm:grid-cols-3 max-sm:[&>*:first-child]:col-span-2' : 'xl:grid-cols-4';
   return (
-    <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${cols}`}>
+    <div className={`grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line shadow-sm ${cols}`}>
       {children}
     </div>
   );
