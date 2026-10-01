@@ -37,7 +37,7 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
   return (
     <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
       {/* Header toolbar */}
-      <div className="rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3">
+      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-2">
           <MdSwapHoriz className="h-5 w-5 text-teal-600" />
           <div>
@@ -90,27 +90,27 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Tanggal</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Proyek</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Pihak</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Proyek Lawan</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Jenis</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nominal</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Uraian</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Mirror</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Tanggal</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Proyek</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Pihak</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Proyek Lawan</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Jenis</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nominal</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Uraian</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Mirror</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {mutasis.map((m) => (
                 <tr key={m.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{m.tanggal}</td>
-                  <td className="px-4 py-3 text-gray-700 font-medium">{proyekMap.get(m.proyekId) ?? m.proyekId}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{kpMap.get(m.kodePembantuId) ?? '-'}</td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3.5 text-gray-700 whitespace-nowrap">{m.tanggal}</td>
+                  <td className="px-4 py-3.5 text-gray-700 font-medium">{proyekMap.get(m.proyekId) ?? m.proyekId}</td>
+                  <td className="px-4 py-3.5 text-gray-600 text-xs">{kpMap.get(m.kodePembantuId) ?? '-'}</td>
+                  <td className="px-4 py-3.5 text-gray-600">
                     {m.proyekLawanId ? (
                       <span className="flex items-center gap-1">
                         <MdArrowForward className="h-3 w-3 text-gray-400" />
@@ -118,7 +118,7 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
                       </span>
                     ) : '-'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <span className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full px-3 py-0.5 text-xs font-medium ${
                       m.jenisMutasi === 'kredit'
                         ? 'bg-emerald-100 text-emerald-700'
@@ -127,15 +127,15 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
                       {m.jenisMutasi === 'kredit' ? 'Kredit' : 'Debit'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-left text-gray-700">
+                  <td className="px-4 py-3.5 text-left text-gray-700">
                     {m.jenisMutasi === 'debit' ? (
                       <span className="text-red-600">({formatRupiah(m.nominal)})</span>
                     ) : (
                       formatRupiah(m.nominal)
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs max-w-[200px] truncate">{m.uraian}</td>
-                  <td className="px-4 py-3 text-left">
+                  <td className="px-4 py-3.5 text-gray-500 text-xs max-w-[200px] truncate">{m.uraian}</td>
+                  <td className="px-4 py-3.5 text-left">
                     {m.mirrorMutasiId ? (
                       <span className="w-32 inline-flex items-center justify-start text-left whitespace-nowrap gap-1 rounded-full bg-teal-100 px-3 py-0.5 text-xs font-medium text-teal-700">
                         <MdSwapHoriz className="h-2.5 w-2.5" />

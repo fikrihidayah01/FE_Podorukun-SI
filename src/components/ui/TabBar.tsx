@@ -13,9 +13,9 @@ interface TabBarProps {
 
 export default function TabBar({ tabs, activeTab, onTabChange, className = '' }: TabBarProps) {
   return (
-    <div className={`overflow-x-auto py-1 ${className}`}>
+    <div className={`w-full overflow-x-auto py-1.5 ${className}`}>
       <nav
-        className="inline-flex items-center gap-1 rounded-full bg-white px-4 py-2.5 border border-gray-200/70"
+        className="w-full flex items-center gap-1.5 rounded-full bg-white/65 backdrop-blur-xl p-2 border border-white/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_20px_rgba(0,0,0,0.05)] min-w-[620px] md:min-w-0"
         aria-label="Tabs"
       >
         {tabs.map((tab) => {
@@ -25,19 +25,19 @@ export default function TabBar({ tabs, activeTab, onTabChange, className = '' }:
               key={tab.key}
               type="button"
               onClick={() => onTabChange(tab.key)}
-              className={`shrink-0 rounded-full px-5 py-3 text-sm transition-all duration-200 whitespace-nowrap cursor-pointer ${
+              className={`flex-1 flex items-center justify-center text-center rounded-full py-3 px-3 text-sm transition-all duration-200 whitespace-nowrap cursor-pointer ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-sm font-semibold'
-                  : 'text-gray-900 hover:text-indigo-500 hover:bg-[#C0C0C0]/25 font-medium'
+                  ? 'bg-indigo-600 text-white font-semibold shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_4px_12px_rgba(79,70,229,0.35)]'
+                  : 'text-gray-600 hover:text-indigo-600 hover:bg-white/60 font-medium'
               }`}
             >
               {tab.label}
               {tab.count !== undefined && (
                 <span
-                  className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold transition-colors ${
                     isActive
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-gray-200/80 text-gray-500'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {tab.count}

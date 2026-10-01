@@ -109,19 +109,30 @@ export default function SummaryCard({
           </p>
         )}
         {trend && (
-          <div className="flex items-center gap-1 shrink-0 bg-white/90 backdrop-blur-xs border border-gray-200 px-2.5 py-1 rounded-lg text-xs font-semibold self-start sm:self-auto">
-            <span
-              className={
-                trend.direction === 'up'
-                  ? 'text-emerald-600'
-                  : trend.direction === 'down'
-                  ? 'text-red-500'
-                  : 'text-gray-500'
-              }
-            >
-              {trend.direction === 'up' ? '▲' : trend.direction === 'down' ? '▼' : '—'} {trend.value}
-            </span>
-            <span className="text-gray-400 font-normal">vs bulan lalu</span>
+          // <div className="flex items-center gap-1 shrink-0 bg-white/90 backdrop-blur-xs border border-gray-200 px-2.5 py-1 rounded-lg text-xs font-semibold self-start sm:self-auto">
+          //   <span
+          //     className={
+          //       trend.direction === 'up'
+          //         ? 'text-emerald-600'
+          //         : trend.direction === 'down'
+          //         ? 'text-red-500'
+          //         : 'text-gray-500'
+          //     }
+          //   >
+          //     {trend.direction === 'up' ? '▲' : trend.direction === 'down' ? '▼' : '—'} {trend.value}
+          //   </span>
+          //   <span className="text-gray-400 font-normal">vs bulan lalu</span>
+          // </div>
+
+          <div className={
+            trend.direction === 'up'
+              ? 'text-white flex items-center gap-1 shrink-0 bg-emerald-600 border border-emerald-600 backdrop-blur-xs px-3 py-1 rounded-2xl text-xs font-semibold self-start sm:self-auto'
+              : trend.direction === 'down'
+              ? 'text-white flex items-center gap-1 shrink-0 bg-red-600/90 border border-red-600 backdrop-blur-xs px-3 py-1 rounded-2xl text-xs font-semibold self-start sm:self-auto'
+              : 'text-gray-500'
+          }>
+            {trend.direction === 'up' ? '▲' : trend.direction === 'down' ? '▼' : '—'} {trend.value}
+            <span className="font-semibold">vs bulan lalu</span>
           </div>
         )}
       </div>

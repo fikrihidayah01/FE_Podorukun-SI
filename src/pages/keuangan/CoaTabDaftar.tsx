@@ -271,22 +271,22 @@ export default function DaftarAkunTab() {
       </div>
 
       <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
-        <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3 md:p-3.5 flex flex-col sm:flex-row gap-3 shadow-sm">
+        <div className="py-3 md:py-3.5 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <MdSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <MdSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400y-" />
             <input
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Cari kode atau nama akun"
-              className="w-full rounded-xl border border-gray-300 bg-white pl-9 pr-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"
+              className="w-full rounded-xl border border-gray-300 bg-white pl-9 pr-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"
             />
           </div>
           <div className="w-full sm:w-48">
             <select
               value={filterKategori}
               onChange={(e) => { setFilterKategori(e.target.value); setPage(1); }}
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"
             >
               <option value="all">Semua kategori</option>
               {Object.entries(KATEGORI_AKUN_LABELS).map(([k, v]) => (
@@ -298,7 +298,7 @@ export default function DaftarAkunTab() {
             <select
               value={filterKlasifikasi}
               onChange={(e) => { setFilterKlasifikasi(e.target.value); setPage(1); }}
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"
             >
               <option value="all">Semua klasifikasi</option>
               {Object.entries(KLASIFIKASI_AKUN_LABELS).map(([k, v]) => (
