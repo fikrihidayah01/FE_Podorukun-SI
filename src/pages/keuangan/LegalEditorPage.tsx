@@ -24,8 +24,9 @@ const DUMMY_KAVLING = [
 const STATUS_OPT: { value: StatusDokumen; label: string; cls: string }[] = [
   { value: 'draft', label: 'Draft', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   { value: 'final', label: 'Final', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { value: 'ditandatangani', label: 'Ditandatangani', cls: 'bg-green-50 text-green-700 border-green-200' },
+  { value: 'ditandatangani', label: 'Ditandatangani', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
 ];
+
 
 function tanggalDalamHuruf(iso: string): string {
   if (!iso) return '';
@@ -94,7 +95,7 @@ export default function LegalEditorPage() {
       <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
         <PiFileText className="h-12 w-12 text-ink-3" />
         <p className="text-ink-2">Dokumen tidak ditemukan.</p>
-        <Link to="/keuangan/legal" className="text-sm font-semibold text-indigo-600 hover:underline">
+        <Link to="/keuangan/legal" className="text-sm font-semibold text-brand-600 hover:underline">
           Kembali ke daftar
         </Link>
       </div>
@@ -148,7 +149,7 @@ export default function LegalEditorPage() {
         const key = part.slice(1, -1);
         const resolved = resolveNilai(key, customFields);
         return (
-          <span key={i} className={`inline-flex items-center rounded bg-indigo-50 px-1 py-0.5 font-medium text-indigo-700`}>
+          <span key={i} className={`inline-flex items-center rounded bg-brand-50 px-1 py-0.5 font-medium text-brand-700`}>
             {resolved}
           </span>
         );
@@ -264,9 +265,10 @@ export default function LegalEditorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8]">
+    <div className="min-h-screen bg-canvas">
       {/* Header bar */}
-      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-white px-4 py-3 shadow-sm sm:px-6">
+      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-surface px-4 py-3 shadow-sm sm:px-6">
+        <div className="absolute inset-x-0 top-0 h-1 bg-[#0e7490]" aria-hidden />
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -296,7 +298,7 @@ export default function LegalEditorPage() {
       <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <Notice tone="info" className="mb-6">
           <div className="flex items-center gap-2">
-            <PiLockKey className="h-4 w-4 shrink-0 text-indigo-500" />
+            <PiLockKey className="h-4 w-4 shrink-0 text-brand-600" />
             <p>Teks bertanda biru adalah data terkunci. Ubah lewat panel data, bukan diketik di badan dokumen.</p>
           </div>
         </Notice>
@@ -423,7 +425,7 @@ export default function LegalEditorPage() {
                         ) : (
                           <input 
                             type="number" 
-                            className="w-28 rounded border-line px-2 py-1 text-right text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-28 rounded border-line px-2 py-1 text-right text-sm focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-100"
                             value={b.jumlah}
                             onChange={(e) => updateBarisJadwal(dokumen.id, b.id, Number(e.target.value) || 0)}
                           />
@@ -563,7 +565,7 @@ export default function LegalEditorPage() {
               </ul>
             </section>
             <Notice tone="info">
-              <strong className="block text-indigo-900">Setelah difinalkan</strong>
+              <strong className="block text-brand-800">Setelah difinalkan</strong>
               Kartu tagihan {dokumen.pembeli.nama || 'pembeli'} terbentuk di Piutang dengan nilai SPPR Rp {hargaNett.toLocaleString('id-ID')}. 
               Jadwal {dokumen.jadwalPembayaran?.baris.length || 0} angsuran menjadi acuan rekonsiliasi. Angka terkunci, perubahan berikutnya lewat adendum.
             </Notice>

@@ -529,7 +529,7 @@ export default function JurnalPage() {
             />
             <label
               htmlFor="lampiran-input"
-              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line bg-subtle p-5 text-center transition-colors hover:border-indigo-400 hover:bg-indigo-50"
+              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line bg-subtle p-5 text-center transition-colors hover:border-brand-600/50 hover:bg-brand-50"
             >
               <PiPaperclip className="h-6 w-6 text-ink-3" aria-hidden />
               <span className="text-sm font-medium text-ink-2">Klik untuk pilih file</span>
@@ -546,7 +546,7 @@ export default function JurnalPage() {
                   <li key={l.id} className="flex items-center gap-2 rounded-md border border-line bg-white px-3 py-2">
                     {l.tipe === 'pdf'
                       ? <PiFilePdf className="h-4 w-4 shrink-0 text-red-500" aria-hidden />
-                      : <PiImage className="h-4 w-4 shrink-0 text-indigo-500" aria-hidden />
+                      : <PiImage className="h-4 w-4 shrink-0 text-brand-600" aria-hidden />
                     }
                     <span className="flex-1 truncate text-sm text-ink">{l.nama}</span>
                     <span className="shrink-0 text-xs text-ink-3">{formatUkuran(l.ukuranBytes)}</span>
@@ -664,7 +664,7 @@ export default function JurnalPage() {
                     <li key={l.id} className="flex items-center gap-2 rounded-md border border-line bg-white px-3 py-2">
                       {l.tipe === 'pdf'
                         ? <PiFilePdf className="h-4 w-4 shrink-0 text-red-500" aria-hidden />
-                        : <PiImage className="h-4 w-4 shrink-0 text-indigo-500" aria-hidden />
+                        : <PiImage className="h-4 w-4 shrink-0 text-brand-600" aria-hidden />
                       }
                       <span className="flex-1 truncate text-sm text-ink">{l.nama}</span>
                       <span className="shrink-0 text-xs text-ink-3">{formatUkuran(l.ukuranBytes)}</span>
@@ -673,7 +673,7 @@ export default function JurnalPage() {
                         target="_blank"
                         rel="noreferrer"
                         download={l.nama}
-                        className="shrink-0 rounded p-0.5 text-ink-3 hover:text-indigo-600"
+                        className="shrink-0 rounded p-0.5 text-ink-3 hover:text-brand-600"
                         aria-label={`Buka ${l.nama}`}
                       >
                         <PiArrowSquareOut className="h-4 w-4" aria-hidden />
@@ -681,7 +681,7 @@ export default function JurnalPage() {
                       <a
                         href={l.dataUrl}
                         download={l.nama}
-                        className="shrink-0 rounded p-0.5 text-ink-3 hover:text-indigo-600"
+                        className="shrink-0 rounded p-0.5 text-ink-3 hover:text-brand-600"
                         aria-label={`Unduh ${l.nama}`}
                       >
                         <PiDownloadSimple className="h-4 w-4" aria-hidden />

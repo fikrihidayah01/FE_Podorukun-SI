@@ -3,11 +3,13 @@ import type { UserRole } from '../store/authStore';
 
 /*
   Warna identitas. Setiap warna mewakili arti, bukan hiasan:
-  - Hutang = terakota: uang yang harus keluar.
-  - Tagihan user = zamrud: uang yang akan masuk.
-  - Jurnal = cobalt: warna aksi utama, karena jurnal adalah sumber semua angka.
-  - COA = violet: struktur/kerangka akun.
-  - SRP = sian tua: dokumen.
+  - Hutang = terakota: uang yang harus keluar. (#c2410c)
+  - Tagihan user / Piutang = zamrud: uang yang akan masuk. (#047857)
+  - Jurnal = cobalt: warna aksi utama pembukuan. (#2b4fcb)
+  - COA = violet: struktur/kerangka bagan akun. (#6d28d9)
+  - Legal = sian tua: arsip dokumen perjanjian. (#0e7490)
+  - Master PT = slate: entitas perusahaan. (#334155)
+  - Pustaka Pasal = ungu: repositori klausul hukum. (#7c3aed)
   Semua warna di bawah lolos kontras >= 4.5:1 dengan teks putih.
 */
 export const MODULE_ACCENT: Record<string, string> = {
@@ -16,7 +18,10 @@ export const MODULE_ACCENT: Record<string, string> = {
   '/keuangan/piutang': '#047857',
   '/keuangan/coa': '#6d28d9',
   '/keuangan/jurnal': '#2b4fcb',
+  '/keuangan/legal': '#0e7490',
   '/keuangan/srp': '#0e7490',
+  '/keuangan/master-pt': '#334155',
+  '/keuangan/pustaka-pasal': '#7c3aed',
   '/teknisi': '#0369a1',
   '/marketing': '#be185d',
   '/kontraktor': '#b45309',

@@ -6,6 +6,7 @@ import { useMasterPtStore, type MasterPt } from '../../store/masterPtStore';
 import { useTemplateDokumenStore, type TemplateDokumen, type TipeTransaksi } from '../../store/templateDokumenStore';
 import { usePustakaPasalStore } from '../../store/pustakaPasalStore';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
+import TabBar, { TabPanel } from '../../components/ui/TabBar';
 import Panel from '../../components/ui/Panel';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -17,12 +18,17 @@ import EmptyState from '../../components/ui/EmptyState';
 const TIPE_OPSI: TipeTransaksi[] = ['Cash', 'KPR', 'In House'];
 
 const TIPE_BADGE: Record<TipeTransaksi, string> = {
-  Cash: 'bg-green-50 text-green-700 border-green-200',
+  Cash: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   KPR: 'bg-blue-50 text-blue-700 border-blue-200',
   'In House': 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
 type ActiveTab = 'master-pt' | 'template';
+
+const TABS = [
+  { key: 'master-pt', label: 'Master PT' },
+  { key: 'template', label: 'Template Dokumen' },
+];
 
 const EMPTY_PT = (): Omit<MasterPt, 'id'> => ({
   namaPt: '',
@@ -133,29 +139,20 @@ export default function MasterPtPage() {
       <PageHeader
         title="Master PT dan Template"
         description="Kelola data PT dan template dokumen perjanjian per tipe transaksi"
+        tabs={
+          <TabBar
+            tabs={TABS}
+            activeTab={activeTab}
+            onTabChange={(t) => setActiveTab(t as ActiveTab)}
+            idPrefix="masterpt"
+            label="Bagian Master PT"
+          />
+        }
       />
 
       <PageBody>
-        {/* Tab strip */}
-        <div className="mb-4 flex gap-1 rounded-xl bg-white p-1 shadow-sm">
-          {([['master-pt', 'Master PT'], ['template', 'Template Dokumen']] as [ActiveTab, string][]).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setActiveTab(key)}
-              className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                activeTab === key
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-ink-2 hover:bg-gray-100'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Tab: Master PT ── */}
-        {activeTab === 'master-pt' && (
+        <TabPanel idPrefix="masterpt" activeTab={activeTab}>
+          {activeTab === 'master-pt' && (
           <Panel
             title="Daftar PT"
             description="Satu perumahan terikat ke satu PT. Data PT terisi otomatis di dokumen legal."
@@ -257,6 +254,7 @@ export default function MasterPtPage() {
             )}
           </Panel>
         )}
+        </TabPanel>
       </PageBody>
 
       {/* Modal PT */}
@@ -335,7 +333,7 @@ export default function MasterPtPage() {
                   <label key={pasal.id} className="flex cursor-pointer items-start gap-2.5 rounded-md p-2 hover:bg-gray-100">
                     <input
                       type="checkbox"
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600"
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
                       checked={tmplForm.pasalIds.includes(pasal.id)}
                       onChange={() => togglePasalInForm(pasal.id)}
                     />

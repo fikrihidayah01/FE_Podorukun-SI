@@ -361,14 +361,15 @@ export default function LegalPage() {
             </div>
 
             {hargaNett > 0 && (
-              <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
-                <p className="text-xs font-semibold text-indigo-700">Harga nett (otomatis)</p>
-                <p className="mt-0.5 text-lg font-bold tabular-nums text-indigo-900">
+              <div className="rounded-lg border border-brand-200 bg-brand-50 p-3">
+                <p className="text-xs font-semibold text-brand-700">Harga nett (otomatis)</p>
+                <p className="mt-0.5 text-lg font-bold tabular-nums text-brand-800">
                   Rp {hargaNett.toLocaleString('id-ID')}
                 </p>
-                <p className="mt-0.5 text-xs text-indigo-600">= Harga awal + BPHTB + AJB/BBN</p>
+                <p className="mt-0.5 text-xs text-brand-600">= Harga awal + BPHTB + AJB/BBN</p>
               </div>
             )}
+
           </div>
         )}
       </Modal>

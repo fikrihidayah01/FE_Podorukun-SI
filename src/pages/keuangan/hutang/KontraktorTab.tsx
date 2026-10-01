@@ -53,7 +53,7 @@ export default function KontraktorTab() {
   return (
     <>
       <StatGrid columns={3}>
-        <StatTile color="#475569" icon={PiFileText} label="Nilai kontrak" value={formatRupiahShort(total.nilai)} hint={`${rows.length} kontrak`} />
+        <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak" value={formatRupiahShort(total.nilai)} hint={`${rows.length} kontrak`} />
         <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar (kas bon)" value={formatRupiahShort(total.terbayar)} />
         <StatTile emphasis color="#c2410c" icon={PiHandCoins} label="Sisa yang harus dibayar" value={formatRupiahShort(total.sisa)} />
       </StatGrid>
