@@ -142,7 +142,6 @@ export default function HutangPage() {
 
         <StatGrid>
           <StatTile
-            emphasis
             color={MODULE_ACCENT['/keuangan/hutang']}
             icon={PiHandCoins}
             label="Total hutang"
@@ -156,7 +155,6 @@ export default function HutangPage() {
             icon={PiCalendarCheck}
             label="Jatuh tempo 7 hari"
             value={`${dueReminders.length} tagihan`}
-            tone={dueReminders.length > 0 ? 'warning' : 'default'}
             hint={dueReminders[0] ? `Terdekat ${dueReminders[0].tanggalFormatted}` : 'Tidak ada pinjaman bank jatuh tempo'}
           />
         </StatGrid>

@@ -124,7 +124,7 @@ export default function PiutangPage() {
         <StatGrid columns={3}>
           <StatTile color="#475569" icon={PiFileText} label="Nilai kontrak (SPPR)" value={formatRupiahShort(totals.nilai)} hint={`${filteredItems.length} kavling`} />
           <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar" value={formatRupiahShort(totals.dibayar)} />
-          <StatTile emphasis color="#047857" icon={PiHourglassMedium} label="Sisa tagihan" value={formatRupiahShort(totals.sisa)} />
+          <StatTile color="#047857" icon={PiHourglassMedium} label="Sisa tagihan" value={formatRupiahShort(totals.sisa)} />
         </StatGrid>
 
         <Notice>
