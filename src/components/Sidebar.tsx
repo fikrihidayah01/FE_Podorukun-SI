@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { PiSignOut, PiX, PiCirclesFour } from 'react-icons/pi';
+import { PiSignOut, PiX } from 'react-icons/pi';
 import { useAuthStore, ROLE_LABELS } from '../store/authStore';
 import menuConfig, { type MenuItem } from '../config/menuConfig';
 import { inisial } from '../utils/format';
@@ -13,6 +13,7 @@ interface SidebarProps {
 
 type NavLeaf = Omit<MenuItem, 'children'>;
 
+// Setiap modul membawa warnanya sendiri: ikon kecil berwarna di menu sama dengan warna header halamannya
 function NavItem({ item, onNavigate }: { item: NavLeaf; onNavigate: () => void }) {
   const accent = accentFor(item.path);
   return (
@@ -22,21 +23,21 @@ function NavItem({ item, onNavigate }: { item: NavLeaf; onNavigate: () => void }
         end={item.path === '/dashboard'}
         onClick={onNavigate}
         className={({ isActive }) =>
-          `group flex h-9 items-center gap-3 rounded-lg px-2 text-sm transition-colors ${
-            isActive ? 'bg-subtle font-semibold text-ink' : 'font-medium text-ink-2 hover:bg-neutral-soft hover:text-ink'
+          `group flex h-10 items-center gap-3 rounded-lg px-2 text-sm transition-colors ${
+            isActive ? 'bg-white/10 font-semibold text-white' : 'font-medium text-white/75 hover:bg-white/5 hover:text-white'
           }`
         }
       >
         {({ isActive }) => (
           <>
             <span
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
               style={{
-                backgroundColor: isActive ? accent : 'transparent',
-                color: isActive ? '#fff' : 'var(--color-ink-3)',
+                backgroundColor: isActive ? accent : 'rgb(255 255 255 / 0.06)',
+                color: isActive ? '#fff' : `color-mix(in srgb, ${accent} 45%, white)`,
               }}
             >
-              <item.icon className="h-[18px] w-[18px]" aria-hidden />
+              <item.icon className="h-4 w-4" aria-hidden />
             </span>
             <span className="truncate">{item.label}</span>
           </>
@@ -53,6 +54,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const role = user?.role;
   const groups = role ? menuConfig[role] : [];
 
+  // Laci di layar kecil: fokus masuk saat dibuka, Escape menutup, fokus kembali ke tombol Menu saat ditutup.
   useEffect(() => {
     if (!isOpen) return;
     const panel = panelRef.current;
@@ -77,6 +79,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     navigate('/login');
   };
 
+  // Item ber-anak ditampilkan terbuka sebagai kelompok berjudul: satu klik lebih sedikit untuk tiap halaman.
   const sections = groups.flatMap((group) =>
     group.items.map((item) =>
       item.children
@@ -94,38 +97,44 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 z-40 animate-fade-in bg-ink/20 backdrop-blur-sm lg:hidden" onClick={onClose} aria-hidden="true" />
+        <div className="fixed inset-0 z-40 animate-fade-in bg-ink/40 lg:hidden" onClick={onClose} aria-hidden="true" />
       )}
 
       <aside
         ref={panelRef}
         aria-label="Navigasi utama"
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-surface text-ink lg:border-r lg:border-line/60 lg:visible lg:translate-x-0 ${
+        // visibility langsung tampil saat dibuka (supaya bisa difokus), dan baru disembunyikan setelah slide-out selesai
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-ink text-white lg:visible lg:translate-x-0 ${
           isOpen
             ? 'visible translate-x-0 shadow-pop [transition:transform_200ms_ease-out,visibility_0s] lg:shadow-none'
             : 'invisible -translate-x-full [transition:transform_200ms_ease-out,visibility_0s_linear_200ms]'
         }`}
       >
-        <div className="flex h-16 shrink-0 items-center justify-between gap-2 px-6">
+        <div className="flex h-16 shrink-0 items-center justify-between gap-2 px-4">
           <NavLink to="/dashboard" onClick={closeOnMobile} className="flex items-center gap-2.5 rounded-lg">
-            <PiCirclesFour className="h-6 w-6 text-brand-600" />
-            <span className="text-sm font-extrabold tracking-tight text-ink">SI-Podorukun</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-xs font-extrabold tracking-wide text-ink">
+              SI
+            </span>
+            <span className="leading-tight">
+              <span className="block text-sm font-bold text-white">SI-Podorukun</span>
+              <span className="block text-xs text-white/60">Sistem informasi</span>
+            </span>
           </NavLink>
           <button
             type="button"
             onClick={onClose}
             aria-label="Tutup menu"
-            className="tap-target flex h-8 w-8 items-center justify-center rounded-lg text-ink-3 hover:bg-neutral-soft hover:text-ink lg:hidden"
+            className="tap-target flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
           >
             <PiX className="h-[18px] w-[18px]" aria-hidden />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
+        <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-2">
           {merged.map((section, i) => (
-            <div key={`${section.heading ?? 'root'}-${i}`} className={i > 0 ? 'mt-8' : ''}>
-              {section.heading && <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3/70">{section.heading}</p>}
-              <ul className="space-y-1">
+            <div key={`${section.heading ?? 'root'}-${i}`} className={i > 0 ? 'mt-6' : ''}>
+              {section.heading && <p className="mb-2 px-2 text-xs font-semibold text-white/50">{section.heading}</p>}
+              <ul className="space-y-0.5">
                 {section.items.map((item) => (
                   <NavItem key={item.path} item={item} onNavigate={closeOnMobile} />
                 ))}
@@ -134,27 +143,27 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="shrink-0 p-4">
-          <div className="flex items-center gap-3 rounded-xl bg-subtle px-3 py-2.5">
+        <div className="shrink-0 border-t border-white/10 p-3">
+          <div className="flex items-center gap-3 rounded-lg bg-white/5 px-2 py-2">
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
               style={{ backgroundColor: role ? ROLE_ACCENT[role] : '#475569' }}
               aria-hidden
             >
               {user ? inisial(user.name) : '?'}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-ink">{user?.name ?? 'Pengguna'}</p>
-              <p className="truncate text-[11px] font-medium text-ink-3">{role ? ROLE_LABELS[role] : ''}</p>
+              <p className="truncate text-sm font-semibold text-white">{user?.name ?? 'Pengguna'}</p>
+              <p className="truncate text-xs text-white/60">{role ? ROLE_LABELS[role] : ''}</p>
             </div>
             <button
               type="button"
               onClick={handleLogout}
               aria-label="Keluar"
               title="Keluar"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-3 hover:bg-white hover:text-danger hover:shadow-sm transition-all"
+              className="tap-target flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
             >
-              <PiSignOut className="h-[15px] w-[15px]" aria-hidden />
+              <PiSignOut className="h-[18px] w-[18px]" aria-hidden />
             </button>
           </div>
         </div>

@@ -124,6 +124,7 @@ function KeuanganDashboard() {
     <>
       <StatGrid>
         <StatTile
+          emphasis
           color={HUTANG}
           icon={PiHandCoins}
           label="Total hutang"
@@ -143,6 +144,7 @@ function KeuanganDashboard() {
           icon={PiHourglassMedium}
           label="Tunggakan lewat jatuh tempo"
           value={formatRupiahShort(totalTunggakan)}
+          tone={totalTunggakan > 0 ? 'danger' : 'default'}
           hint={`${tagihan.filter((t) => t.tunggakan > 0).length} kavling menunggak`}
         />
       </StatGrid>
