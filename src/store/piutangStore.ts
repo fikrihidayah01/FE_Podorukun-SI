@@ -192,6 +192,7 @@ interface TagihanState {
   getTotalDibayar: (proyekId?: string) => number;
   getTotalSisa: (proyekId?: string) => number;
   updateAlokasi: (kavlingId: string, periode: string, dibayar: number, tanggalBayar: string | null) => void;
+  addFromLegal: (legalData: any) => void;
 }
 
 export const usePiutangStore = create<TagihanState>()(
@@ -236,6 +237,46 @@ export const usePiutangStore = create<TagihanState>()(
           }),
         }));
       },
+      
+      addFromLegal: (legalData: any) => {
+        set((state) => {
+          // Hanya tambahkan jika belum ada di Piutang (berdasarkan legalData.id)
+          // Dalam skenario nyata, kavlingId bisa jadi unik per transaksi jika belum serah terima.
+          const exists = state.items.some((k) => k.id === legalData.id);
+          if (exists) return state;
+
+          const jadwal = legalData.jadwalPembayaran;
+          const periodeAngsuran: PeriodeAngsuran[] = jadwal?.baris?.map((b: any) => {
+            const date = new Date(b.tanggal);
+            const periodeStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            return {
+              periode: periodeStr,
+              tanggalJatuhTempo: b.tanggal,
+              tagihan: b.jumlah,
+              dibayar: 0,
+              tanggalBayar: null
+            };
+          }) ?? [];
+
+          const newTagihan: KavlingTagihan = {
+            id: legalData.id,
+            proyekId: legalData.perumahanId,
+            nomorKavling: legalData.kavlingId, // Idealnya ambil nomor aktual
+            namaUser: legalData.pembeli.nama,
+            tipeTransaksi: legalData.tipeTransaksi.toLowerCase() as TipeTransaksi,
+            statusBast: 'belum_bast',
+            nilaiSppr: legalData.hargaAwal + legalData.bphtb + legalData.ajbBbn,
+            tanggalAcuanAngsuran: parseInt(jadwal?.tanggalAcuan ?? '1', 10) || 1,
+            periodeAwal: periodeAngsuran.length > 0 ? periodeAngsuran[0].periode : '',
+            totalBulanAngsuran: periodeAngsuran.length,
+            periodeAngsuran,
+            pembayaranLainnya: [],
+          };
+
+          return { items: [...state.items, newTagihan] };
+        });
+      },
+
     }),
     { name: 'si-tagihan-v2' }
   )

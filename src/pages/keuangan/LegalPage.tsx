@@ -7,6 +7,7 @@ import { useDokumenLegalStore, type DokumenLegal, type StatusDokumen, type DataP
 import { useMasterPtStore } from '../../store/masterPtStore';
 import { useProyekStore } from '../../store/proyekStore';
 import { useTemplateDokumenStore, type TipeTransaksi } from '../../store/templateDokumenStore';
+import { usePustakaPasalStore } from '../../store/pustakaPasalStore';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
 import Panel from '../../components/ui/Panel';
 import Modal from '../../components/ui/Modal';
@@ -120,6 +121,19 @@ export default function LegalPage() {
     const pt = pts.find((p) => p.id === formPtId);
     const ptSingkatan = pt?.namaPt.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 4) ?? 'DOK';
 
+    const pustakaStore = usePustakaPasalStore.getState();
+    const pasalDokumen = (templateAktif?.pasalIds ?? []).map((pasalId) => {
+      const p = pustakaStore.items.find((item) => item.id === pasalId);
+      if (!p) return null;
+      return {
+        id: crypto.randomUUID(),
+        pustakaId: p.id,
+        judul: p.judul,
+        isi: p.isi,
+        fields: p.fields.map((f) => ({ ...f, nilai: '' })),
+      };
+    }).filter(Boolean) as any;
+
     const id = add({
       ptId: formPtId,
       kavlingId: formKavlingId,
@@ -132,14 +146,14 @@ export default function LegalPage() {
       uangMuka: Number(uangMuka) || 0,
       tanggalPerjanjian,
       status: statusFinal,
-      pasalIds: templateAktif?.pasalIds ?? [],
-      nilaiFields: {},
+      pasalDokumen,
       ptSingkatan,
     });
 
     setBuatOpen(false);
     navigate(`/keuangan/legal/${id}`);
   };
+
 
   const columns: Column<DokumenLegal>[] = [
     { key: 'noDokumen', label: 'No. dokumen', render: (r) => <span className="font-mono text-sm font-semibold text-ink">{r.noDokumen}</span> },

@@ -42,7 +42,7 @@ const EMPTY_PASAL = (): Omit<Pasal, 'id' | 'createdAt'> => ({
 
 export default function PustakaPasalPage() {
   const { items, add, update, nonaktifkan, aktifkan, remove } = usePustakaPasalStore();
-  const { getDokumenByPasal } = useDokumenLegalStore();
+  const { getDokumenByPasalPustaka } = useDokumenLegalStore();
 
   const [filterBerlaku, setFilterBerlaku] = useState<BerlakuPasal | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'aktif' | 'nonaktif'>('all');
@@ -104,7 +104,7 @@ export default function PustakaPasalPage() {
     setForm((p) => ({ ...p, fields: p.fields.filter((f) => f.id !== id) }));
   };
 
-  const getJumlahDipakai = (id: string) => getDokumenByPasal(id).length;
+  const getJumlahDipakai = (id: string) => getDokumenByPasalPustaka(id).length;
 
   const handleNonaktifkan = (id: string) => {
     setConfirmId(id);
