@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { Tone } from '../components/ui/Badge';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -23,12 +24,6 @@ export const TIPE_TRANSAKSI_LABELS: Record<TipeTransaksi, string> = {
   in_house: 'In house',
 };
 
-export const TIPE_TRANSAKSI_COLOR: Record<TipeTransaksi, string> = {
-  cash: 'bg-amber-100 text-amber-800 border-amber-200',
-  kpr: 'bg-sky-100 text-sky-800 border-sky-200',
-  in_house: 'bg-purple-100 text-purple-800 border-purple-200',
-};
-
 export const STATUS_PERIODE_LABELS: Record<StatusPeriode, string> = {
   lunas: 'Lunas',
   bayar_awal: 'Bayar awal',
@@ -36,17 +31,18 @@ export const STATUS_PERIODE_LABELS: Record<StatusPeriode, string> = {
   sebagian: 'Sebagian',
   terlambat: 'Terlambat',
   belum_bayar: 'Belum bayar',
-  belum_jatuh_tempo: 'Belum JT',
+  belum_jatuh_tempo: 'Belum jatuh tempo',
 };
 
-export const STATUS_PERIODE_COLOR: Record<StatusPeriode, string> = {
-  lunas: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  bayar_awal: 'bg-sky-100 text-sky-700 border-sky-200',
-  dibayar_dimuka: 'bg-purple-100 text-purple-700 border-purple-200',
-  sebagian: 'bg-amber-100 text-amber-700 border-amber-200',
-  terlambat: 'bg-rose-100 text-rose-700 border-rose-200',
-  belum_bayar: 'bg-red-100 text-red-700 border-red-200',
-  belum_jatuh_tempo: 'bg-gray-100 text-gray-500 border-gray-200',
+// Hijau = sudah lunas (kapan pun), kuning = lunas tapi telat atau baru sebagian, merah = lewat jatuh tempo tanpa bayar.
+export const STATUS_PERIODE_TONE: Record<StatusPeriode, Tone> = {
+  lunas: 'positive',
+  bayar_awal: 'positive',
+  dibayar_dimuka: 'positive',
+  sebagian: 'warning',
+  terlambat: 'warning',
+  belum_bayar: 'danger',
+  belum_jatuh_tempo: 'neutral',
 };
 
 // ── Data Models ───────────────────────────────────────────────

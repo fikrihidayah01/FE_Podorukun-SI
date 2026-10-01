@@ -1,87 +1,136 @@
-import { useEffect, useRef } from 'react';
-import { MdClose } from 'react-icons/md';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { PiX } from 'react-icons/pi';
+import { IconButton } from './Button';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: React.ReactNode;
-  /** Lebar modal, default 'md' */
+  /** Konteks singkat di bawah judul, mis. nama pihak atau nomor dokumen. */
+  description?: ReactNode;
+  children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** Footer berisi tombol aksi */
-  footer?: React.ReactNode;
-  /** Elemen aksi tambahan di sebelah kiri tombol tutup (silang) */
-  headerActions?: React.ReactNode;
+  /** Tombol aksi; ditata rata kanan di dasar dialog. */
+  footer?: ReactNode;
+  /** Aksi tambahan di kiri tombol tutup. */
+  headerActions?: ReactNode;
 }
 
 const SIZE_CLASS = {
-  sm: 'max-w-sm',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
+  sm: 'sm:max-w-md',
+  md: 'sm:max-w-lg',
+  lg: 'sm:max-w-2xl',
+  xl: 'sm:max-w-5xl',
 };
 
-export default function Modal({ isOpen, onClose, title, children, size = 'md', footer, headerActions }: ModalProps) {
-  const overlayRef = useRef<HTMLDivElement>(null);
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-  // Tutup saat tekan Escape
+// Dialog bisa bertumpuk (konfirmasi di atas form). Hanya dialog teratas yang menanggapi Escape dan Tab.
+const openStack: symbol[] = [];
+
+export default function Modal({ isOpen, onClose, title, description, children, size = 'md', footer, headerActions }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+  const descId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  // Fokus masuk ke dialog saat dibuka, kembali ke pemicu saat ditutup, dan Tab tidak keluar dari dialog.
   useEffect(() => {
     if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+    const token = Symbol('modal');
+    openStack.push(token);
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    // Fokus awal ke kolom isian pertama; dialog baca-saja memfokuskan dirinya sendiri agar tabel tidak ikut tergulir
+    const body = dialog?.querySelector<HTMLElement>('[data-modal-body]');
+    const firstField = body?.querySelector<HTMLElement>(
+      'input:not([disabled]):not([readonly]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])',
+    );
+    (firstField ?? dialog)?.focus({ preventScroll: !firstField });
 
-  // Prevent scroll body saat modal terbuka
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    const onKey = (e: KeyboardEvent) => {
+      if (openStack[openStack.length - 1] !== token) return;
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialog) return;
+      const items = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      openStack.splice(openStack.indexOf(token), 1);
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      previouslyFocused?.focus?.();
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === overlayRef.current) onClose();
-      }}
-    >
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <div
-        className={`w-full ${SIZE_CLASS[size]} rounded-2xl bg-white shadow-xl flex flex-col max-h-[90vh]`}
+        className="absolute inset-0 animate-fade-in bg-ink/45"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descId : undefined}
+        tabIndex={-1}
+        className={`relative flex max-h-[92dvh] w-full animate-dialog-in flex-col rounded-t-xl bg-surface shadow-pop outline-none sm:max-h-[90dvh] sm:rounded-xl ${SIZE_CLASS[size]}`}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-          <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-4">
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-base font-bold text-ink">
+              {title}
+            </h2>
+            {description && (
+              <p id={descId} className="mt-0.5 text-[13px] text-ink-3">
+                {description}
+              </p>
+            )}
+          </div>
+          <div className="-mr-1.5 -mt-1 flex items-center gap-1">
             {headerActions}
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer transition-colors"
-              aria-label="Tutup"
-            >
-              <MdClose className="h-5 w-5" />
-            </button>
+            <IconButton icon={PiX} label="Tutup" onClick={onClose} />
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div data-modal-body className="flex-1 overflow-y-auto px-5 py-5">
           {children}
         </div>
 
-        {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 shrink-0">
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-line bg-subtle px-5 py-3.5 sm:flex-row sm:items-center sm:justify-end">
             {footer}
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,9 +1,13 @@
-import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import type { ReactNode } from 'react';
+import { PiCaretLeft, PiCaretRight } from 'react-icons/pi';
+import { IconButton } from './Button';
 
 export interface Column<T> {
   key: keyof T | string;
   label: string;
-  render?: (row: T) => React.ReactNode;
+  render?: (row: T) => ReactNode;
+  /** Kolom angka: rata kanan dengan angka tabular. */
+  numeric?: boolean;
   className?: string;
 }
 
@@ -12,11 +16,14 @@ export interface DataTableProps<T> {
   columns: Column<T>[];
   keyExtractor: (item: T) => string;
   onRowClick?: (item: T) => void;
+  /** Label aksi baris untuk pembaca layar, mis. "Buka detail jurnal". */
+  rowActionLabel?: (item: T) => string;
   page?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
-  emptyMessage?: string;
+  empty?: ReactNode;
   rowClassName?: (item: T) => string;
+  label: string;
 }
 
 export default function DataTable<T>({
@@ -24,57 +31,56 @@ export default function DataTable<T>({
   data,
   keyExtractor,
   onRowClick,
+  rowActionLabel,
   page = 1,
   pageSize = 10,
   onPageChange,
-  emptyMessage = 'Tidak ada data.',
+  empty,
   rowClassName,
+  label,
 }: DataTableProps<T>) {
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
   const paginated = onPageChange ? data.slice((page - 1) * pageSize, page * pageSize) : data;
 
   return (
     <div>
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200/70 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+      <div className="relative overflow-x-auto" role="region" aria-label={label} tabIndex={0}>
+        <table className="tbl">
+          <thead>
             <tr>
               {columns.map((col) => (
-                <th
-                  key={String(col.key)}
-                  className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 ${col.className ?? ''}`}
-                >
+                <th key={String(col.key)} scope="col" className={`${col.numeric ? 'num' : ''} ${col.className ?? ''}`}>
                   {col.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 bg-white">
+          <tbody>
             {paginated.length === 0 ? (
               <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-4 py-10 text-center text-gray-400"
-                >
-                  {emptyMessage}
+                <td colSpan={columns.length} className="!p-0">
+                  {empty ?? <p className="px-4 py-10 text-center text-sm text-ink-3">Tidak ada data.</p>}
                 </td>
               </tr>
             ) : (
               paginated.map((row) => (
                 <tr
                   key={keyExtractor(row)}
+                  data-clickable={onRowClick ? '' : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  aria-label={onRowClick && rowActionLabel ? rowActionLabel(row) : undefined}
                   onClick={() => onRowClick?.(row)}
-                  className={`hover:bg-gray-50 transition-colors ${rowClassName ? rowClassName(row) : ''} ${onRowClick ? 'cursor-pointer' : ''}`}
+                  onKeyDown={(e) => {
+                    if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      onRowClick(row);
+                    }
+                  }}
+                  className={rowClassName ? rowClassName(row) : ''}
                 >
                   {columns.map((col) => (
-                    <td
-                      key={String(col.key)}
-                      className={`px-4 py-3 text-gray-700 ${col.className ?? ''}`}
-                    >
-                      {col.render
-                        ? col.render(row)
-                        : String((row as Record<string, unknown>)[String(col.key)] ?? '-')}
+                    <td key={String(col.key)} className={`${col.numeric ? 'num' : ''} ${col.className ?? ''}`}>
+                      {col.render ? col.render(row) : String((row as Record<string, unknown>)[String(col.key)] ?? '-')}
                     </td>
                   ))}
                 </tr>
@@ -84,43 +90,32 @@ export default function DataTable<T>({
         </table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-          <p>
-            Menampilkan {Math.min((page - 1) * pageSize + 1, data.length)}—
-            {Math.min(page * pageSize, data.length)} dari {data.length} data
+      {onPageChange && totalPages > 1 && (
+        <nav
+          aria-label="Halaman tabel"
+          className="flex flex-col gap-3 border-t border-line px-4 py-3 text-[13px] text-ink-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="tabular-nums">
+            {Math.min((page - 1) * pageSize + 1, data.length)}-{Math.min(page * pageSize, data.length)} dari {data.length}
           </p>
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => onPageChange?.(page - 1)}
-              disabled={page <= 1}
-              className="rounded-lg p-1.5 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <MdChevronLeft className="h-4 w-4" />
-            </button>
+            <IconButton icon={PiCaretLeft} label="Halaman sebelumnya" onClick={() => onPageChange(page - 1)} disabled={page <= 1} />
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button
                 key={p}
-                onClick={() => onPageChange?.(p)}
-                className={`min-w-[2rem] rounded-lg px-2 py-1 text-xs font-medium ${
-                  p === page
-                    ? 'bg-indigo-600 text-white'
-                    : 'hover:bg-gray-100 text-gray-600'
+                type="button"
+                onClick={() => onPageChange(p)}
+                aria-current={p === page ? 'page' : undefined}
+                className={`tap-target h-8 min-w-8 rounded-lg px-2 text-[13px] font-semibold tabular-nums transition-colors ${
+                  p === page ? 'bg-ink text-white' : 'text-ink-2 hover:bg-neutral-soft'
                 }`}
               >
                 {p}
               </button>
             ))}
-            <button
-              onClick={() => onPageChange?.(page + 1)}
-              disabled={page >= totalPages}
-              className="rounded-lg p-1.5 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <MdChevronRight className="h-4 w-4" />
-            </button>
+            <IconButton icon={PiCaretRight} label="Halaman berikutnya" onClick={() => onPageChange(page + 1)} disabled={page >= totalPages} />
           </div>
-        </div>
+        </nav>
       )}
     </div>
   );

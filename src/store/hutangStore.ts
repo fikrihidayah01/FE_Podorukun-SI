@@ -21,15 +21,6 @@ export const KATEGORI_HUTANG_LABELS: Record<KategoriHutang, string> = {
   bank: 'Bank',
 };
 
-export const KATEGORI_HUTANG_COLOR: Record<KategoriHutang, string> = {
-  lahan: 'bg-amber-100 text-amber-700 border-amber-200',
-  ppn: 'bg-sky-100 text-sky-700 border-sky-200',
-  pihak_ketiga: 'bg-lime-100 text-lime-700 border-lime-200',
-  pemegang_saham: 'bg-violet-100 text-violet-700 border-violet-200',
-  karyawan: 'bg-rose-100 text-rose-700 border-rose-200',
-  antar_proyek: 'bg-teal-100 text-teal-700 border-teal-200',
-  bank: 'bg-blue-100 text-blue-700 border-blue-200',
-};
 
 // ── Kode Pembantu (pihak hutang) ─────────────────────────────
 export interface KodePembantu {
@@ -99,10 +90,10 @@ interface HutangState {
 
 // ── Dummy Data ───────────────────────────────────────────────
 const DUMMY_KODE_PEMBANTU: KodePembantu[] = [
-  { id: 'kp1', nama: 'Pemilik lahan — Pak Warsito', proyekId: 'p1', kategori: 'lahan' },
+  { id: 'kp1', nama: 'Pak Warsito (pemilik lahan)', proyekId: 'p1', kategori: 'lahan' },
   { id: 'kp2', nama: 'Bank Mandiri', proyekId: 'p2', kategori: 'bank' },
   { id: 'kp3', nama: 'Aya Sophia', proyekId: 'p1', kategori: 'antar_proyek' },
-  { id: 'kp4', nama: 'Investor — Arohma', proyekId: 'p2', kategori: 'pihak_ketiga' },
+  { id: 'kp4', nama: 'Arohma (investor)', proyekId: 'p2', kategori: 'pihak_ketiga' },
   { id: 'kp5', nama: 'PT Beton Jaya', proyekId: 'p1', kategori: 'pihak_ketiga' },
   { id: 'kp6', nama: 'Kantor Pajak', proyekId: 'p1', kategori: 'ppn' },
 ];

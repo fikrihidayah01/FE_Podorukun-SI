@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useHutangStore, type KategoriHutang, KATEGORI_HUTANG_LABELS } from '../../../store/hutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import { useCoaStore } from '../../../store/coaStore';
 import Modal from '../../../components/ui/Modal';
-import { MdSwapHoriz, MdInfo } from 'react-icons/md';
+import Button from '../../../components/ui/Button';
+import Field from '../../../components/ui/Field';
+import Notice from '../../../components/ui/Notice';
 
 interface InputMutasiModalProps {
   isOpen: boolean;
@@ -21,11 +23,7 @@ const EMPTY_FORM = {
   akunCoaId: '',
   uraian: '',
   referensi: '',
-  lampiran: '',
-  // Antar proyek
   proyekLawanId: '',
-  // Lahan — jatuh tempo optional
-  tanggalJatuhTempo: '',
 };
 
 type FormErrors = Partial<Record<keyof typeof EMPTY_FORM, string>>;
@@ -39,56 +37,42 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
   const [errors, setErrors] = useState<FormErrors>({});
   const [createNewKp, setCreateNewKp] = useState(false);
 
-  // Filter kode pembantu by proyek + kategori
   const filteredKp = useMemo(() => {
     if (!form.proyekId || !form.kategori) return [];
-    return kodePembantus.filter(
-      (kp) => kp.proyekId === form.proyekId && kp.kategori === form.kategori
-    );
+    return kodePembantus.filter((kp) => kp.proyekId === form.proyekId && kp.kategori === form.kategori);
   }, [kodePembantus, form.proyekId, form.kategori]);
 
-  // Reset form
-  const resetForm = () => {
+  const pihakBaru = createNewKp || filteredKp.length === 0;
+  const isAntarProyek = form.kategori === 'antar_proyek';
+
+  const handleClose = () => {
     setForm(EMPTY_FORM);
     setErrors({});
     setCreateNewKp(false);
-  };
-
-  const handleClose = () => {
-    resetForm();
     onClose();
   };
 
-  const validate = (): boolean => {
+  const validate = () => {
     const e: FormErrors = {};
-    if (!form.proyekId) e.proyekId = 'Proyek wajib dipilih';
-    if (!form.kategori) e.kategori = 'Kategori hutang wajib dipilih';
-    if (!createNewKp && !form.kodePembantuId && filteredKp.length > 0)
-      e.kodePembantuId = 'Kode pembantu wajib dipilih';
-    if (createNewKp && !form.kodePembantuBaru.trim())
-      e.kodePembantuBaru = 'Nama pihak wajib diisi';
-    if (!form.tanggal) e.tanggal = 'Tanggal wajib diisi';
-    if (!form.nominal || Number(form.nominal) <= 0) e.nominal = 'Nominal harus lebih dari 0';
-    if (!form.uraian.trim()) e.uraian = 'Uraian wajib diisi';
-    if (form.kategori === 'antar_proyek' && !form.proyekLawanId)
-      e.proyekLawanId = 'Proyek pemberi pinjaman wajib dipilih';
-
+    if (!form.proyekId) e.proyekId = 'Pilih proyek.';
+    if (!form.kategori) e.kategori = 'Pilih kategori hutang.';
+    if (form.proyekId && form.kategori) {
+      if (!pihakBaru && !form.kodePembantuId) e.kodePembantuId = 'Pilih pihak, atau tambahkan pihak baru.';
+      if (pihakBaru && !form.kodePembantuBaru.trim()) e.kodePembantuBaru = 'Tulis nama pihak.';
+    }
+    if (!form.tanggal) e.tanggal = 'Tanggal wajib diisi.';
+    if (!form.nominal || Number(form.nominal) <= 0) e.nominal = 'Nominal harus lebih dari 0.';
+    if (!form.uraian.trim()) e.uraian = 'Uraian wajib diisi.';
+    if (isAntarProyek && !form.proyekLawanId) e.proyekLawanId = 'Pilih proyek pemberi pinjaman.';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = () => {
     if (!validate()) return;
-
-    // Create new kode pembantu if needed
-    let kpId = form.kodePembantuId;
-    if (createNewKp || filteredKp.length === 0) {
-      kpId = addKodePembantu({
-        nama: form.kodePembantuBaru.trim(),
-        proyekId: form.proyekId,
-        kategori: form.kategori as KategoriHutang,
-      });
-    }
+    const kpId = pihakBaru
+      ? addKodePembantu({ nama: form.kodePembantuBaru.trim(), proyekId: form.proyekId, kategori: form.kategori as KategoriHutang })
+      : form.kodePembantuId;
 
     addMutasi({
       proyekId: form.proyekId,
@@ -100,248 +84,157 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
       nominal: Number(form.nominal),
       akunCoaId: form.akunCoaId || undefined,
       referensi: form.referensi.trim() || undefined,
-      lampiran: form.lampiran || undefined,
-      proyekLawanId: form.kategori === 'antar_proyek' ? form.proyekLawanId : undefined,
+      proyekLawanId: isAntarProyek ? form.proyekLawanId : undefined,
     });
-
     handleClose();
   };
-
-  const isAntarProyek = form.kategori === 'antar_proyek';
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
       title="Input mutasi hutang"
+      description="Mutasi langsung masuk ke saldo berjalan kode pembantu yang dipilih"
       size="lg"
       footer={
         <>
-          <button
-            onClick={handleClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Batal
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-          >
+          <Button onClick={handleClose}>Batal</Button>
+          <Button variant="primary" onClick={handleSubmit}>
             Simpan mutasi
-          </button>
+          </Button>
         </>
       }
     >
       <div className="space-y-4">
-        {/* Row: Proyek + Kategori */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Proyek <span className="text-red-500">*</span>
-            </label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Proyek" required error={errors.proyekId}>
             <select
+              className="control"
               value={form.proyekId}
               onChange={(e) => setForm({ ...form, proyekId: e.target.value, kodePembantuId: '', proyekLawanId: '' })}
-              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.proyekId ? 'border-red-400' : 'border-gray-300'}`}
             >
-              <option value="">— Pilih proyek —</option>
+              <option value="">Pilih proyek</option>
               {proyeks.map((p) => (
                 <option key={p.id} value={p.id}>{p.nama}</option>
               ))}
             </select>
-            {errors.proyekId && <p className="mt-1 text-xs text-red-500">{errors.proyekId}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Kategori hutang <span className="text-red-500">*</span>
-            </label>
+          </Field>
+          <Field label="Kategori hutang" required error={errors.kategori}>
             <select
+              className="control"
               value={form.kategori}
               onChange={(e) => setForm({ ...form, kategori: e.target.value as KategoriHutang, kodePembantuId: '' })}
-              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.kategori ? 'border-red-400' : 'border-gray-300'}`}
             >
-              <option value="">— Pilih kategori —</option>
+              <option value="">Pilih kategori</option>
               {(Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).map((k) => (
                 <option key={k} value={k}>{KATEGORI_HUTANG_LABELS[k]}</option>
               ))}
             </select>
-            {errors.kategori && <p className="mt-1 text-xs text-red-500">{errors.kategori}</p>}
-          </div>
+          </Field>
         </div>
 
-        {/* Antar proyek info banner */}
         {isAntarProyek && (
-          <div className="flex items-start gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3">
-            <MdSwapHoriz className="h-5 w-5 text-indigo-600 mt-0.5 shrink-0" />
-            <p className="text-xs text-indigo-700">
-              Sistem otomatis mencatat piutang di proyek lawan. Tidak perlu input ulang di sisi pemberi pinjaman.
-            </p>
-          </div>
+          <>
+            <Notice>Piutang di proyek pemberi pinjaman dicatat otomatis, jadi tidak perlu input ulang di sisi sana.</Notice>
+            <Field label="Proyek pemberi pinjaman" required error={errors.proyekLawanId}>
+              <select className="control" value={form.proyekLawanId} onChange={(e) => setForm({ ...form, proyekLawanId: e.target.value })}>
+                <option value="">Pilih proyek</option>
+                {proyeks
+                  .filter((p) => p.id !== form.proyekId)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>{p.nama}</option>
+                  ))}
+              </select>
+            </Field>
+          </>
         )}
 
-        {/* Antar proyek: Proyek pemberi pinjaman */}
-        {isAntarProyek && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Proyek pemberi pinjaman <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={form.proyekLawanId}
-              onChange={(e) => setForm({ ...form, proyekLawanId: e.target.value })}
-              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.proyekLawanId ? 'border-red-400' : 'border-gray-300'}`}
-            >
-              <option value="">— Pilih proyek pemberi —</option>
-              {proyeks
-                .filter((p) => p.id !== form.proyekId)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>{p.nama}</option>
-                ))}
-            </select>
-            {errors.proyekLawanId && <p className="mt-1 text-xs text-red-500">{errors.proyekLawanId}</p>}
-          </div>
-        )}
-
-        {/* Kode Pembantu — existing or new */}
         {form.proyekId && form.kategori && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Kode pembantu (pihak) <span className="text-red-500">*</span>
-            </label>
-            {filteredKp.length > 0 && !createNewKp ? (
-              <>
-                <select
-                  value={form.kodePembantuId}
-                  onChange={(e) => setForm({ ...form, kodePembantuId: e.target.value })}
-                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.kodePembantuId ? 'border-red-400' : 'border-gray-300'}`}
-                >
-                  <option value="">— Pilih pihak —</option>
+            {!pihakBaru ? (
+              <Field label="Kode pembantu (pihak)" required error={errors.kodePembantuId}>
+                <select className="control" value={form.kodePembantuId} onChange={(e) => setForm({ ...form, kodePembantuId: e.target.value })}>
+                  <option value="">Pilih pihak</option>
                   {filteredKp.map((kp) => (
                     <option key={kp.id} value={kp.id}>{kp.nama}</option>
                   ))}
                 </select>
-                <button
-                  type="button"
-                  onClick={() => setCreateNewKp(true)}
-                  className="mt-1 text-xs text-indigo-600 hover:underline"
-                >
-                  + Tambah pihak baru
-                </button>
-              </>
+              </Field>
             ) : (
-              <>
+              <Field
+                label="Nama pihak baru"
+                required
+                error={errors.kodePembantuBaru}
+                hint={filteredKp.length === 0 ? 'Belum ada pihak untuk proyek dan kategori ini, jadi pihak baru akan dibuat.' : undefined}
+              >
                 <input
-                  type="text"
+                  className="control"
                   value={form.kodePembantuBaru}
                   onChange={(e) => setForm({ ...form, kodePembantuBaru: e.target.value })}
-                  placeholder="Nama pihak baru (mis: Bank BRI, PT XYZ)"
-                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.kodePembantuBaru ? 'border-red-400' : 'border-gray-300'}`}
+                  placeholder="Contoh: Bank BRI, PT Sumber Rejeki"
                 />
-                {filteredKp.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setCreateNewKp(false)}
-                    className="mt-1 text-xs text-gray-500 hover:underline"
-                  >
-                    ← Pilih dari daftar existing
-                  </button>
-                )}
-              </>
+              </Field>
             )}
-            {errors.kodePembantuId && <p className="mt-1 text-xs text-red-500">{errors.kodePembantuId}</p>}
-            {errors.kodePembantuBaru && <p className="mt-1 text-xs text-red-500">{errors.kodePembantuBaru}</p>}
+            {filteredKp.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCreateNewKp((v) => !v)}
+                className="mt-1.5 rounded text-[13px] font-semibold text-brand-700 hover:underline"
+              >
+                {createNewKp ? 'Pilih dari daftar pihak' : 'Tambah pihak baru'}
+              </button>
+            )}
           </div>
         )}
 
-        {/* Tanggal */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tanggal <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={form.tanggal}
-            onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
-            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.tanggal ? 'border-red-400' : 'border-gray-300'}`}
-          />
-          {errors.tanggal && <p className="mt-1 text-xs text-red-500">{errors.tanggal}</p>}
-        </div>
-
-        {/* Row: Jenis Mutasi + Nominal */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Jenis mutasi <span className="text-red-500">*</span>
-            </label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Tanggal" required error={errors.tanggal}>
+            <input type="date" className="control" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} />
+          </Field>
+          <Field label="Jenis mutasi" required>
             <select
+              className="control"
               value={form.jenisMutasi}
               onChange={(e) => setForm({ ...form, jenisMutasi: e.target.value as 'debit' | 'kredit' })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
-              <option value="kredit">Penambahan hutang (kredit)</option>
-              <option value="debit">Pengurangan hutang (debit)</option>
+              <option value="kredit">Bertambah (kredit)</option>
+              <option value="debit">Berkurang (debit)</option>
             </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nominal <span className="text-red-500">*</span>
-            </label>
+          </Field>
+          <Field label="Nominal" required error={errors.nominal}>
             <input
               type="number"
+              inputMode="numeric"
+              min={0}
+              className="control control-num"
               value={form.nominal}
               onChange={(e) => setForm({ ...form, nominal: e.target.value })}
               placeholder="0"
-              min={0}
-              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.nominal ? 'border-red-400' : 'border-gray-300'}`}
             />
-            {errors.nominal && <p className="mt-1 text-xs text-red-500">{errors.nominal}</p>}
-          </div>
+          </Field>
         </div>
 
-        {/* Akun COA */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Akun COA</label>
-          <select
-            value={form.akunCoaId}
-            onChange={(e) => setForm({ ...form, akunCoaId: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="">— Pilih akun (opsional) —</option>
+        <Field label="Akun COA" optional>
+          <select className="control" value={form.akunCoaId} onChange={(e) => setForm({ ...form, akunCoaId: e.target.value })}>
+            <option value="">Pilih akun</option>
             {akuns.map((a) => (
-              <option key={a.id} value={a.id}>{a.kodeAkun} — {a.namaAkun}</option>
+              <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
             ))}
           </select>
+        </Field>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
+          <Field label="Uraian" required error={errors.uraian}>
+            <input className="control" value={form.uraian} onChange={(e) => setForm({ ...form, uraian: e.target.value })} placeholder="Contoh: Angsuran lahan kavling A-08" />
+          </Field>
+          <Field label="No. referensi" optional>
+            <input className="control" value={form.referensi} onChange={(e) => setForm({ ...form, referensi: e.target.value })} placeholder="Contoh: BKK/2026/09/031" />
+          </Field>
         </div>
 
-        {/* Uraian */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Uraian <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={form.uraian}
-            onChange={(e) => setForm({ ...form, uraian: e.target.value })}
-            placeholder="Keterangan transaksi"
-            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${errors.uraian ? 'border-red-400' : 'border-gray-300'}`}
-          />
-          {errors.uraian && <p className="mt-1 text-xs text-red-500">{errors.uraian}</p>}
-        </div>
-
-        {/* Lampiran bukti */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Lampiran bukti</label>
-          <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
-            <MdInfo className="mx-auto h-8 w-8 text-gray-300 mb-2" />
-            <p className="text-xs text-gray-500">
-              Unggah bukti transfer atau dokumen pendukung
-            </p>
-            <p className="mt-1 text-[10px] text-gray-400">
-              (Fitur upload tersedia saat backend sudah siap)
-            </p>
-          </div>
-        </div>
+        <p className="rounded-lg border border-dashed border-line-strong/60 px-4 py-3 text-[13px] text-ink-3">
+          Lampiran bukti transfer belum bisa diunggah. Fitur ini menyusul setelah penyimpanan file di backend siap.
+        </p>
       </div>
     </Modal>
   );

@@ -1,34 +1,41 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { Link, Outlet } from 'react-router-dom';
+import { PiList } from 'react-icons/pi';
 import Sidebar from '../components/Sidebar';
-import { MdMenu } from 'react-icons/md';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8]">
-      {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="min-h-dvh bg-canvas">
+      <a
+        href="#konten"
+        className="fixed left-3 top-3 z-[60] -translate-y-20 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white focus:translate-y-0"
+      >
+        Lewati ke konten
+      </a>
 
-      {/* Main content wrapper */}
-      <div className="flex min-h-screen flex-col lg:pl-72 transition-all duration-300">
-        {/* Mobile menu trigger button (screens < lg) */}
-        <div className="lg:hidden flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2.5 shrink-0">
+      <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+
+      <div className="flex min-h-dvh flex-col lg:pl-64">
+        <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-2 lg:hidden">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 transition-all"
-            aria-label="Buka menu navigasi"
+            aria-expanded={sidebarOpen}
+            className="tap-target inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-ink hover:bg-neutral-soft"
           >
-            <MdMenu className="h-4 w-4 text-gray-600" />
-            <span>Menu Navigasi</span>
+            <PiList className="h-5 w-5" aria-hidden />
+            Menu
           </button>
-          <span className="text-xs font-semibold text-gray-700">SI-Podorukun</span>
+          <Link to="/dashboard" className="ml-auto mr-2 flex items-center gap-2 rounded-lg">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-white">SI</span>
+            <span className="text-sm font-bold text-ink">SI-Podorukun</span>
+          </Link>
         </div>
 
-        {/* Main content area */}
-        <main className="flex-1 flex flex-col">
+        <main id="konten" tabIndex={-1} className="flex flex-1 flex-col outline-none">
           <Outlet />
         </main>
       </div>

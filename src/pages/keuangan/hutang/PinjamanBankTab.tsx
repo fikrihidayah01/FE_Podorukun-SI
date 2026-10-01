@@ -1,31 +1,26 @@
-import { useState, useMemo } from 'react';
-import { MdAdd, MdDeleteOutline, MdNotifications, MdWarning, MdApartment } from 'react-icons/md';
+import { useMemo, useState } from 'react';
+import { PiPlus, PiTrash, PiBank, PiWarning } from 'react-icons/pi';
 import {
   usePinjamanBankStore,
   type PinjamanBank,
   type PolaPembayaran,
   POLA_PEMBAYARAN_LABELS,
-  POLA_PEMBAYARAN_COLOR,
 } from '../../../store/pinjamanBankStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import { useCoaStore } from '../../../store/coaStore';
 import Modal from '../../../components/ui/Modal';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import ExportButton from '../../../components/ui/ExportButton';
+import Panel, { TableScroll } from '../../../components/ui/Panel';
+import Button, { IconButton } from '../../../components/ui/Button';
+import Badge from '../../../components/ui/Badge';
+import Money from '../../../components/ui/Money';
+import Notice from '../../../components/ui/Notice';
+import Field from '../../../components/ui/Field';
+import EmptyState from '../../../components/ui/EmptyState';
 import { buildFilename } from '../../../utils/exportUtils';
+import { formatTanggal } from '../../../utils/format';
 import PinjamanBankDetailModal from './PinjamanBankDetailModal';
-
-function formatRupiah(n: number) {
-  return 'Rp ' + n.toLocaleString('id-ID');
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
 
 interface FormState {
   proyekId: string;
@@ -70,15 +65,15 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
   const [detailPinjaman, setDetailPinjaman] = useState<PinjamanBank | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PinjamanBank | null>(null);
 
-  // Reminders for banner
-  const reminders = useMemo(() => getDueReminders(14), [pinjamans, getDueReminders]);
+  const reminders = getDueReminders(14);
 
-  const filteredPinjamans = useMemo(() => {
-    if (!selectedProyekId) return pinjamans;
-    return pinjamans.filter((p) => p.proyekId === selectedProyekId);
-  }, [pinjamans, selectedProyekId]);
+  const filteredPinjamans = useMemo(
+    () => (selectedProyekId ? pinjamans.filter((p) => p.proyekId === selectedProyekId) : pinjamans),
+    [pinjamans, selectedProyekId],
+  );
 
   const proyekName = (pid: string) => proyeks.find((p) => p.id === pid)?.nama ?? pid;
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   const openAdd = () => {
     setForm({ ...INITIAL_FORM, proyekId: selectedProyekId || proyeks[0]?.id || '' });
@@ -101,7 +96,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
       acuanBunga < 1 ||
       acuanBunga > 31
     ) {
-      setFormError('Lengkapi semua field wajib dengan benar (nominal > 0, tanggal acuan bunga 1–31).');
+      setFormError('Lengkapi semua kolom wajib. Nominal harus lebih dari 0 dan tanggal acuan bunga antara 1 dan 31.');
       return;
     }
 
@@ -122,399 +117,254 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
   };
 
   return (
-    <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
-      {/* ── Jatuh Tempo Mendekat Banner ───── */}
+    <>
       {reminders.length > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3.5 text-red-900 shadow-sm">
-          <MdNotifications className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-          <div className="text-sm">
-            <p className="font-semibold text-red-900">Jatuh tempo mendekat</p>
-            <p className="mt-0.5 text-xs text-red-700">
-              {reminders.slice(0, 3).map((r) => r.label).join('. ')}.
-            </p>
-          </div>
-        </div>
+        <Notice tone="warning" title="Jatuh tempo dalam 14 hari">
+          {reminders.slice(0, 3).map((r) => r.label).join('. ')}.
+        </Notice>
       )}
 
-      {/* ── Action Toolbar: Title / Count + Export + Add Button ─ */}
-      <div className="rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3">
-        <h3 className="text-sm font-bold text-gray-900">
-          {filteredPinjamans.length} pinjaman tercatat
-        </h3>
-
-        <div className="flex items-center gap-2">
-          <ExportButton
-            getColumns={() => [
-              { header: 'Bank', key: 'namaBank', width: 20 },
-              { header: 'Proyek', key: 'proyek', width: 18 },
-              { header: 'Pola Pembayaran', key: 'pola', width: 16 },
-              { header: 'Total Pencairan', key: 'totalPencairan', isNumber: true, width: 20 },
-              { header: 'Sisa Pokok', key: 'sisaPokok', isNumber: true, width: 20 },
-              { header: 'Penebusan', key: 'penebusan', isNumber: true, width: 20 },
-              { header: 'Acuan Bunga', key: 'acuanBunga', width: 16 },
-              { header: 'Jatuh Tempo Pokok', key: 'jatuhTempoPokok', width: 18 },
-            ]}
-            getData={() => [
-              ...filteredPinjamans.map((p) => ({
-                namaBank: p.namaBank,
-                proyek: proyekName(p.proyekId),
-                pola: POLA_PEMBAYARAN_LABELS[p.pola],
-                totalPencairan: p.totalPencairan,
-                sisaPokok: p.sisaPokok,
-                penebusan: p.penebusan,
-                acuanBunga: `Tgl ${p.tanggalAcuanBunga}`,
-                jatuhTempoPokok: formatDate(p.tanggalJatuhTempoPokok),
-              })),
-              {
-                namaBank: 'TOTAL',
-                proyek: '',
-                pola: '',
-                totalPencairan: filteredPinjamans.reduce((s, p) => s + p.totalPencairan, 0),
-                sisaPokok: filteredPinjamans.reduce((s, p) => s + p.sisaPokok, 0),
-                penebusan: filteredPinjamans.reduce((s, p) => s + p.penebusan, 0),
-                acuanBunga: '',
-                jatuhTempoPokok: '',
-              },
-            ]}
-            opts={{
-              namaLaporan: 'Laporan Pinjaman Bank',
-              proyek: selectedProyekId ? proyekName(selectedProyekId) : 'Semua Proyek',
-              periode: selectedBulan,
-              filenameBase: buildFilename(
-                'Pinjaman_Bank',
-                selectedProyekId ? proyekName(selectedProyekId) : undefined,
-                selectedBulan
-              ),
-            }}
+      <Panel
+        title="Pinjaman bank"
+        description={`${filteredPinjamans.length} pinjaman tercatat. Klik baris untuk mencatat pembayaran atau top-up.`}
+        flush
+        actions={
+          <>
+            <ExportButton
+              getColumns={() => [
+                { header: 'Bank', key: 'namaBank', width: 20 },
+                { header: 'Proyek', key: 'proyek', width: 18 },
+                { header: 'Pola Pembayaran', key: 'pola', width: 16 },
+                { header: 'Total Pencairan', key: 'totalPencairan', isNumber: true, width: 20 },
+                { header: 'Sisa Pokok', key: 'sisaPokok', isNumber: true, width: 20 },
+                { header: 'Penebusan', key: 'penebusan', isNumber: true, width: 20 },
+                { header: 'Acuan Bunga', key: 'acuanBunga', width: 16 },
+                { header: 'Jatuh Tempo Pokok', key: 'jatuhTempoPokok', width: 18 },
+              ]}
+              getData={() => [
+                ...filteredPinjamans.map((p) => ({
+                  namaBank: p.namaBank,
+                  proyek: proyekName(p.proyekId),
+                  pola: POLA_PEMBAYARAN_LABELS[p.pola],
+                  totalPencairan: p.totalPencairan,
+                  sisaPokok: p.sisaPokok,
+                  penebusan: p.penebusan,
+                  acuanBunga: `Tgl ${p.tanggalAcuanBunga}`,
+                  jatuhTempoPokok: formatTanggal(p.tanggalJatuhTempoPokok),
+                })),
+                {
+                  namaBank: 'TOTAL',
+                  proyek: '',
+                  pola: '',
+                  totalPencairan: filteredPinjamans.reduce((s, p) => s + p.totalPencairan, 0),
+                  sisaPokok: filteredPinjamans.reduce((s, p) => s + p.sisaPokok, 0),
+                  penebusan: filteredPinjamans.reduce((s, p) => s + p.penebusan, 0),
+                  acuanBunga: '',
+                  jatuhTempoPokok: '',
+                },
+              ]}
+              opts={{
+                namaLaporan: 'Laporan Pinjaman Bank',
+                proyek: selectedProyekId ? proyekName(selectedProyekId) : 'Semua Proyek',
+                periode: selectedBulan,
+                filenameBase: buildFilename('Pinjaman_Bank', selectedProyekId ? proyekName(selectedProyekId) : undefined, selectedBulan),
+              }}
+            />
+            <Button variant="primary" icon={PiPlus} onClick={openAdd}>
+              Tambah pinjaman
+            </Button>
+          </>
+        }
+      >
+        {filteredPinjamans.length === 0 ? (
+          <EmptyState
+            compact
+            icon={PiBank}
+            title="Belum ada pinjaman bank"
+            description="Tambahkan pinjaman untuk memantau sisa pokok, bunga, dan jatuh temponya."
           />
-
-          <button
-            onClick={openAdd}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-colors"
-          >
-            <MdAdd className="h-4 w-4" />
-            Tambah pinjaman
-          </button>
-        </div>
-      </div>
-
-      {/* ── Table matching media_1788804430820.png ───────────── */}
-      {filteredPinjamans.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 text-gray-400 bg-white shadow-sm">
-          <MdApartment className="h-10 w-10 mb-2 text-gray-300" />
-          <p className="text-sm font-medium text-gray-500">Belum ada pinjaman bank.</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Bank / proyek
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Pola
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Total pencairan
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Sisa pokok
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Penebusan
-                </th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Jatuh tempo
-                </th>
-                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
-              {filteredPinjamans.map((p) => {
-                const isNegativePenebusan = p.penebusan < 0;
-
-                return (
+        ) : (
+          <TableScroll label="Daftar pinjaman bank">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th scope="col">Bank / proyek</th>
+                  <th scope="col">Pola</th>
+                  <th scope="col" className="num">Total pencairan</th>
+                  <th scope="col" className="num">Sisa pokok</th>
+                  <th scope="col" className="num">Penebusan</th>
+                  <th scope="col">Jatuh tempo</th>
+                  <th scope="col"><span className="sr-only">Aksi</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPinjamans.map((p) => (
                   <tr
                     key={p.id}
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    data-clickable=""
+                    tabIndex={0}
+                    aria-label={`Buka pembayaran ${p.namaBank}`}
                     onClick={() => setDetailPinjaman(p)}
+                    onKeyDown={(e) => {
+                      if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        setDetailPinjaman(p);
+                      }
+                    }}
                   >
-                    {/* Bank / Proyek */}
-                    <td className="px-4 py-3.5">
-                      <p className="font-semibold text-gray-900">{p.namaBank}</p>
-                      <p className="text-xs text-gray-500">{proyekName(p.proyekId)}</p>
+                    <td>
+                      <p className="font-semibold text-ink">{p.namaBank}</p>
+                      <p className="mt-0.5 text-xs text-ink-3">{proyekName(p.proyekId)}</p>
                     </td>
-
-                    {/* Pola */}
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full border px-3 py-0.5 text-xs font-medium ${POLA_PEMBAYARAN_COLOR[p.pola]}`}
-                      >
-                        {POLA_PEMBAYARAN_LABELS[p.pola]}
-                      </span>
+                    <td>
+                      <Badge>{POLA_PEMBAYARAN_LABELS[p.pola]}</Badge>
                     </td>
-
-                    {/* Total Pencairan */}
-                    <td className="px-4 py-3.5 text-left font-medium text-gray-900">
-                      {formatRupiah(p.totalPencairan)}
-                    </td>
-
-                    {/* Sisa Pokok */}
-                    <td className="px-4 py-3.5 text-left text-gray-800">
-                      {formatRupiah(p.sisaPokok)}
-                    </td>
-
-                    {/* Penebusan (Warning if negative) */}
-                    <td className="px-4 py-3.5 text-left font-medium">
-                      {isNegativePenebusan ? (
-                        <span className="flex items-center justify-start gap-1 text-red-600">
-                          <MdWarning className="h-3.5 w-3.5" />
-                          ({formatRupiah(Math.abs(p.penebusan))})
+                    <td className="num font-semibold text-ink"><Money value={p.totalPencairan} /></td>
+                    <td className="num"><Money value={p.sisaPokok} /></td>
+                    <td className="num">
+                      {p.penebusan < 0 ? (
+                        <span className="inline-flex items-center gap-1 font-semibold text-danger">
+                          <PiWarning className="h-3.5 w-3.5" aria-label="Penebusan negatif" />
+                          <Money value={p.penebusan} accounting />
                         </span>
-                      ) : p.penebusan === 0 ? (
-                        <span className="text-gray-400">Rp 0</span>
                       ) : (
-                        <span className="text-gray-900">{formatRupiah(p.penebusan)}</span>
+                        <Money value={p.penebusan} tone={p.penebusan === 0 ? 'muted' : 'default'} />
                       )}
                     </td>
-
-                    {/* Jatuh Tempo */}
-                    <td className="px-4 py-3.5 text-xs">
-                      <p className="font-medium text-gray-900">Bunga tgl {p.tanggalAcuanBunga}</p>
-                      <p className="text-gray-500">Pokok {formatDate(p.tanggalJatuhTempoPokok)}</p>
+                    <td className="whitespace-nowrap text-[13px]">
+                      <p className="font-medium text-ink">Bunga tiap tgl {p.tanggalAcuanBunga}</p>
+                      <p className="tabular-nums text-ink-3">Pokok {formatTanggal(p.tanggalJatuhTempoPokok)}</p>
                     </td>
-
-                    {/* Aksi */}
-                    <td className="px-3 py-3.5 text-left">
-                      <button
+                    <td className="w-12 !pr-3 text-right">
+                      <IconButton
+                        icon={PiTrash}
+                        tone="danger"
+                        label={`Hapus pinjaman ${p.namaBank}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setDeleteTarget(p);
                         }}
-                        className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                        aria-label="Hapus pinjaman"
-                      >
-                        <MdDeleteOutline className="h-4 w-4" />
-                      </button>
+                      />
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+      </Panel>
 
-      {/* ── Add Pinjaman Modal ────────────────────────────── */}
       <Modal
         isOpen={showAdd}
         onClose={() => setShowAdd(false)}
-        title="Tambah Pinjaman Bank"
+        title="Tambah pinjaman bank"
         size="lg"
         footer={
           <>
-            <button
-              onClick={() => setShowAdd(false)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-            >
-              Simpan Pinjaman
-            </button>
+            <Button onClick={() => setShowAdd(false)}>Batal</Button>
+            <Button variant="primary" onClick={handleSubmit}>
+              Simpan pinjaman
+            </Button>
           </>
         }
       >
         <div className="space-y-4">
-          {formError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>
-          )}
+          {formError && <Notice tone="danger">{formError}</Notice>}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Proyek */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Proyek <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={form.proyekId}
-                onChange={(e) => setForm({ ...form, proyekId: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
-              >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Proyek" required>
+              <select className="control" value={form.proyekId} onChange={(e) => set('proyekId', e.target.value)}>
                 <option value="">Pilih proyek</option>
                 {proyeks.map((pr) => (
                   <option key={pr.id} value={pr.id}>{pr.nama}</option>
                 ))}
               </select>
-            </div>
-
-            {/* Nama Bank */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Bank <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.namaBank}
-                onChange={(e) => setForm({ ...form, namaBank: e.target.value })}
-                placeholder="Contoh: Bank Mandiri"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Pola Pembayaran */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pola Pembayaran <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={form.pola}
-                onChange={(e) => setForm({ ...form, pola: e.target.value as PolaPembayaran })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
-              >
-                <option value="terpisah">Terpisah</option>
-                <option value="satu_transfer">Satu transfer</option>
-                <option value="bunga_rutin">Bunga rutin</option>
-                <option value="fleksibel">Fleksibel</option>
+            </Field>
+            <Field label="Nama bank" required>
+              <input className="control" value={form.namaBank} onChange={(e) => set('namaBank', e.target.value)} placeholder="Contoh: Bank Mandiri" />
+            </Field>
+            <Field label="Pola pembayaran" required>
+              <select className="control" value={form.pola} onChange={(e) => set('pola', e.target.value as PolaPembayaran)}>
+                {(Object.keys(POLA_PEMBAYARAN_LABELS) as PolaPembayaran[]).map((k) => (
+                  <option key={k} value={k}>{POLA_PEMBAYARAN_LABELS[k]}</option>
+                ))}
               </select>
-            </div>
-
-            {/* Nominal Pencairan Awal */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nominal Pencairan Awal <span className="text-red-500">*</span>
-              </label>
+            </Field>
+            <Field label="Nominal pencairan awal" required>
               <input
                 type="number"
+                inputMode="numeric"
                 min={0}
+                className="control control-num"
                 value={form.nominalPencairanAwal}
-                onChange={(e) => setForm({ ...form, nominalPencairanAwal: e.target.value })}
+                onChange={(e) => set('nominalPencairanAwal', e.target.value)}
                 placeholder="0"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
               />
-            </div>
+            </Field>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Tanggal Pencairan Awal */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tgl Pencairan <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={form.tanggalPencairanAwal}
-                onChange={(e) => setForm({ ...form, tanggalPencairanAwal: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
-              />
-            </div>
-
-            {/* Tanggal Acuan Bunga (1-31) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Acuan Bunga (tgl 1–31) <span className="text-red-500">*</span>
-              </label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="Tanggal pencairan" required>
+              <input type="date" className="control" value={form.tanggalPencairanAwal} onChange={(e) => set('tanggalPencairanAwal', e.target.value)} />
+            </Field>
+            <Field label="Tanggal acuan bunga" required hint="Tanggal 1-31 tiap bulan">
               <input
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={31}
+                className="control"
                 value={form.tanggalAcuanBunga}
-                onChange={(e) => setForm({ ...form, tanggalAcuanBunga: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
+                onChange={(e) => set('tanggalAcuanBunga', e.target.value)}
               />
-            </div>
-
-            {/* Tanggal Jatuh Tempo Pokok */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                JT Pokok <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={form.tanggalJatuhTempoPokok}
-                onChange={(e) => setForm({ ...form, tanggalJatuhTempoPokok: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
-              />
-            </div>
+            </Field>
+            <Field label="Jatuh tempo pokok" required>
+              <input type="date" className="control" value={form.tanggalJatuhTempoPokok} onChange={(e) => set('tanggalJatuhTempoPokok', e.target.value)} />
+            </Field>
           </div>
 
-          {/* Master COA Mapping */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Akun Hutang (COA)
-              </label>
-              <select
-                value={form.akunHutangId}
-                onChange={(e) => setForm({ ...form, akunHutangId: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
-              >
-                <option value="">Pilih Akun Hutang</option>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Akun hutang (COA)" optional>
+              <select className="control" value={form.akunHutangId} onChange={(e) => set('akunHutangId', e.target.value)}>
+                <option value="">Pilih akun hutang</option>
                 {akuns.filter((a) => a.kategori === 'hutang').map((a) => (
-                  <option key={a.id} value={a.id}>{a.kodeAkun} — {a.namaAkun}</option>
+                  <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Akun Beban Bunga (COA)
-              </label>
-              <select
-                value={form.akunBebanBungaId}
-                onChange={(e) => setForm({ ...form, akunBebanBungaId: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
-              >
-                <option value="">Pilih Akun Beban</option>
+            </Field>
+            <Field label="Akun beban bunga (COA)" optional>
+              <select className="control" value={form.akunBebanBungaId} onChange={(e) => set('akunBebanBungaId', e.target.value)}>
+                <option value="">Pilih akun beban</option>
                 {akuns.filter((a) => a.kategori === 'beban').map((a) => (
-                  <option key={a.id} value={a.id}>{a.kodeAkun} — {a.namaAkun}</option>
+                  <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
                 ))}
               </select>
-            </div>
+            </Field>
           </div>
 
-          {/* Keterangan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Keterangan <span className="text-gray-400 font-normal">(opsional)</span>
-            </label>
-            <textarea
-              rows={2}
-              value={form.keterangan}
-              onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none resize-none"
-            />
-          </div>
+          <Field label="Keterangan" optional>
+            <textarea rows={2} className="control" value={form.keterangan} onChange={(e) => set('keterangan', e.target.value)} />
+          </Field>
         </div>
       </Modal>
 
-      {/* ── Detail Modal (Payment entries + Top-up) ───────────── */}
       <PinjamanBankDetailModal
+        key={detailPinjaman?.id ?? 'none'}
         pinjaman={detailPinjaman}
         isOpen={detailPinjaman !== null}
         onClose={() => setDetailPinjaman(null)}
       />
 
-      {/* ── Delete Confirm ────────────────────────────────────── */}
       <ConfirmDialog
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) removePinjaman(deleteTarget.id);
         }}
-        title="Hapus Pinjaman"
-        message={`Yakin ingin menghapus pinjaman "${deleteTarget?.namaBank ?? ''}"? Semua riwayat pembayaran juga akan dihapus.`}
-        confirmLabel="Ya, Hapus"
-        isDestructive
+        title="Hapus pinjaman"
+        message={`Hapus pinjaman "${deleteTarget?.namaBank ?? ''}"? Semua riwayat pembayarannya ikut terhapus.`}
+        confirmLabel="Hapus pinjaman"
       />
-    </div>
+    </>
   );
 }

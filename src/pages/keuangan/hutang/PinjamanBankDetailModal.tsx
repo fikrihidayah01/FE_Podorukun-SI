@@ -1,31 +1,22 @@
-import { useState, useMemo } from 'react';
-import {
-  usePinjamanBankStore,
-  type PinjamanBank,
-  type JenisPembayaran,
-} from '../../../store/pinjamanBankStore';
-import { useCoaStore } from '../../../store/coaStore';
+import { useMemo, useState } from 'react';
+import { PiPlus } from 'react-icons/pi';
+import { usePinjamanBankStore, type PinjamanBank, type JenisPembayaran } from '../../../store/pinjamanBankStore';
+import { useCoaStore, type Akun } from '../../../store/coaStore';
 import Modal from '../../../components/ui/Modal';
-import { MdTrendingUp, MdInfo, MdCheck } from 'react-icons/md';
-
-function formatRupiah(n: number) {
-  return 'Rp ' + n.toLocaleString('id-ID');
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
+import Button from '../../../components/ui/Button';
+import Badge from '../../../components/ui/Badge';
+import Money from '../../../components/ui/Money';
+import Notice from '../../../components/ui/Notice';
+import Field from '../../../components/ui/Field';
+import { formatTanggal } from '../../../utils/format';
+import JurnalPreview from './JurnalPreview';
 
 interface PaymentForm {
   jenis: JenisPembayaran | 'gabungan';
   tanggal: string;
-  nominal: string; // Total or specific nominal
-  nominalPokok: string; // for gabungan
-  nominalBunga: string; // for gabungan
+  nominal: string;
+  nominalPokok: string;
+  nominalBunga: string;
   periodeBunga: string;
   keterangan: string;
   noBukti: string;
@@ -38,11 +29,31 @@ interface TopUpForm {
   keterangan: string;
 }
 
-const INITIAL_TOPUP: TopUpForm = {
+const INITIAL_TOPUP: TopUpForm = { tanggal: '', nominal: '', keterangan: '' };
+
+const emptyPayment = (pola: PinjamanBank['pola']): PaymentForm => ({
+  jenis: pola === 'bunga_rutin' ? 'bunga' : 'pokok',
   tanggal: '',
   nominal: '',
+  nominalPokok: '',
+  nominalBunga: '',
+  periodeBunga: '',
   keterangan: '',
+  noBukti: '',
+  akunKasId: '',
+});
+
+const POLA_NOTE: Record<PinjamanBank['pola'], string> = {
+  terpisah: 'Pola terpisah. Pokok dan bunga ditransfer sebagai dua transaksi berbeda.',
+  satu_transfer:
+    'Satu transfer. Komposisi pokok dan bunga ditentukan bank. Isi rinciannya setelah menerima keterangan dari bank.',
+  bunga_rutin: 'Bunga rutin. Pokok tidak dicicil dan dilunasi sekaligus di akhir tenor, jadi sisa pokok tetap sampai pelunasan.',
+  fleksibel: 'Pola fleksibel. Pokok, bunga, atau keduanya dalam satu transfer bisa dicatat sesuai kejadian.',
 };
+
+const JENIS_LABEL = { pokok: 'Pokok', bunga: 'Bunga', gabungan: 'Satu transfer' } as const;
+
+const akunLabel = (a: Akun | undefined, fallback: string) => (a ? `${a.kodeAkun} - ${a.namaAkun}` : fallback);
 
 interface PinjamanBankDetailModalProps {
   pinjaman: PinjamanBank | null;
@@ -50,103 +61,64 @@ interface PinjamanBankDetailModalProps {
   onClose: () => void;
 }
 
-export default function PinjamanBankDetailModal({
-  pinjaman,
-  isOpen,
-  onClose,
-}: PinjamanBankDetailModalProps) {
-  const { getEntriesByPinjaman, addEntry, addTopUp } = usePinjamanBankStore();
+export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: PinjamanBankDetailModalProps) {
+  const { pinjamans, getEntriesByPinjaman, addEntry, addTopUp } = usePinjamanBankStore();
   const akuns = useCoaStore((s) => s.items);
+  const kasBankAkuns = useMemo(() => akuns.filter((a) => a.isKasBank), [akuns]);
 
-  const kasBankAkuns = useMemo(() => {
-    return akuns.filter(a => a.isKasBank);
-  }, [akuns]);
-
-  const [payForm, setPayForm] = useState<PaymentForm>({
-    jenis: 'pokok',
-    tanggal: '',
-    nominal: '',
-    nominalPokok: '',
-    nominalBunga: '',
-    periodeBunga: '',
-    keterangan: '',
-    noBukti: '',
-    akunKasId: '',
-  });
+  const [payForm, setPayForm] = useState<PaymentForm>(() => emptyPayment(pinjaman?.pola ?? 'terpisah'));
   const [payError, setPayError] = useState('');
-
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpForm, setTopUpForm] = useState<TopUpForm>(INITIAL_TOPUP);
   const [topUpError, setTopUpError] = useState('');
 
   if (!pinjaman) return null;
 
-  const freshPinjaman =
-    usePinjamanBankStore.getState().pinjamans.find((p) => p.id === pinjaman.id) ?? pinjaman;
-  const entries = getEntriesByPinjaman(freshPinjaman.id);
-
-  const akunHutang = akuns.find((a) => a.id === freshPinjaman.akunHutangId);
-  const akunBeban = akuns.find((a) => a.id === freshPinjaman.akunBebanBungaId);
+  const fresh = pinjamans.find((p) => p.id === pinjaman.id) ?? pinjaman;
+  const entries = getEntriesByPinjaman(fresh.id);
+  const akunHutang = akuns.find((a) => a.id === fresh.akunHutangId);
+  const akunBeban = akuns.find((a) => a.id === fresh.akunBebanBungaId);
   const akunKas = akuns.find((a) => a.id === payForm.akunKasId);
 
-  // When opening modal or pola changes, set initial default values
-  let currentJenis = payForm.jenis;
-  if (freshPinjaman.pola === 'satu_transfer') currentJenis = 'gabungan';
-  if (freshPinjaman.pola === 'bunga_rutin' && payForm.jenis === 'gabungan') currentJenis = 'bunga';
-  if (freshPinjaman.pola === 'terpisah' && payForm.jenis === 'gabungan') currentJenis = 'pokok';
+  let jenis = payForm.jenis;
+  if (fresh.pola === 'satu_transfer') jenis = 'gabungan';
+  if (fresh.pola === 'bunga_rutin' && payForm.jenis === 'gabungan') jenis = 'bunga';
+  if (fresh.pola === 'terpisah' && payForm.jenis === 'gabungan') jenis = 'pokok';
 
-  // For Bunga Rutin total bunga dibayar
-  const totalBungaDibayar = entries.filter(e => e.jenis === 'bunga').reduce((s, e) => s + e.nominal, 0);
+  const totalBungaDibayar = entries.filter((e) => e.jenis === 'bunga').reduce((s, e) => s + e.nominal, 0);
+  const setPay = <K extends keyof PaymentForm>(key: K, value: PaymentForm[K]) => setPayForm((f) => ({ ...f, [key]: value }));
+
+  const pNominal = Number(payForm.nominal) || 0;
+  const pPokok = Number(payForm.nominalPokok) || 0;
+  const pBunga = Number(payForm.nominalBunga) || 0;
+  const rincianCocok = jenis === 'gabungan' && pNominal > 0 && pPokok + pBunga === pNominal;
 
   const handlePayment = (statusRincian?: 'menunggu_rincian' | 'lengkap') => {
     if (!payForm.tanggal) return setPayError('Tanggal pembayaran wajib diisi.');
-    if (!payForm.akunKasId) return setPayError('Akun kas / bank wajib dipilih.');
-
-    const nominal = Number(payForm.nominal);
-    if (!nominal || nominal <= 0) return setPayError('Nominal pembayaran harus lebih dari 0.');
-
-    // Validasi periode terkunci (simulasi: sebelum 1 September 2026 dianggap terkunci)
-    const payDate = new Date(payForm.tanggal);
-    if (payDate < new Date('2026-09-01')) {
-      return setPayError('Tanggal transaksi masuk dalam periode yang sudah terkunci (sebelum September 2026).');
+    if (!payForm.akunKasId) return setPayError('Pilih akun kas atau bank.');
+    if (pNominal <= 0) return setPayError('Nominal pembayaran harus lebih dari 0.');
+    // Simulasi tutup buku: transaksi sebelum 1 September 2026 dianggap periode terkunci
+    if (new Date(payForm.tanggal) < new Date('2026-09-01')) {
+      return setPayError('Tanggal ini masuk periode yang sudah dikunci (sebelum September 2026).');
     }
-
-    let pPokok = 0;
-    let pBunga = 0;
-
-    if (currentJenis === 'gabungan') {
-      pPokok = Number(payForm.nominalPokok) || 0;
-      pBunga = Number(payForm.nominalBunga) || 0;
-      if (statusRincian !== 'menunggu_rincian' && pPokok + pBunga !== nominal) {
-        return setPayError('Rincian pokok dan bunga tidak cocok dengan total transfer.');
-      }
+    if (jenis === 'gabungan' && statusRincian !== 'menunggu_rincian' && pPokok + pBunga !== pNominal) {
+      return setPayError('Porsi pokok dan bunga belum sama dengan total transfer.');
     }
 
     addEntry({
-      pinjamanId: freshPinjaman.id,
+      pinjamanId: fresh.id,
       tanggal: payForm.tanggal,
-      jenis: currentJenis,
-      nominal,
-      nominalPokok: currentJenis === 'gabungan' ? pPokok : undefined,
-      nominalBunga: currentJenis === 'gabungan' ? pBunga : undefined,
-      periodeBunga: (currentJenis === 'bunga' || currentJenis === 'gabungan') ? payForm.periodeBunga.trim() || undefined : undefined,
+      jenis,
+      nominal: pNominal,
+      nominalPokok: jenis === 'gabungan' ? pPokok : undefined,
+      nominalBunga: jenis === 'gabungan' ? pBunga : undefined,
+      periodeBunga: jenis === 'bunga' || jenis === 'gabungan' ? payForm.periodeBunga.trim() || undefined : undefined,
       keterangan: payForm.keterangan.trim() || undefined,
       noBukti: payForm.noBukti.trim() || undefined,
       akunKasId: payForm.akunKasId,
       statusRincian,
     });
-
-    setPayForm({
-      jenis: freshPinjaman.pola === 'bunga_rutin' ? 'bunga' : 'pokok',
-      tanggal: '',
-      nominal: '',
-      nominalPokok: '',
-      nominalBunga: '',
-      periodeBunga: '',
-      keterangan: '',
-      noBukti: '',
-      akunKasId: '',
-    });
+    setPayForm(emptyPayment(fresh.pola));
     setPayError('');
   };
 
@@ -154,420 +126,249 @@ export default function PinjamanBankDetailModal({
     const nominal = Number(topUpForm.nominal);
     if (!topUpForm.tanggal) return setTopUpError('Tanggal top-up wajib diisi.');
     if (!nominal || nominal <= 0) return setTopUpError('Nominal top-up harus lebih dari 0.');
-
-    addTopUp(freshPinjaman.id, {
-      tanggal: topUpForm.tanggal,
-      nominal,
-      keterangan: topUpForm.keterangan.trim() || undefined,
-    });
-
+    addTopUp(fresh.id, { tanggal: topUpForm.tanggal, nominal, keterangan: topUpForm.keterangan.trim() || undefined });
     setTopUpForm(INITIAL_TOPUP);
     setTopUpError('');
     setShowTopUp(false);
   };
 
-  const isRincianCocok = currentJenis === 'gabungan' &&
-    Number(payForm.nominal) > 0 &&
-    (Number(payForm.nominalPokok) + Number(payForm.nominalBunga) === Number(payForm.nominal));
+  const ringkasan =
+    fresh.pola === 'bunga_rutin'
+      ? [
+          { label: 'Sisa pokok', value: <Money value={fresh.sisaPokok} /> },
+          { label: 'Bunga dibayar', value: <Money value={totalBungaDibayar} /> },
+          { label: 'Jatuh tempo pokok', value: formatTanggal(fresh.tanggalJatuhTempoPokok) },
+        ]
+      : [
+          { label: 'Total pencairan', value: <Money value={fresh.totalPencairan} /> },
+          { label: 'Sisa pokok', value: <Money value={fresh.sisaPokok} /> },
+          { label: 'Penebusan', value: <Money value={fresh.penebusan} accounting /> },
+        ];
 
-  // Journal Preview calculations
-  const pNominal = Number(payForm.nominal) || 0;
-  const pPokok = Number(payForm.nominalPokok) || 0;
-  const pBunga = Number(payForm.nominalBunga) || 0;
+  const jurnalRows = [
+    ...(jenis === 'pokok' || jenis === 'gabungan'
+      ? [{ akun: akunLabel(akunHutang, 'Hutang bank'), debit: jenis === 'gabungan' ? pPokok : pNominal }]
+      : []),
+    ...(jenis === 'bunga' || jenis === 'gabungan'
+      ? [{ akun: akunLabel(akunBeban, 'Beban bunga'), debit: jenis === 'gabungan' ? pBunga : pNominal }]
+      : []),
+    { akun: akunLabel(akunKas, 'Kas / bank'), kredit: pNominal },
+  ];
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Catat pembayaran`}
+      title="Catat pembayaran"
+      description={`${fresh.namaBank}, ${fresh.keterangan || 'pinjaman'}`}
       size="lg"
-      footer={
-        <button
-          onClick={onClose}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Tutup
-        </button>
-      }
+      footer={<Button onClick={onClose}>Tutup</Button>}
     >
       <div className="space-y-6">
-        <div>
-          <p className="text-sm text-gray-500 mb-4">{freshPinjaman.namaBank} · {usePinjamanBankStore.getState().pinjamans.find(p=>p.id===freshPinjaman.id)?.keterangan || 'Pinjaman'}</p>
-        </div>
+        <Notice>{POLA_NOTE[fresh.pola]}</Notice>
 
-        {/* ── Banner Info Pola ──────────────────────────────── */}
-        {freshPinjaman.pola === 'terpisah' && (
-          <div className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900">
-            <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-sky-600" />
-            <p className="text-sm">
-              Pola terpisah. Pokok dan bunga ditransfer sebagai dua transaksi berbeda.
-            </p>
-          </div>
-        )}
-        {freshPinjaman.pola === 'satu_transfer' && (
-          <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-            <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
-            <p className="text-sm">
-              Satu transfer. Komposisi pokok dan bunga ditentukan bank. Isi rincian setelah menerima keterangan dari bank.
-            </p>
-          </div>
-        )}
-        {freshPinjaman.pola === 'bunga_rutin' && (
-          <div className="flex items-start gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-indigo-900">
-            <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-indigo-600" />
-            <p className="text-sm">
-              Bunga rutin. Pokok tidak dicicil, dilunasi sekaligus di akhir tenor. Sisa pokok tetap sampai pelunasan.
-            </p>
-          </div>
-        )}
+        <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
+          {ringkasan.map((r) => (
+            <div key={r.label} className="bg-subtle px-4 py-3">
+              <dt className="text-xs font-semibold text-ink-3">{r.label}</dt>
+              <dd className="mt-1 text-sm font-bold tabular-nums text-ink">{r.value}</dd>
+            </div>
+          ))}
+        </dl>
 
-        {/* ── Bunga Rutin Info Cards ────────────────────────── */}
-        {freshPinjaman.pola === 'bunga_rutin' && (
-          <div className="grid grid-cols-3 gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Sisa pokok</p>
-              <p className="text-sm font-bold text-gray-900">{formatRupiah(freshPinjaman.sisaPokok)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Bunga dibayar</p>
-              <p className="text-sm font-bold text-gray-900">{formatRupiah(totalBungaDibayar)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Jatuh tempo pokok</p>
-              <p className="text-sm font-bold text-gray-900">{formatDate(freshPinjaman.tanggalJatuhTempoPokok)}</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Info Pinjaman (for non-bunga_rutin) ───────────── */}
-        {freshPinjaman.pola !== 'bunga_rutin' && (
-          <div className="grid grid-cols-3 gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-left">
-            <div>
-              <p className="text-[11px] text-gray-500 font-medium">Total Pencairan</p>
-              <p className="text-sm font-bold text-gray-900 mt-0.5">{formatRupiah(freshPinjaman.totalPencairan)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-gray-500 font-medium">Sisa Pokok</p>
-              <p className="text-sm font-bold text-gray-900 mt-0.5">{formatRupiah(freshPinjaman.sisaPokok)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-gray-500 font-medium">Penebusan</p>
-              <p className="text-sm font-bold text-gray-900 mt-0.5">{formatRupiah(freshPinjaman.penebusan)}</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Top-Up Section ─────────────────────────────────── */}
-        <div className="border rounded-xl border-gray-200 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700">
-              <MdTrendingUp className="h-4 w-4 text-indigo-600" />
-              Top-Up Pinjaman ({freshPinjaman.topUps?.length || 0})
-            </div>
-            <button onClick={() => setShowTopUp(!showTopUp)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-              {showTopUp ? 'Batal' : '+ Catat Top-Up'}
-            </button>
+        <section className="rounded-lg border border-line">
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <h3 className="text-sm font-semibold text-ink">
+              Top-up pinjaman <span className="font-normal text-ink-3">({fresh.topUps?.length || 0})</span>
+            </h3>
+            <Button size="sm" variant="ghost" icon={showTopUp ? undefined : PiPlus} onClick={() => setShowTopUp((v) => !v)} aria-expanded={showTopUp}>
+              {showTopUp ? 'Batal' : 'Catat top-up'}
+            </Button>
           </div>
           {showTopUp && (
-            <div className="mt-3 bg-gray-50 rounded-lg p-3 border border-gray-200 space-y-3">
-              {topUpError && <p className="text-xs text-red-600">{topUpError}</p>}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-600 mb-1">Tanggal</label>
-                  <input type="date" value={topUpForm.tanggal} onChange={(e) => setTopUpForm({ ...topUpForm, tanggal: e.target.value })} className="w-full rounded border border-gray-300 px-2 py-1 text-xs" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-600 mb-1">Nominal</label>
-                  <input type="number" min={0} value={topUpForm.nominal} onChange={(e) => setTopUpForm({ ...topUpForm, nominal: e.target.value })} placeholder="0" className="w-full rounded border border-gray-300 px-2 py-1 text-xs" />
-                </div>
+            <div className="space-y-3 border-t border-line bg-subtle px-4 py-4">
+              {topUpError && <Notice tone="danger">{topUpError}</Notice>}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Tanggal" required>
+                  <input type="date" className="control" value={topUpForm.tanggal} onChange={(e) => setTopUpForm({ ...topUpForm, tanggal: e.target.value })} />
+                </Field>
+                <Field label="Nominal" required>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    className="control control-num"
+                    value={topUpForm.nominal}
+                    onChange={(e) => setTopUpForm({ ...topUpForm, nominal: e.target.value })}
+                    placeholder="0"
+                  />
+                </Field>
               </div>
-              <div>
-                <label className="block text-[11px] font-medium text-gray-600 mb-1">Keterangan</label>
-                <input type="text" value={topUpForm.keterangan} onChange={(e) => setTopUpForm({ ...topUpForm, keterangan: e.target.value })} placeholder="Keterangan top-up" className="w-full rounded border border-gray-300 px-2 py-1 text-xs" />
-              </div>
-              <button onClick={handleTopUpSubmit} className="rounded bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-700">Simpan Top-Up</button>
+              <Field label="Keterangan" optional>
+                <input className="control" value={topUpForm.keterangan} onChange={(e) => setTopUpForm({ ...topUpForm, keterangan: e.target.value })} />
+              </Field>
+              <Button size="sm" variant="primary" onClick={handleTopUpSubmit}>
+                Simpan top-up
+              </Button>
             </div>
           )}
-          {freshPinjaman.topUps && freshPinjaman.topUps.length > 0 && (
-            <div className="mt-2 divide-y divide-gray-100 text-xs">
-              {freshPinjaman.topUps.map((t) => (
-                <div key={t.id} className="py-1.5 flex items-center justify-between text-gray-600">
-                  <span>{formatDate(t.tanggal)} — {t.keterangan || 'Top-up pinjaman'}</span>
-                  <span className="font-medium text-gray-900">+{formatRupiah(t.nominal)}</span>
-                </div>
+          {fresh.topUps && fresh.topUps.length > 0 && (
+            <ul className="divide-y divide-line border-t border-line text-[13px]">
+              {fresh.topUps.map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-2">
+                  <span className="text-ink-2">
+                    <span className="tabular-nums">{formatTanggal(t.tanggal)}</span>, {t.keterangan || 'top-up pinjaman'}
+                  </span>
+                  <Money value={t.nominal} signed className="font-semibold text-ink" />
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </section>
 
-        {/* ── Riwayat Pembayaran ─────────────────────────────── */}
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-3">
-            Riwayat Pembayaran dari Jurnal ({entries.length})
-          </h4>
+        <section>
+          <h3 className="mb-2 text-sm font-semibold text-ink">
+            Riwayat pembayaran <span className="font-normal text-ink-3">({entries.length})</span>
+          </h3>
           {entries.length === 0 ? (
-            <p className="text-xs text-gray-400 py-3 text-center border border-dashed rounded-lg">Belum ada riwayat pembayaran untuk pinjaman ini.</p>
+            <p className="rounded-lg border border-dashed border-line-strong/60 px-4 py-5 text-center text-[13px] text-ink-3">
+              Belum ada pembayaran. Catat pembayaran pertama lewat formulir di bawah.
+            </p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="min-w-full divide-y divide-gray-200 text-xs">
-                <thead className="bg-gray-50">
+            <div className="relative overflow-x-auto rounded-lg border border-line">
+              <table className="tbl tbl-compact">
+                <thead>
                   <tr>
-                    <th className="px-3 py-2 text-left text-gray-500">Tanggal</th>
-                    <th className="px-3 py-2 text-left text-gray-500">Jenis</th>
-                    <th className="px-3 py-2 text-left text-gray-500">Nominal</th>
-                    <th className="px-3 py-2 text-left text-gray-500">No Bukti</th>
+                    <th scope="col">Tanggal</th>
+                    <th scope="col">Jenis</th>
+                    <th scope="col" className="num">Nominal</th>
+                    <th scope="col">No. bukti</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
+                <tbody>
                   {entries.map((entry) => (
                     <tr key={entry.id}>
-                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{formatDate(entry.tanggal)}</td>
-                      <td className="px-3 py-2">
-                        <span className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full px-3 py-0.5 text-xs font-medium ${entry.jenis === 'pokok' ? 'bg-blue-100 text-blue-700' : entry.jenis === 'gabungan' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>
-                          {entry.jenis === 'pokok' ? 'Pokok' : entry.jenis === 'gabungan' ? 'Satu Transfer' : 'Bunga'}
+                      <td className="whitespace-nowrap tabular-nums">{formatTanggal(entry.tanggal)}</td>
+                      <td>
+                        <span className="flex flex-wrap gap-1">
+                          <Badge>{JENIS_LABEL[entry.jenis as keyof typeof JENIS_LABEL] ?? entry.jenis}</Badge>
+                          {entry.statusRincian === 'menunggu_rincian' && <Badge tone="warning">Menunggu rincian</Badge>}
                         </span>
-                        {entry.statusRincian === 'menunggu_rincian' && (
-                          <span className="ml-1 text-[9px] text-red-500">(Menunggu Rincian)</span>
-                        )}
                       </td>
-                      <td className="px-3 py-2 text-left font-medium text-gray-900">
-                        {formatRupiah(entry.nominal)}
+                      <td className="num">
+                        <span className="font-semibold text-ink"><Money value={entry.nominal} /></span>
                         {entry.jenis === 'gabungan' && entry.statusRincian === 'lengkap' && (
-                          <div className="text-[10px] text-gray-500 font-normal mt-0.5">
-                            P: {formatRupiah(entry.nominalPokok||0)} | B: {formatRupiah(entry.nominalBunga||0)}
-                          </div>
+                          <span className="mt-0.5 block text-xs text-ink-3">
+                            Pokok <Money value={entry.nominalPokok || 0} />, bunga <Money value={entry.nominalBunga || 0} />
+                          </span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-gray-500">{entry.noBukti || '—'}</td>
+                      <td>{entry.noBukti || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* ── Form Input Pembayaran ──────────────────────────── */}
-        {freshPinjaman.status === 'aktif' && (
-          <div className="space-y-4">
-            {payError && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200">{payError}</div>}
+        {fresh.status === 'aktif' && (
+          <section className="space-y-4 border-t border-line pt-5">
+            <h3 className="text-sm font-semibold text-ink">Pembayaran baru</h3>
+            {payError && <Notice tone="danger">{payError}</Notice>}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Jenis Pembayaran */}
-              {freshPinjaman.pola !== 'satu_transfer' && freshPinjaman.pola !== 'bunga_rutin' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jenis pembayaran</label>
-                  <select
-                    value={payForm.jenis}
-                    onChange={(e) => setPayForm({ ...payForm, jenis: e.target.value as JenisPembayaran | 'gabungan' })}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-                  >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {fresh.pola !== 'satu_transfer' && fresh.pola !== 'bunga_rutin' && (
+                <Field label="Jenis pembayaran">
+                  <select className="control" value={payForm.jenis} onChange={(e) => setPay('jenis', e.target.value as PaymentForm['jenis'])}>
                     <option value="pokok">Pokok</option>
                     <option value="bunga">Bunga</option>
-                    {freshPinjaman.pola === 'fleksibel' && (
-                      <option value="gabungan">Satu Transfer (Pokok & Bunga)</option>
-                    )}
+                    {fresh.pola === 'fleksibel' && <option value="gabungan">Satu transfer (pokok dan bunga)</option>}
                   </select>
-                </div>
+                </Field>
               )}
-
-              {/* Tanggal */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{currentJenis === 'gabungan' ? 'Tanggal transfer' : 'Tanggal'}</label>
-                <input
-                  type="date"
-                  value={payForm.tanggal}
-                  onChange={(e) => setPayForm({ ...payForm, tanggal: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-                />
-              </div>
-
-              {/* Nominal */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {currentJenis === 'gabungan' ? 'Total transfer' : currentJenis === 'bunga' ? 'Nominal bunga' : 'Nominal pokok'}
-                </label>
+              <Field label={jenis === 'gabungan' ? 'Tanggal transfer' : 'Tanggal'} required>
+                <input type="date" className="control" value={payForm.tanggal} onChange={(e) => setPay('tanggal', e.target.value)} />
+              </Field>
+              <Field label={jenis === 'gabungan' ? 'Total transfer' : jenis === 'bunga' ? 'Nominal bunga' : 'Nominal pokok'} required>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min={0}
+                  className="control control-num"
                   value={payForm.nominal}
-                  onChange={(e) => setPayForm({ ...payForm, nominal: e.target.value })}
+                  onChange={(e) => setPay('nominal', e.target.value)}
                   placeholder="0"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
                 />
-              </div>
-
-              {/* Rincian (Satu Transfer) */}
-              {currentJenis === 'gabungan' && (
-                <div className="col-span-1 sm:col-span-2 mt-2">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Rincian dari bank</h4>
-                  <div className="grid grid-cols-2 gap-4 mb-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Porsi pokok</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={payForm.nominalPokok}
-                        onChange={(e) => setPayForm({ ...payForm, nominalPokok: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Porsi bunga</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={payForm.nominalBunga}
-                        onChange={(e) => setPayForm({ ...payForm, nominalBunga: e.target.value })}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-                      />
-                    </div>
-                  </div>
-                  {isRincianCocok && (
-                    <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 border border-emerald-200">
-                      <MdCheck className="h-4 w-4" /> Rincian cocok dengan total transfer.
-                    </div>
-                  )}
-                </div>
+              </Field>
+              {(jenis === 'bunga' || jenis === 'gabungan') && fresh.pola === 'bunga_rutin' && (
+                <Field label="Periode bunga" optional>
+                  <input className="control" value={payForm.periodeBunga} onChange={(e) => setPay('periodeBunga', e.target.value)} placeholder="Contoh: September 2026" />
+                </Field>
               )}
-
-              {/* Periode Bunga (Bunga Rutin) */}
-              {(currentJenis === 'bunga' || currentJenis === 'gabungan') && freshPinjaman.pola === 'bunga_rutin' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Periode bunga</label>
-                  <input
-                    type="text"
-                    value={payForm.periodeBunga}
-                    onChange={(e) => setPayForm({ ...payForm, periodeBunga: e.target.value })}
-                    placeholder="Contoh: September 2026"
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-                  />
-                </div>
-              )}
-
-              {/* Akun Kas / Bank */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Akun kas / bank</label>
-                <select
-                  value={payForm.akunKasId}
-                  onChange={(e) => setPayForm({ ...payForm, akunKasId: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-                >
-                  <option value="">— Pilih akun —</option>
-                  {kasBankAkuns.map(a => (
-                    <option key={a.id} value={a.id}>{a.kodeAkun} — {a.namaAkun}</option>
+              <Field label="Akun kas / bank" required>
+                <select className="control" value={payForm.akunKasId} onChange={(e) => setPay('akunKasId', e.target.value)}>
+                  <option value="">Pilih akun</option>
+                  {kasBankAkuns.map((a) => (
+                    <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
                   ))}
                 </select>
-              </div>
-
-              {/* No Bukti */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">No. bukti</label>
-                <input
-                  type="text"
-                  value={payForm.noBukti}
-                  onChange={(e) => setPayForm({ ...payForm, noBukti: e.target.value })}
-                  placeholder="BKK/2026/09/031"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-                />
-              </div>
+              </Field>
+              <Field label="No. bukti" optional>
+                <input className="control" value={payForm.noBukti} onChange={(e) => setPay('noBukti', e.target.value)} placeholder="Contoh: BKK/2026/09/031" />
+              </Field>
             </div>
 
-            {/* Pratinjau Jurnal */}
-            <div className="mt-6">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Pratinjau jurnal</h4>
-              <div className="overflow-x-auto rounded-lg border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-semibold text-gray-600">Akun</th>
-                      <th className="px-4 py-2 text-left font-semibold text-gray-600">Debit</th>
-                      <th className="px-4 py-2 text-left font-semibold text-gray-600">Kredit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {/* DEBIT ROW(S) */}
-                    {(currentJenis === 'pokok' || currentJenis === 'gabungan') && (
-                      <tr>
-                        <td className="px-4 py-2 text-gray-700">{akunHutang ? `${akunHutang.kodeAkun} — ${akunHutang.namaAkun}` : 'Hutang Bank'}</td>
-                        <td className="px-4 py-2 text-left">{pNominal > 0 ? formatRupiah(currentJenis === 'gabungan' ? pPokok : pNominal) : '—'}</td>
-                        <td className="px-4 py-2 text-left text-gray-400">—</td>
-                      </tr>
-                    )}
-                    {(currentJenis === 'bunga' || currentJenis === 'gabungan') && (
-                      <tr>
-                        <td className="px-4 py-2 text-gray-700">{akunBeban ? `${akunBeban.kodeAkun} — ${akunBeban.namaAkun}` : 'Beban Bunga'}</td>
-                        <td className="px-4 py-2 text-left">{pNominal > 0 ? formatRupiah(currentJenis === 'gabungan' ? pBunga : pNominal) : '—'}</td>
-                        <td className="px-4 py-2 text-left text-gray-400">—</td>
-                      </tr>
-                    )}
-                    {/* KREDIT ROW */}
-                    <tr>
-                      <td className="px-4 py-2 text-gray-700">{akunKas ? `${akunKas.kodeAkun} — ${akunKas.namaAkun}` : 'Kas / Bank'}</td>
-                      <td className="px-4 py-2 text-left text-gray-400">—</td>
-                      <td className="px-4 py-2 text-left">{pNominal > 0 ? formatRupiah(pNominal) : '—'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            {jenis === 'gabungan' && (
+              <fieldset className="rounded-lg border border-line p-4">
+                <legend className="px-1 text-[13px] font-semibold text-ink-2">Rincian dari bank</legend>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Porsi pokok">
+                    <input type="number" inputMode="numeric" min={0} className="control control-num" value={payForm.nominalPokok} onChange={(e) => setPay('nominalPokok', e.target.value)} />
+                  </Field>
+                  <Field label="Porsi bunga">
+                    <input type="number" inputMode="numeric" min={0} className="control control-num" value={payForm.nominalBunga} onChange={(e) => setPay('nominalBunga', e.target.value)} />
+                  </Field>
+                </div>
+                {rincianCocok && (
+                  <Notice tone="positive" className="mt-3">
+                    Rincian cocok dengan total transfer.
+                  </Notice>
+                )}
+              </fieldset>
+            )}
 
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              {freshPinjaman.pola === 'bunga_rutin' ? (
-                <button
-                  onClick={() => {
-                    setPayForm(prev => ({
-                      ...prev,
-                      jenis: prev.jenis === 'pokok' ? 'bunga' : 'pokok',
-                      nominal: '',
-                      periodeBunga: ''
-                    }));
-                  }}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            <JurnalPreview rows={jurnalRows} />
+
+            <div className="flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+              {fresh.pola === 'bunga_rutin' ? (
+                <Button
+                  onClick={() =>
+                    setPayForm((prev) => ({ ...prev, jenis: prev.jenis === 'pokok' ? 'bunga' : 'pokok', nominal: '', periodeBunga: '' }))
+                  }
                 >
-                  {currentJenis === 'pokok' ? 'Bayar Bunga Rutin' : 'Lunasi Pokok'}
-                </button>
-              ) : <div></div>}
-
-              <div className="flex items-center gap-2">
-                <button
+                  {jenis === 'pokok' ? 'Ganti ke bayar bunga' : 'Ganti ke pelunasan pokok'}
+                </Button>
+              ) : (
+                <span />
+              )}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                <Button
+                  variant="ghost"
                   onClick={() => {
-                    setPayForm({
-                      jenis: freshPinjaman.pola === 'bunga_rutin' ? 'bunga' : 'pokok',
-                      tanggal: '',
-                      nominal: '',
-                      nominalPokok: '',
-                      nominalBunga: '',
-                      periodeBunga: '',
-                      keterangan: '',
-                      noBukti: '',
-                      akunKasId: '',
-                    });
+                    setPayForm(emptyPayment(fresh.pola));
                     setPayError('');
                   }}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Batal
-                </button>
-                {currentJenis === 'gabungan' && (
-                  <button
-                    onClick={() => handlePayment('menunggu_rincian')}
-                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Simpan tanpa rincian
-                  </button>
-                )}
-                <button
-                  onClick={() => handlePayment('lengkap')}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors"
-                >
+                  Kosongkan
+                </Button>
+                {jenis === 'gabungan' && <Button onClick={() => handlePayment('menunggu_rincian')}>Simpan tanpa rincian</Button>}
+                <Button variant="primary" onClick={() => handlePayment('lengkap')}>
                   Simpan dan buat jurnal
-                </button>
+                </Button>
               </div>
             </div>
-
-          </div>
+          </section>
         )}
       </div>
     </Modal>

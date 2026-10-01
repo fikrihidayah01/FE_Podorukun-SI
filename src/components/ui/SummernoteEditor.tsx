@@ -84,52 +84,60 @@ export default function SummernoteEditor({
     <div className="summernote-wrapper w-full">
       <textarea ref={containerRef} defaultValue={value} />
       <style>{`
-        /* Polish Summernote for Tailwind */
+        /* Summernote disesuaikan dengan token desain (index.css) */
         .note-editor.note-frame {
-          border: 1px solid #e5e7eb !important;
-          border-radius: 0.75rem !important;
+          border: 1px solid var(--color-line-strong) !important;
+          border-radius: 0.5rem !important;
           overflow: hidden !important;
-          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+          box-shadow: none !important;
+        }
+        .note-editor.note-frame:focus-within {
+          border-color: var(--color-brand-600) !important;
+          box-shadow: 0 0 0 3px var(--color-brand-100) !important;
         }
         .note-editor .note-toolbar {
-          background-color: #f9fafb !important;
-          border-bottom: 1px solid #e5e7eb !important;
+          background-color: var(--color-subtle) !important;
+          border-bottom: 1px solid var(--color-line) !important;
           padding: 0.375rem 0.5rem !important;
         }
         .note-editor .note-btn {
-          background-color: #ffffff !important;
-          border: 1px solid #e5e7eb !important;
+          background-color: var(--color-surface) !important;
+          border: 1px solid var(--color-line) !important;
           border-radius: 0.375rem !important;
           padding: 0.25rem 0.5rem !important;
           font-size: 0.8125rem !important;
-          color: #374151 !important;
+          color: var(--color-ink-2) !important;
         }
         .note-editor .note-btn:hover {
-          background-color: #f3f4f6 !important;
-          color: #111827 !important;
+          background-color: var(--color-neutral-soft) !important;
+          color: var(--color-ink) !important;
         }
         .note-editor .note-btn.active {
-          background-color: #e0e7ff !important;
-          border-color: #c7d2fe !important;
-          color: #4338ca !important;
+          background-color: var(--color-brand-50) !important;
+          border-color: var(--color-brand-200) !important;
+          color: var(--color-brand-700) !important;
         }
         .note-editor .note-statusbar {
-          background-color: #f9fafb !important;
-          border-top: 1px solid #f3f4f6 !important;
+          background-color: var(--color-subtle) !important;
+          border-top: 1px solid var(--color-line) !important;
         }
         .note-editor .note-editable {
-          background-color: #ffffff !important;
+          background-color: var(--color-surface) !important;
           font-family: inherit !important;
-          font-size: 0.875rem !important;
-          line-height: 1.6 !important;
-          color: #1f2937 !important;
-          padding: 0.75rem 1rem !important;
+          font-size: 0.9375rem !important;
+          line-height: 1.65 !important;
+          color: var(--color-ink) !important;
+          padding: 0.875rem 1rem !important;
+        }
+        .note-editor .note-placeholder {
+          color: var(--color-ink-3) !important;
+          padding: 0.875rem 1rem !important;
         }
         .note-editor .note-dropdown-menu {
           z-index: 1050 !important;
           border-radius: 0.5rem !important;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-          border: 1px solid #e5e7eb !important;
+          box-shadow: var(--shadow-pop) !important;
+          border: 1px solid var(--color-line) !important;
         }
         .note-modal-backdrop {
           z-index: 1060 !important;

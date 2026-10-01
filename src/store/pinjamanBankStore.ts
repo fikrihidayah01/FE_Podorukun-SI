@@ -13,12 +13,6 @@ export const POLA_PEMBAYARAN_LABELS: Record<PolaPembayaran, string> = {
   fleksibel: 'Fleksibel',
 };
 
-export const POLA_PEMBAYARAN_COLOR: Record<PolaPembayaran, string> = {
-  terpisah: 'bg-sky-100 text-sky-800 border-sky-200',
-  satu_transfer: 'bg-amber-100 text-amber-800 border-amber-200',
-  bunga_rutin: 'bg-purple-100 text-purple-800 border-purple-200',
-  fleksibel: 'bg-gray-100 text-gray-800 border-gray-200',
-};
 
 export interface TopUpPinjaman {
   id: string;
@@ -335,7 +329,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>()(
               pinjaman: p,
               jenis: 'bunga',
               tanggalFormatted: `${dd}/${mm}/${yyyy}`,
-              label: `${p.namaBank} — bunga jatuh tempo ${dd}/${mm}/${yyyy}`,
+              label: `${p.namaBank}, bunga jatuh tempo ${dd}/${mm}/${yyyy}`,
               hariLagi: diffBunga,
             });
           }
@@ -352,7 +346,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>()(
               pinjaman: p,
               jenis: 'pokok',
               tanggalFormatted: `${dd}/${mm}/${yyyy}`,
-              label: `${p.namaBank} — pokok jatuh tempo ${dd}/${mm}/${yyyy}`,
+              label: `${p.namaBank}, pokok jatuh tempo ${dd}/${mm}/${yyyy}`,
               hariLagi: diffPokok,
             });
           }

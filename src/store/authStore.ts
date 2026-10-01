@@ -3,6 +3,13 @@ import { persist } from 'zustand/middleware';
 
 export type UserRole = 'keuangan' | 'teknisi' | 'marketing' | 'kontraktor';
 
+export const ROLE_LABELS: Record<UserRole, string> = {
+  keuangan: 'Keuangan',
+  teknisi: 'Teknisi',
+  marketing: 'Marketing',
+  kontraktor: 'Kontraktor',
+};
+
 export interface AuthUser {
   id: string;
   name: string;

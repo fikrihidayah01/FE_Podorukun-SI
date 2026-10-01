@@ -1,13 +1,15 @@
 import { useMemo } from 'react';
+import { PiArrowRight, PiArrowsLeftRight } from 'react-icons/pi';
 import { useHutangStore } from '../../../store/hutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
-import { MdArrowForward, MdSwapHoriz } from 'react-icons/md';
+import Panel, { TableScroll } from '../../../components/ui/Panel';
+import Badge from '../../../components/ui/Badge';
+import Money from '../../../components/ui/Money';
+import Notice from '../../../components/ui/Notice';
+import EmptyState from '../../../components/ui/EmptyState';
 import ExportButton from '../../../components/ui/ExportButton';
 import { buildFilename } from '../../../utils/exportUtils';
-
-function formatRupiah(n: number) {
-  return 'Rp ' + n.toLocaleString('id-ID');
-}
+import { formatTanggal } from '../../../utils/format';
 
 interface AntarProyekTabProps {
   selectedProyekId: string;
@@ -18,139 +20,106 @@ export default function AntarProyekTab({ selectedProyekId, selectedBulan }: Anta
   const { getMutasiAntarProyek, kodePembantus } = useHutangStore();
   const { items: proyeks } = useProyekStore();
 
-  const proyekMap = useMemo(() => {
-    const m = new Map<string, string>();
-    proyeks.forEach((p) => m.set(p.id, p.nama));
-    return m;
-  }, [proyeks]);
-
-  const mutasis = useMemo(() => {
-    return getMutasiAntarProyek(selectedProyekId || undefined);
-  }, [getMutasiAntarProyek, selectedProyekId]);
-
-  const kpMap = useMemo(() => {
-    const m = new Map<string, string>();
-    kodePembantus.forEach((kp) => m.set(kp.id, kp.nama));
-    return m;
-  }, [kodePembantus]);
+  const proyekMap = useMemo(() => new Map(proyeks.map((p) => [p.id, p.nama])), [proyeks]);
+  const kpMap = useMemo(() => new Map(kodePembantus.map((kp) => [kp.id, kp.nama])), [kodePembantus]);
+  const mutasis = getMutasiAntarProyek(selectedProyekId || undefined);
 
   return (
-    <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
-      {/* Header toolbar */}
-      <div className="rounded-2xl bg-[#FCFBFC] border border-gray-200 p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-        <div className="flex items-center gap-2">
-          <MdSwapHoriz className="h-5 w-5 text-teal-600" />
-          <div>
-            <h3 className="text-sm font-bold text-gray-900">Riwayat Hutang Antar Proyek</h3>
-            <p className="text-xs text-gray-500">
-              Transaksi hutang-piutang antar proyek dicatat otomatis di kedua sisi
-            </p>
-          </div>
-        </div>
-        <ExportButton
-          getColumns={() => [
-            { header: 'Tanggal', key: 'tanggal', width: 14 },
-            { header: 'Proyek', key: 'proyek', width: 18 },
-            { header: 'Pihak', key: 'pihak', width: 24 },
-            { header: 'Proyek Lawan', key: 'proyekLawan', width: 18 },
-            { header: 'Jenis', key: 'jenis', width: 12 },
-            { header: 'Nominal', key: 'nominal', isNumber: true, width: 20 },
-            { header: 'Uraian', key: 'uraian', width: 30 },
-          ]}
-          getData={() => mutasis.map((m) => ({
-            tanggal: m.tanggal,
-            proyek: proyekMap.get(m.proyekId) ?? m.proyekId,
-            pihak: kpMap.get(m.kodePembantuId) ?? '-',
-            proyekLawan: m.proyekLawanId ? (proyekMap.get(m.proyekLawanId) ?? m.proyekLawanId) : '-',
-            jenis: m.jenisMutasi === 'kredit' ? 'Kredit' : 'Debit',
-            nominal: m.nominal,
-            uraian: m.uraian,
-          }))}
-          opts={{
-            namaLaporan: 'Laporan Hutang Antar Proyek',
-            filenameBase: buildFilename('Antar_Proyek', selectedProyekId ? proyekMap.get(selectedProyekId) : undefined, selectedBulan),
-          }}
-        />
-      </div>
+    <>
+      <Notice title="Dicatat di kedua sisi">
+        Setiap mutasi hutang antar proyek otomatis membuat catatan piutang di proyek pemberi pinjaman (mirror). Pelunasan
+        juga diperbarui di kedua sisi.
+      </Notice>
 
-      {/* Info note */}
-      <div className="rounded-lg bg-teal-50 border border-teal-200 px-4 py-3">
-        <p className="text-xs text-teal-700">
-          <strong>Mirror entry:</strong> Setiap mutasi hutang antar proyek otomatis membuat pencatatan lawan (piutang) di proyek pemberi pinjaman. Pelunasan juga ter-update di kedua sisi.
-        </p>
-      </div>
-
-      {/* Table */}
-      {mutasis.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-          <MdSwapHoriz className="mx-auto mb-2 h-8 w-8 text-gray-300" />
-          <p className="text-sm font-medium text-gray-500">Belum ada transaksi antar proyek</p>
-          <p className="mt-1 text-xs text-gray-400">
-            Input mutasi dengan kategori "Hutang antar proyek" untuk memulai
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Tanggal</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Proyek</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Pihak</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Proyek Lawan</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Jenis</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nominal</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Uraian</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Mirror</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
-              {mutasis.map((m) => (
-                <tr key={m.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3.5 text-gray-700 whitespace-nowrap">{m.tanggal}</td>
-                  <td className="px-4 py-3.5 text-gray-700 font-medium">{proyekMap.get(m.proyekId) ?? m.proyekId}</td>
-                  <td className="px-4 py-3.5 text-gray-600 text-xs">{kpMap.get(m.kodePembantuId) ?? '-'}</td>
-                  <td className="px-4 py-3.5 text-gray-600">
-                    {m.proyekLawanId ? (
-                      <span className="flex items-center gap-1">
-                        <MdArrowForward className="h-3 w-3 text-gray-400" />
-                        {proyekMap.get(m.proyekLawanId) ?? m.proyekLawanId}
-                      </span>
-                    ) : '-'}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full px-3 py-0.5 text-xs font-medium ${
-                      m.jenisMutasi === 'kredit'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {m.jenisMutasi === 'kredit' ? 'Kredit' : 'Debit'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-left text-gray-700">
-                    {m.jenisMutasi === 'debit' ? (
-                      <span className="text-red-600">({formatRupiah(m.nominal)})</span>
-                    ) : (
-                      formatRupiah(m.nominal)
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5 text-gray-500 text-xs max-w-[200px] truncate">{m.uraian}</td>
-                  <td className="px-4 py-3.5 text-left">
-                    {m.mirrorMutasiId ? (
-                      <span className="w-32 inline-flex items-center justify-start text-left whitespace-nowrap gap-1 rounded-full bg-teal-100 px-3 py-0.5 text-xs font-medium text-teal-700">
-                        <MdSwapHoriz className="h-2.5 w-2.5" />
-                        Mirror
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-xs">—</span>
-                    )}
-                  </td>
+      <Panel
+        title="Riwayat hutang antar proyek"
+        description={`${mutasis.length} transaksi`}
+        flush
+        actions={
+          <ExportButton
+            getColumns={() => [
+              { header: 'Tanggal', key: 'tanggal', width: 14 },
+              { header: 'Proyek', key: 'proyek', width: 18 },
+              { header: 'Pihak', key: 'pihak', width: 24 },
+              { header: 'Proyek Lawan', key: 'proyekLawan', width: 18 },
+              { header: 'Jenis', key: 'jenis', width: 12 },
+              { header: 'Nominal', key: 'nominal', isNumber: true, width: 20 },
+              { header: 'Uraian', key: 'uraian', width: 30 },
+            ]}
+            getData={() =>
+              mutasis.map((m) => ({
+                tanggal: formatTanggal(m.tanggal),
+                proyek: proyekMap.get(m.proyekId) ?? m.proyekId,
+                pihak: kpMap.get(m.kodePembantuId) ?? '-',
+                proyekLawan: m.proyekLawanId ? (proyekMap.get(m.proyekLawanId) ?? m.proyekLawanId) : '-',
+                jenis: m.jenisMutasi === 'kredit' ? 'Kredit' : 'Debit',
+                nominal: m.nominal,
+                uraian: m.uraian,
+              }))
+            }
+            opts={{
+              namaLaporan: 'Laporan Hutang Antar Proyek',
+              filenameBase: buildFilename('Antar_Proyek', selectedProyekId ? proyekMap.get(selectedProyekId) : undefined, selectedBulan),
+            }}
+          />
+        }
+      >
+        {mutasis.length === 0 ? (
+          <EmptyState
+            compact
+            icon={PiArrowsLeftRight}
+            title="Belum ada transaksi antar proyek"
+            description='Catat lewat Input mutasi dengan kategori "Antar proyek". Catatan lawannya dibuat otomatis.'
+          />
+        ) : (
+          <TableScroll label="Riwayat hutang antar proyek">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th scope="col">Tanggal</th>
+                  <th scope="col">Proyek</th>
+                  <th scope="col">Pihak</th>
+                  <th scope="col">Proyek lawan</th>
+                  <th scope="col">Jenis</th>
+                  <th scope="col" className="num">Nominal</th>
+                  <th scope="col">Uraian</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+              </thead>
+              <tbody>
+                {mutasis.map((m) => (
+                  <tr key={m.id}>
+                    <td className="whitespace-nowrap tabular-nums">{formatTanggal(m.tanggal)}</td>
+                    <td className="font-semibold text-ink">{proyekMap.get(m.proyekId) ?? m.proyekId}</td>
+                    <td>{kpMap.get(m.kodePembantuId) ?? '-'}</td>
+                    <td>
+                      {m.proyekLawanId ? (
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <PiArrowRight className="h-3.5 w-3.5 text-ink-3" aria-hidden />
+                          {proyekMap.get(m.proyekLawanId) ?? m.proyekLawanId}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>
+                      <span className="flex flex-wrap gap-1">
+                        <Badge>{m.jenisMutasi === 'kredit' ? 'Kredit' : 'Debit'}</Badge>
+                        {m.mirrorMutasiId && <Badge tone="brand">Mirror</Badge>}
+                      </span>
+                    </td>
+                    <td className="num font-semibold text-ink">
+                      <Money value={m.jenisMutasi === 'debit' ? -m.nominal : m.nominal} accounting />
+                    </td>
+                    <td className="max-w-[260px] truncate" title={m.uraian}>
+                      {m.uraian}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+      </Panel>
+    </>
   );
 }

@@ -139,7 +139,7 @@ export async function exportPDF(
     : data.map((row) =>
         columns.map((col) => {
           const val = row[col.key];
-          if (val === null || val === undefined) return '—';
+          if (val === null || val === undefined) return '-';
           if (col.isNumber && typeof val === 'number') return formatRupiah(val);
           return String(val);
         })

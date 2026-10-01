@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { PiUploadSimple } from 'react-icons/pi';
 import { useKontrakStore, type Kontrak } from '../../../store/kontrakStore';
 import Modal from '../../../components/ui/Modal';
-import { MdUploadFile, MdInfo } from 'react-icons/md';
-
-function formatRupiah(n: number) {
-  return 'Rp ' + n.toLocaleString('id-ID');
-}
+import Button from '../../../components/ui/Button';
+import Field from '../../../components/ui/Field';
+import Notice from '../../../components/ui/Notice';
+import Money from '../../../components/ui/Money';
+import JurnalPreview from './JurnalPreview';
 
 interface AdendumFormModalProps {
   kontrak: Kontrak;
@@ -14,34 +15,26 @@ interface AdendumFormModalProps {
 }
 
 export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFormModalProps) {
-  const { addAdendum } = useKontrakStore();
+  const { addAdendum, adendums } = useKontrakStore();
 
-  const [form, setForm] = useState({
-    noAdendum: '',
-    tanggal: '',
-    nilaiBaru: '',
-    alasan: '',
-  });
-  const [lampiranObj, setLampiranObj] = useState<File | null>(null);
+  const [form, setForm] = useState({ noAdendum: '', tanggal: '', nilaiBaru: '', alasan: '' });
+  const [lampiran, setLampiran] = useState<File | null>(null);
   const [error, setError] = useState('');
 
-  // Hitung nilai terakhir (setelah semua adendum jika ada)
-  const allAdendums = useKontrakStore.getState().adendums.filter(a => a.kontrakId === kontrak.id);
-  const nilaiLama = allAdendums.length > 0 
-    ? allAdendums.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].nilaiBaru 
-    : kontrak.nilaiKontrak;
-
+  const riwayat = adendums
+    .filter((a) => a.kontrakId === kontrak.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const nilaiLama = riwayat.length > 0 ? riwayat[0].nilaiBaru : kontrak.nilaiKontrak;
   const pNilaiBaru = Number(form.nilaiBaru) || 0;
   const selisih = pNilaiBaru - nilaiLama;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-
-    if (!form.noAdendum.trim()) return setError('No. Adendum wajib diisi');
-    if (!form.tanggal) return setError('Tanggal wajib diisi');
-    if (pNilaiBaru <= 0) return setError('Nilai Baru harus lebih dari 0');
-    if (selisih === 0) return setError('Nilai Baru tidak boleh sama dengan Nilai Lama');
-    if (!form.alasan.trim()) return setError('Alasan perubahan kontrak wajib diisi');
+    if (!form.noAdendum.trim()) return setError('No. dokumen adendum wajib diisi.');
+    if (!form.tanggal) return setError('Tanggal adendum wajib diisi.');
+    if (pNilaiBaru <= 0) return setError('Nilai baru harus lebih dari 0.');
+    if (selisih === 0) return setError('Nilai baru sama dengan nilai lama, jadi tidak ada yang perlu diadendum.');
+    if (!form.alasan.trim()) return setError('Tuliskan alasan perubahan kontrak.');
 
     addAdendum({
       kontrakId: kontrak.id,
@@ -50,128 +43,115 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
       nilaiLama,
       nilaiBaru: pNilaiBaru,
       alasan: form.alasan.trim(),
-      lampiran: lampiranObj ? lampiranObj.name : undefined,
+      lampiran: lampiran?.name,
     });
-
-    setForm({ noAdendum: '', tanggal: '', nilaiBaru: '', alasan: '' });
-    setLampiranObj(null);
-    setError('');
     onClose();
   };
 
+  const showPreview = selisih !== 0 && pNilaiBaru > 0;
+  const nilai = Math.abs(selisih);
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Adendum Kontrak" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="flex items-start gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-indigo-900">
-          <MdInfo className="h-5 w-5 mt-0.5 shrink-0 text-indigo-600" />
-          <p className="text-sm">
-            Adendum akan mengubah nilai sisa kontrak dan <strong>otomatis membentuk jurnal penyesuaian</strong> (Persediaan terhadap Hutang) sebesar selisih nilai.
-          </p>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Adendum kontrak"
+      description={`${kontrak.noSpk}, kavling ${kontrak.kavling}`}
+      size="lg"
+      footer={
+        <>
+          <Button onClick={onClose}>Batal</Button>
+          <Button variant="primary" type="submit" form="adendum-form">
+            Simpan adendum
+          </Button>
+        </>
+      }
+    >
+      <form id="adendum-form" onSubmit={handleSubmit} className="space-y-5">
+        <Notice>
+          Adendum mengubah sisa kontrak dan otomatis membentuk jurnal penyesuaian (persediaan terhadap hutang) sebesar selisih nilainya.
+        </Notice>
+        {error && <Notice tone="danger">{error}</Notice>}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Tanggal adendum" required>
+            <input type="date" className="control" value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} />
+          </Field>
+          <Field label="No. dokumen adendum" required>
+            <input className="control" value={form.noAdendum} onChange={(e) => setForm({ ...form, noAdendum: e.target.value })} placeholder="Contoh: ADD/2026/06/001" />
+          </Field>
         </div>
 
-        {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 border border-red-200">{error}</div>}
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 rounded-lg border border-line bg-subtle p-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">No. SPK Rujukan</label>
-            <input type="text" value={kontrak.noSpk} disabled className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500" />
+            <p className="field-label">Nilai lama</p>
+            <p className="flex min-h-10 items-center text-base font-bold text-ink">
+              <Money value={nilaiLama} />
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Adendum <span className="text-red-500">*</span></label>
-            <input type="date" value={form.tanggal} onChange={(e) => setForm({...form, tanggal: e.target.value})} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">No. Dokumen Adendum <span className="text-red-500">*</span></label>
-            <input type="text" value={form.noAdendum} onChange={(e) => setForm({...form, noAdendum: e.target.value})} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Contoh: ADD/2026/06/001" />
-          </div>
-
-          <div className="bg-white shadow-sm rounded-lg p-4 sm:col-span-2 grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Nilai Lama</label>
-              <input type="text" value={formatRupiah(nilaiLama)} disabled className="w-full rounded border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nilai Baru <span className="text-red-500">*</span></label>
-              <input type="number" value={form.nilaiBaru} onChange={(e) => setForm({...form, nilaiBaru: e.target.value})} className="w-full rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-indigo-700" placeholder="0" />
-            </div>
-            {selisih !== 0 && pNilaiBaru > 0 && (
-              <div className="col-span-2 text-sm font-medium px-3 py-2 rounded border bg-white border-gray-200">
-                Selisih: <span className={selisih > 0 ? 'text-red-600' : 'text-emerald-600'}>
-                  {selisih > 0 ? '+' : '-'} {formatRupiah(Math.abs(selisih))}
+          <Field
+            label="Nilai baru"
+            required
+            hint={
+              showPreview ? (
+                <span className={selisih > 0 ? 'font-semibold text-danger' : 'font-semibold text-positive'}>
+                  {selisih > 0 ? 'Naik ' : 'Turun '}
+                  <Money value={nilai} />
                 </span>
-              </div>
-            )}
-          </div>
-
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Alasan Perubahan <span className="text-red-500">*</span></label>
-            <textarea value={form.alasan} onChange={(e) => setForm({...form, alasan: e.target.value})} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" rows={3} placeholder="Penjelasan detail..." />
-          </div>
-
-          {/* Dummy Upload Lampiran */}
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lampiran Dokumen</label>
-            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <MdUploadFile className="w-6 h-6 mb-2 text-gray-500" />
-                <p className="text-xs text-gray-500">{lampiranObj ? lampiranObj.name : 'Klik untuk unggah dokumen (PDF/Word)'}</p>
-              </div>
-              <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => e.target.files && setLampiranObj(e.target.files[0])} />
-            </label>
-          </div>
-
-          {/* Pratinjau Jurnal Penyesuaian */}
-          {selisih !== 0 && pNilaiBaru > 0 && (
-            <div className="sm:col-span-2 border-t border-gray-200 pt-4 mt-2">
-              <h4 className="text-sm font-semibold text-gray-800 mb-3">Pratinjau Jurnal Penyesuaian</h4>
-              <div className="overflow-x-auto rounded-lg border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-semibold text-gray-600">Akun</th>
-                      <th className="px-4 py-2 text-left font-semibold text-gray-600">Debit</th>
-                      <th className="px-4 py-2 text-left font-semibold text-gray-600">Kredit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {selisih > 0 ? (
-                      <>
-                        <tr>
-                          <td className="px-4 py-2 text-gray-700">Persediaan / WIP</td>
-                          <td className="px-4 py-2 text-left">{formatRupiah(Math.abs(selisih))}</td>
-                          <td className="px-4 py-2 text-left text-gray-400">—</td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-2 text-gray-700">Hutang Kontraktor</td>
-                          <td className="px-4 py-2 text-left text-gray-400">—</td>
-                          <td className="px-4 py-2 text-left">{formatRupiah(Math.abs(selisih))}</td>
-                        </tr>
-                      </>
-                    ) : (
-                      <>
-                        <tr>
-                          <td className="px-4 py-2 text-gray-700">Hutang Kontraktor</td>
-                          <td className="px-4 py-2 text-left">{formatRupiah(Math.abs(selisih))}</td>
-                          <td className="px-4 py-2 text-left text-gray-400">—</td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-2 text-gray-700">Persediaan / WIP</td>
-                          <td className="px-4 py-2 text-left text-gray-400">—</td>
-                          <td className="px-4 py-2 text-left">{formatRupiah(Math.abs(selisih))}</td>
-                        </tr>
-                      </>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+              ) : undefined
+            }
+          >
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              className="control control-num font-semibold"
+              value={form.nilaiBaru}
+              onChange={(e) => setForm({ ...form, nilaiBaru: e.target.value })}
+              placeholder="0"
+            />
+          </Field>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 border border-gray-300">Batal</button>
-          <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Simpan Adendum</button>
+        <Field label="Alasan perubahan" required>
+          <textarea rows={3} className="control" value={form.alasan} onChange={(e) => setForm({ ...form, alasan: e.target.value })} />
+        </Field>
+
+        <div>
+          <p className="field-label">
+            Lampiran dokumen <span className="font-normal text-ink-3">(opsional)</span>
+          </p>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-line-strong px-4 py-3.5 hover:bg-subtle focus-within:outline-2 focus-within:outline-brand-600">
+            <PiUploadSimple className="h-5 w-5 shrink-0 text-ink-3" aria-hidden />
+            <span className="min-w-0 flex-1 truncate text-sm text-ink-2">
+              {lampiran ? lampiran.name : 'Pilih file PDF atau Word'}
+            </span>
+            <span className="text-sm font-semibold text-brand-700">{lampiran ? 'Ganti' : 'Pilih file'}</span>
+            <input
+              type="file"
+              className="sr-only"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) => e.target.files && setLampiran(e.target.files[0])}
+            />
+          </label>
         </div>
+
+        {showPreview && (
+          <JurnalPreview
+            title="Pratinjau jurnal penyesuaian"
+            rows={
+              selisih > 0
+                ? [
+                    { akun: 'Persediaan / WIP', debit: nilai },
+                    { akun: 'Hutang kontraktor', kredit: nilai },
+                  ]
+                : [
+                    { akun: 'Hutang kontraktor', debit: nilai },
+                    { akun: 'Persediaan / WIP', kredit: nilai },
+                  ]
+            }
+          />
+        )}
       </form>
     </Modal>
   );

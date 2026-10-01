@@ -1,34 +1,16 @@
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
-import type { UserRole } from '../store/authStore';
 import { useEffect } from 'react';
-import { MdLogin } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
+import type { IconType } from 'react-icons';
+import { PiCaretRight, PiWallet, PiWrench, PiMegaphone, PiHardHat } from 'react-icons/pi';
+import { useAuthStore, type UserRole } from '../store/authStore';
+import Badge from '../components/ui/Badge';
+import { ROLE_ACCENT } from '../config/theme';
 
-const ROLES: { value: UserRole; label: string; description: string; color: string }[] = [
-  {
-    value: 'keuangan',
-    label: 'Keuangan',
-    description: 'Laporan keuangan, tagihan, pengeluaran',
-    color: 'hover:border-emerald-400 hover:bg-emerald-50',
-  },
-  {
-    value: 'teknisi',
-    label: 'Teknisi',
-    description: 'Pekerjaan, jadwal, laporan teknis',
-    color: 'hover:border-blue-400 hover:bg-blue-50',
-  },
-  {
-    value: 'marketing',
-    label: 'Marketing',
-    description: 'Prospek, klien, campaign',
-    color: 'hover:border-purple-400 hover:bg-purple-50',
-  },
-  {
-    value: 'kontraktor',
-    label: 'Kontraktor / Subkon',
-    description: 'Proyek, subkontraktor, progres',
-    color: 'hover:border-orange-400 hover:bg-orange-50',
-  },
+const ROLES: { value: UserRole; label: string; description: string; icon: IconType; ready: boolean }[] = [
+  { value: 'keuangan', label: 'Keuangan', description: 'Hutang, tagihan user, jurnal umum, COA, SRP', icon: PiWallet, ready: true },
+  { value: 'teknisi', label: 'Teknisi', description: 'Pekerjaan, jadwal, laporan teknis', icon: PiWrench, ready: false },
+  { value: 'marketing', label: 'Marketing', description: 'Prospek, klien, campaign', icon: PiMegaphone, ready: false },
+  { value: 'kontraktor', label: 'Kontraktor / subkon', description: 'Proyek, subkontraktor, progres', icon: PiHardHat, ready: false },
 ];
 
 export default function LoginPage() {
@@ -36,9 +18,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
-    }
+    if (isAuthenticated) navigate('/dashboard', { replace: true });
   }, [isAuthenticated, navigate]);
 
   const handleLogin = (role: UserRole) => {
@@ -47,44 +27,53 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-50 px-4">
-      <div className="w-full max-w-md">
-        {/* Logo + Title */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 shadow-lg">
-            <span className="text-xl font-bold text-white">SI</span>
+    <div
+      className="flex min-h-dvh flex-col bg-canvas px-4 py-8 sm:py-14"
+      style={{ backgroundImage: 'radial-gradient(60rem 30rem at 50% -10%, color-mix(in srgb, #2b4fcb 10%, transparent), transparent)' }}
+    >
+      <main className="mx-auto w-full max-w-[440px] flex-1">
+        <div className="mb-8 flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink text-sm font-bold text-white">SI</span>
+          <div className="leading-tight">
+            <p className="text-base font-bold text-ink">SI-Podorukun</p>
+            <p className="text-[13px] text-ink-3">Sistem informasi manajemen</p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">SI-Podorukun</h1>
-          <p className="mt-1 text-sm text-gray-500">Sistem Informasi Manajemen</p>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center gap-2">
-            <MdLogin className="h-4 w-4 text-indigo-600" />
-            <p className="text-sm font-semibold text-gray-700">Masuk sebagai</p>
-          </div>
+        <div className="rounded-xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+          <h1 className="text-xl font-bold text-ink">Masuk</h1>
+          <p className="mt-1 text-sm text-ink-3">Mode simulasi. Pilih peran untuk membuka dasbornya.</p>
 
-          <div className="space-y-3">
+          <ul className="mt-5 space-y-2">
             {ROLES.map((role) => (
-              <button
-                key={role.value}
-                onClick={() => handleLogin(role.value)}
-                className={`w-full rounded-xl border-2 border-gray-200 bg-white p-4 text-left transition-all duration-150 ${role.color} focus:outline-none focus:ring-2 focus:ring-indigo-400`}
-              >
-                <p className="font-semibold text-gray-800">{role.label}</p>
-                <p className="text-xs text-gray-400">{role.description}</p>
-              </button>
+              <li key={role.value}>
+                <button
+                  type="button"
+                  onClick={() => handleLogin(role.value)}
+                  className="group flex w-full items-center gap-3.5 rounded-lg border border-line bg-surface p-3.5 text-left transition-colors hover:border-line-strong hover:bg-subtle active:bg-neutral-soft"
+                >
+                  <span
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-hover:scale-105"
+                    style={{ backgroundColor: ROLE_ACCENT[role.value] }}
+                  >
+                    <role.icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-ink">{role.label}</span>
+                      {!role.ready && <Badge>Dalam pengembangan</Badge>}
+                    </span>
+                    <span className="mt-0.5 block text-[13px] text-ink-3">{role.description}</span>
+                  </span>
+                  <PiCaretRight className="h-4 w-4 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                </button>
+              </li>
             ))}
-          </div>
-
-          <p className="mt-5 text-center text-xs text-gray-400">
-            Mode simulasi — pilih role untuk masuk
-          </p>
+          </ul>
         </div>
+      </main>
 
-        <p className="mt-6 text-center text-xs text-gray-400">SI-Podorukun © 2026</p>
-      </div>
+      <p className="mx-auto mt-8 text-center text-xs text-ink-3">SI-Podorukun © 2026</p>
     </div>
   );
 }

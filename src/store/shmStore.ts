@@ -1,5 +1,6 @@
 ﻿import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { Tone } from '../components/ui/Badge';
 
 // ── Types ────────────────────────────────────────────────────
 export type StatusShm =
@@ -10,19 +11,20 @@ export type StatusShm =
   | 'lainnya';
 
 export const STATUS_SHM_LABELS: Record<StatusShm, string> = {
-  di_notaris: 'Di Notaris',
-  di_kantor: 'Di Kantor',
-  dijaminkan: 'Dijaminkan ke Bank',
-  sudah_ditebus: 'Sudah Ditebus',
-  lainnya: 'Lainnya...',
+  di_notaris: 'Di notaris',
+  di_kantor: 'Di kantor',
+  dijaminkan: 'Dijaminkan ke bank',
+  sudah_ditebus: 'Sudah ditebus',
+  lainnya: 'Lainnya',
 };
 
-export const STATUS_SHM_COLOR: Record<StatusShm, string> = {
-  di_notaris: 'bg-blue-100 text-blue-700',
-  di_kantor: 'bg-gray-100 text-gray-700',
-  dijaminkan: 'bg-red-100 text-red-700',
-  sudah_ditebus: 'bg-emerald-100 text-emerald-700',
-  lainnya: 'bg-purple-100 text-purple-700',
+// Tone badge: dijaminkan = sertifikat sedang terikat ke bank (perlu perhatian), ditebus = kembali aman.
+export const STATUS_SHM_TONE: Record<StatusShm, Tone> = {
+  di_notaris: 'brand',
+  di_kantor: 'neutral',
+  dijaminkan: 'warning',
+  sudah_ditebus: 'positive',
+  lainnya: 'neutral',
 };
 
 export type StatusPbg = 'belum_diajukan' | 'dalam_proses' | 'terbit' | 'lainnya';
@@ -31,15 +33,18 @@ export const STATUS_PBG_LABELS: Record<StatusPbg, string> = {
   belum_diajukan: 'Belum diajukan',
   dalam_proses: 'Dalam proses',
   terbit: 'Terbit',
-  lainnya: 'Lainnya...',
+  lainnya: 'Lainnya',
 };
 
-export const STATUS_PBG_COLOR: Record<StatusPbg, string> = {
-  belum_diajukan: 'bg-gray-100 text-gray-600',
-  dalam_proses: 'bg-amber-100 text-amber-700',
-  terbit: 'bg-emerald-100 text-emerald-700',
-  lainnya: 'bg-purple-100 text-purple-700',
+export const STATUS_PBG_TONE: Record<StatusPbg, Tone> = {
+  belum_diajukan: 'neutral',
+  dalam_proses: 'brand',
+  terbit: 'positive',
+  lainnya: 'neutral',
 };
+
+export const STATUS_SHM_OPTIONS = Object.keys(STATUS_SHM_LABELS) as StatusShm[];
+export const STATUS_PBG_OPTIONS = Object.keys(STATUS_PBG_LABELS) as StatusPbg[];
 
 export interface ShmRiwayat {
   id: string;

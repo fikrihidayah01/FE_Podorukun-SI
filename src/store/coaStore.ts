@@ -150,8 +150,8 @@ export const useCoaStore = create<CoaState>()(
             akunId: newId,
             waktu: new Date().toISOString(),
             field: 'Akun dibuat',
-            nilaiLama: '—',
-            nilaiBaru: '—',
+            nilaiLama: '-',
+            nilaiBaru: '-',
             oleh
           };
           return {
@@ -174,8 +174,8 @@ export const useCoaStore = create<CoaState>()(
 
             if (oldVal !== newVal) {
               let fieldLabel = key;
-              let nLama = String(oldVal ?? '—');
-              let nBaru = String(newVal ?? '—');
+              let nLama = String(oldVal ?? '-');
+              let nBaru = String(newVal ?? '-');
 
               if (key === 'wajibProyek' || key === 'wajibKodePembantu' || key === 'isKasBank') {
                 nLama = oldVal ? 'Ya' : 'Tidak';

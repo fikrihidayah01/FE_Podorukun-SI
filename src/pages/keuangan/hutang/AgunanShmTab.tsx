@@ -1,63 +1,50 @@
-import { useState, useRef, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { PiPlus, PiClockCounterClockwise, PiPencilSimple, PiTrash, PiFileText } from 'react-icons/pi';
 import {
   useShmStore,
   type Shm,
   type StatusShm,
   type StatusPbg,
   STATUS_SHM_LABELS,
-  STATUS_SHM_COLOR,
+  STATUS_SHM_TONE,
   STATUS_PBG_LABELS,
-  STATUS_PBG_COLOR,
+  STATUS_PBG_TONE,
+  STATUS_SHM_OPTIONS,
+  STATUS_PBG_OPTIONS,
 } from '../../../store/shmStore';
 import { usePinjamanBankStore } from '../../../store/pinjamanBankStore';
 import Modal from '../../../components/ui/Modal';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import ExportButton from '../../../components/ui/ExportButton';
+import Panel, { TableScroll } from '../../../components/ui/Panel';
+import Button, { IconButton } from '../../../components/ui/Button';
+import Badge from '../../../components/ui/Badge';
+import Field from '../../../components/ui/Field';
+import EmptyState from '../../../components/ui/EmptyState';
 import { buildFilename } from '../../../utils/exportUtils';
+import { formatRupiah } from '../../../utils/format';
 import ShmFormModal from './ShmFormModal';
 import ShmRiwayatModal from './ShmRiwayatModal';
-import { MdHistory, MdEdit, MdDeleteOutline } from 'react-icons/md';
-
-// ── Constants ────────────────────────────────────────────────
-const STATUS_SHM_OPTIONS: StatusShm[] = [
-  'di_notaris',
-  'di_kantor',
-  'dijaminkan',
-  'sudah_ditebus',
-  'lainnya',
-];
-
-const STATUS_PBG_OPTIONS: StatusPbg[] = [
-  'belum_diajukan',
-  'dalam_proses',
-  'terbit',
-  'lainnya',
-];
 
 interface AgunanShmTabProps {
   selectedProyekId?: string;
   selectedBulan?: string;
 }
 
-// ── Component ────────────────────────────────────────────────
+const shmLabel =(s: Pick<Shm, 'status' | 'statusKustom'>) =>
+  s.status === 'lainnya' && s.statusKustom ? s.statusKustom : STATUS_SHM_LABELS[s.status];
+const pbgLabel = (s: Shm) => (s.statusPbg === 'lainnya' && s.statusPbgKustom ? s.statusPbgKustom : STATUS_PBG_LABELS[s.statusPbg]);
+
 export default function AgunanShmTab({ selectedProyekId, selectedBulan }: AgunanShmTabProps) {
   const { shms, removeShm, updateStatus, getCustomStatuses, getCustomLokasis } = useShmStore();
   const pinjamans = usePinjamanBankStore((s) => s.pinjamans);
 
-  // ── Filters ─────────────────────────────────────────────────
   const [filterStatusShm, setFilterStatusShm] = useState<StatusShm | 'semua'>('semua');
   const [filterStatusPbg, setFilterStatusPbg] = useState<StatusPbg | 'semua'>('semua');
-
-  // ── Modal: Tambah Dokumen ────────────────────────────────────
   const [formOpen, setFormOpen] = useState(false);
-
-  // ── Modal: Riwayat ───────────────────────────────────────────
   const [riwayatShm, setRiwayatShm] = useState<Shm | null>(null);
-
-  // ── Modal: Hapus ─────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Shm | null>(null);
 
-  // ── Modal: Ubah Status ───────────────────────────────────────
   const [ubahTarget, setUbahTarget] = useState<Shm | null>(null);
   const [ubahStatus, setUbahStatus] = useState<StatusShm>('di_kantor');
   const [ubahStatusKustom, setUbahStatusKustom] = useState('');
@@ -65,19 +52,16 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
   const [ubahKeterangan, setUbahKeterangan] = useState('');
   const [ubahPinjamanId, setUbahPinjamanId] = useState('');
   const [ubahNamaBank, setUbahNamaBank] = useState('');
-  const [lokasiSuggestions, setLokasiSuggestions] = useState<string[]>([]);
-  const lokasiInputRef = useRef<HTMLInputElement>(null);
 
   const aktivPinjamans = pinjamans.filter((p) => p.status === 'aktif');
+  const customStatuses = getCustomStatuses();
 
-  // ── Filtered rows ────────────────────────────────────────────
   const filtered = shms.filter((s) => {
     if (filterStatusShm !== 'semua' && s.status !== filterStatusShm) return false;
     if (filterStatusPbg !== 'semua' && s.statusPbg !== filterStatusPbg) return false;
     return true;
   });
 
-  // ── Ubah Status helpers ──────────────────────────────────────
   const openUbahStatus = (shm: Shm) => {
     setUbahTarget(shm);
     setUbahStatus(shm.status);
@@ -86,44 +70,23 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
     setUbahKeterangan('');
     setUbahPinjamanId(shm.pinjamanBankId ?? '');
     setUbahNamaBank(shm.namaBank ?? '');
-    setLokasiSuggestions([]);
   };
 
-  const closeUbahStatus = () => {
-    setUbahTarget(null);
-    setUbahStatus('di_kantor');
-    setUbahStatusKustom('');
-    setUbahLokasi('');
-    setUbahKeterangan('');
-    setUbahPinjamanId('');
-    setUbahNamaBank('');
-    setLokasiSuggestions([]);
-  };
+  const closeUbahStatus = () => setUbahTarget(null);
 
   const handlePinjamanChange = (id: string) => {
     setUbahPinjamanId(id);
-    const found = pinjamans.find((p) => p.id === id);
-    setUbahNamaBank(found?.namaBank ?? '');
+    setUbahNamaBank(pinjamans.find((p) => p.id === id)?.namaBank ?? '');
   };
 
-  const handleLokasiChange = (val: string) => {
-    setUbahLokasi(val);
-    if (val.trim().length > 0) {
-      const all = getCustomLokasis();
-      setLokasiSuggestions(
-        all.filter((l) => l.toLowerCase().includes(val.toLowerCase()) && l !== val)
-      );
-    } else {
-      setLokasiSuggestions([]);
-    }
-  };
+  const ubahIsValid =
+    ubahLokasi.trim() !== '' &&
+    (ubahStatus !== 'dijaminkan' || ubahPinjamanId !== '') &&
+    (ubahStatus !== 'lainnya' || ubahStatusKustom.trim() !== '');
 
   const handleUbahSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!ubahTarget || !ubahLokasi.trim()) return;
-    if (ubahStatus === 'dijaminkan' && !ubahPinjamanId) return;
-    if (ubahStatus === 'lainnya' && !ubahStatusKustom.trim()) return;
-
+    if (!ubahTarget || !ubahIsValid) return;
     updateStatus(
       ubahTarget.id,
       ubahStatus,
@@ -136,83 +99,13 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
     closeUbahStatus();
   };
 
-  const ubahIsValid =
-    ubahLokasi.trim() !== '' &&
-    (ubahStatus !== 'dijaminkan' || ubahPinjamanId !== '') &&
-    (ubahStatus !== 'lainnya' || ubahStatusKustom.trim() !== '');
-
-  // ── Badge renderer ───────────────────────────────────────────
-  const renderShmBadge = (shm: Shm) => {
-    const label =
-      shm.status === 'lainnya' && shm.statusKustom
-        ? shm.statusKustom
-        : STATUS_SHM_LABELS[shm.status];
-    const color = STATUS_SHM_COLOR[shm.status];
-    return (
-      <span className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full px-3 py-0.5 text-xs font-medium ${color}`}>
-        {label}
-      </span>
-    );
-  };
-
-  const renderPbgBadge = (shm: Shm) => {
-    const label =
-      shm.statusPbg === 'lainnya' && shm.statusPbgKustom
-        ? shm.statusPbgKustom
-        : STATUS_PBG_LABELS[shm.statusPbg];
-    const color = STATUS_PBG_COLOR[shm.statusPbg];
-    return (
-      <span className={`w-32 inline-flex items-center justify-start text-left whitespace-nowrap rounded-full px-3 py-0.5 text-xs font-medium ${color}`}>
-        {label}
-      </span>
-    );
-  };
-
-  // ── Custom status options for filter ─────────────────────────
-  const customStatuses = getCustomStatuses();
-
   return (
-    <div className="rounded-2xl bg-white p-5 md:p-6 shadow-sm w-full space-y-4">
-      {/* Toolbar & Filters wrapped in #FCFBFC box with stroke */}
-      <div className="rounded-2xl py-2 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <p className="text-sm font-bold text-gray-900">
-          Satu baris per kavling &middot; SHM dan PBG ({filtered.length} dokumen)
-        </p>
-
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* Filter Status SHM */}
-          <select
-            value={filterStatusShm}
-            onChange={(e) => setFilterStatusShm(e.target.value as StatusShm | 'semua')}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-          >
-            <option value="semua">Semua status SHM</option>
-            {STATUS_SHM_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_SHM_LABELS[s]}
-              </option>
-            ))}
-            {customStatuses.map((cs) => (
-              <option key={`custom-${cs}`} value="lainnya">
-                {cs}
-              </option>
-            ))}
-          </select>
-
-          {/* Filter Status PBG */}
-          <select
-            value={filterStatusPbg}
-            onChange={(e) => setFilterStatusPbg(e.target.value as StatusPbg | 'semua')}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-          >
-            <option value="semua">Semua status PBG</option>
-            {STATUS_PBG_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_PBG_LABELS[s]}
-              </option>
-            ))}
-          </select>
-
+    <Panel
+      title="Dokumen legal per kavling"
+      description={`SHM dan PBG, ${filtered.length} dokumen`}
+      flush
+      actions={
+        <>
           <ExportButton
             getColumns={() => [
               { header: 'No. SHM', key: 'nomorShm', width: 20 },
@@ -227,11 +120,11 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
               filtered.map((s) => ({
                 nomorShm: s.nomorShm,
                 kavling: s.kavling,
-                statusShm: s.status === 'lainnya' && s.statusKustom ? s.statusKustom : STATUS_SHM_LABELS[s.status],
+                statusShm: shmLabel(s),
                 lokasi: s.lokasi,
-                noPbg: s.noPbg || '—',
-                statusPbg: s.statusPbg === 'lainnya' && s.statusPbgKustom ? s.statusPbgKustom : STATUS_PBG_LABELS[s.statusPbg],
-                namaBank: s.namaBank || '—',
+                noPbg: s.noPbg || '-',
+                statusPbg: pbgLabel(s),
+                namaBank: s.namaBank || '-',
               }))
             }
             opts={{
@@ -241,272 +134,188 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
               filenameBase: buildFilename('Dokumen_Legal', selectedProyekId, selectedBulan),
             }}
           />
-
-          <button
-            onClick={() => setFormOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm"
+          <Button variant="primary" icon={PiPlus} onClick={() => setFormOpen(true)}>
+            Tambah dokumen
+          </Button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 gap-3 border-b border-line px-4 py-3.5 sm:grid-cols-2 sm:px-5 lg:max-w-2xl">
+        <div>
+          <label htmlFor="f-status-shm" className="field-label">Status SHM</label>
+          <select
+            id="f-status-shm"
+            className="control"
+            value={filterStatusShm}
+            onChange={(e) => setFilterStatusShm(e.target.value as StatusShm | 'semua')}
           >
-            + Tambah dokumen
-          </button>
+            <option value="semua">Semua status</option>
+            {STATUS_SHM_OPTIONS.map((s) => (
+              <option key={s} value={s}>{STATUS_SHM_LABELS[s]}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="f-status-pbg" className="field-label">Status PBG</label>
+          <select
+            id="f-status-pbg"
+            className="control"
+            value={filterStatusPbg}
+            onChange={(e) => setFilterStatusPbg(e.target.value as StatusPbg | 'semua')}
+          >
+            <option value="semua">Semua status</option>
+            {STATUS_PBG_OPTIONS.map((s) => (
+              <option key={s} value={s}>{STATUS_PBG_LABELS[s]}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">SHM / Kavling</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Status SHM</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Lokasi</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">No. PBG</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Status PBG</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 bg-white">
-            {filtered.length === 0 ? (
+      {filtered.length === 0 ? (
+        <EmptyState
+          compact
+          icon={PiFileText}
+          title={shms.length === 0 ? 'Belum ada dokumen legal' : 'Tidak ada dokumen dengan status ini'}
+          description={
+            shms.length === 0
+              ? 'Tambahkan SHM dan PBG per kavling untuk melacak lokasi dan status jaminannya.'
+              : 'Ubah filter status SHM atau PBG untuk melihat dokumen lain.'
+          }
+        />
+      ) : (
+        <TableScroll label="Dokumen legal">
+          <table className="tbl">
+            <thead>
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
-                  Tidak ada data yang cocok dengan filter.
-                </td>
+                <th scope="col">SHM / kavling</th>
+                <th scope="col">Status SHM</th>
+                <th scope="col">Lokasi</th>
+                <th scope="col">No. PBG</th>
+                <th scope="col">Status PBG</th>
+                <th scope="col"><span className="sr-only">Aksi</span></th>
               </tr>
-            ) : (
-              filtered.map((shm) => (
-                <tr key={shm.id} className="hover:bg-gray-50/50">
-                  {/* SHM / Kavling */}
-                  <td className="px-4 py-3">
-                    <span className="block font-medium text-gray-900">{shm.nomorShm}</span>
-                    <span className="block text-xs text-gray-500">{shm.kavling}</span>
+            </thead>
+            <tbody>
+              {filtered.map((shm) => (
+                <tr key={shm.id}>
+                  <td>
+                    <p className="font-semibold text-ink">{shm.nomorShm}</p>
+                    <p className="mt-0.5 text-xs text-ink-3">{shm.kavling}</p>
                   </td>
-
-                  {/* Status SHM */}
-                  <td className="px-4 py-3">{renderShmBadge(shm)}</td>
-
-                  {/* Lokasi */}
-                  <td className="px-4 py-3 text-gray-700">
-                    {shm.lokasi === 'lainnya' && shm.lokasiKustom
-                      ? shm.lokasiKustom
-                      : shm.lokasi}
+                  <td>
+                    <Badge tone={STATUS_SHM_TONE[shm.status]}>{shmLabel(shm)}</Badge>
+                    {shm.status === 'dijaminkan' && shm.namaBank && <p className="mt-1 text-xs text-ink-3">{shm.namaBank}</p>}
                   </td>
-
-                  {/* No. PBG */}
-                  <td className="px-4 py-3 text-gray-700">
-                    {shm.noPbg && shm.noPbg.trim() !== '' ? shm.noPbg : '—'}
+                  <td>{shm.lokasi === 'lainnya' && shm.lokasiKustom ? shm.lokasiKustom : shm.lokasi}</td>
+                  <td className="tabular-nums">{shm.noPbg?.trim() ? shm.noPbg : <span className="text-ink-3">-</span>}</td>
+                  <td>
+                    <Badge tone={STATUS_PBG_TONE[shm.statusPbg]}>{pbgLabel(shm)}</Badge>
                   </td>
-
-                  {/* Status PBG */}
-                  <td className="px-4 py-3">{renderPbgBadge(shm)}</td>
-
-                  {/* Aksi */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-start gap-1">
-                      <button
-                        onClick={() => setRiwayatShm(shm)}
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
-                        title="Lihat Riwayat"
-                      >
-                        <MdHistory className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => openUbahStatus(shm)}
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50"
-                        title="Ubah Status"
-                      >
-                        <MdEdit className="h-3.5 w-3.5" />
-                        Ubah Status
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(shm)}
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                        title="Hapus"
-                      >
-                        <MdDeleteOutline className="h-3.5 w-3.5" />
-                      </button>
+                  <td className="!pr-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" icon={PiPencilSimple} onClick={() => openUbahStatus(shm)}>
+                        Ubah status
+                      </Button>
+                      <IconButton icon={PiClockCounterClockwise} label={`Riwayat ${shm.nomorShm}`} onClick={() => setRiwayatShm(shm)} />
+                      <IconButton icon={PiTrash} tone="danger" label={`Hapus ${shm.nomorShm}`} onClick={() => setDeleteTarget(shm)} />
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </TableScroll>
+      )}
 
-      {/* ── Modals ─────────────────────────────────────────────── */}
-
-      {/* Tambah Dokumen */}
       <ShmFormModal isOpen={formOpen} onClose={() => setFormOpen(false)} />
+      <ShmRiwayatModal shm={riwayatShm} isOpen={riwayatShm !== null} onClose={() => setRiwayatShm(null)} />
 
-      {/* Riwayat SHM */}
-      <ShmRiwayatModal
-        shm={riwayatShm}
-        isOpen={riwayatShm !== null}
-        onClose={() => setRiwayatShm(null)}
-      />
-
-      {/* Ubah Status Modal */}
       <Modal
         isOpen={ubahTarget !== null}
         onClose={closeUbahStatus}
-        title={`Ubah Status — ${ubahTarget?.nomorShm ?? ''}`}
+        title="Ubah status SHM"
+        description={ubahTarget ? `${ubahTarget.nomorShm}, ${ubahTarget.kavling}` : undefined}
         size="sm"
         footer={
           <>
-            <button
-              type="button"
-              onClick={closeUbahStatus}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              form="ubah-status-form"
-              disabled={!ubahIsValid}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Simpan
-            </button>
+            <Button onClick={closeUbahStatus}>Batal</Button>
+            <Button variant="primary" type="submit" form="ubah-status-form" disabled={!ubahIsValid}>
+              Simpan status
+            </Button>
           </>
         }
       >
         <form id="ubah-status-form" onSubmit={handleUbahSubmit} className="space-y-4">
-          {/* Status baru */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status Baru <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={ubahStatus}
-              onChange={(e) => setUbahStatus(e.target.value as StatusShm)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            >
+          <Field label="Status baru" required>
+            <select className="control" value={ubahStatus} onChange={(e) => setUbahStatus(e.target.value as StatusShm)}>
               {STATUS_SHM_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_SHM_LABELS[s]}
-                </option>
+                <option key={s} value={s}>{STATUS_SHM_LABELS[s]}</option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          {/* Custom status text — shown when 'lainnya' is selected */}
           {ubahStatus === 'lainnya' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Keterangan status <span className="text-red-500">*</span>
-              </label>
+            <Field label="Keterangan status" required hint="Maksimal 40 karakter">
               <input
-                type="text"
+                className="control"
                 list="ubah-shm-status-list"
                 value={ubahStatusKustom}
                 onChange={(e) => setUbahStatusKustom(e.target.value.slice(0, 40))}
                 placeholder="Contoh: Di BPN"
                 maxLength={40}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                required
               />
-              <datalist id="ubah-shm-status-list">
-                {customStatuses.map((cs) => (
-                  <option key={cs} value={cs} />
-                ))}
-              </datalist>
-            </div>
+            </Field>
           )}
+          <datalist id="ubah-shm-status-list">
+            {customStatuses.map((cs) => (
+              <option key={cs} value={cs} />
+            ))}
+          </datalist>
 
-          {/* Lokasi baru with autocomplete */}
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Lokasi Baru <span className="text-red-500">*</span>
-            </label>
+          <Field label="Lokasi baru" required>
             <input
-              ref={lokasiInputRef}
-              type="text"
+              className="control"
+              list="ubah-lokasi-list"
               value={ubahLokasi}
-              onChange={(e) => handleLokasiChange(e.target.value)}
-              onBlur={() => setTimeout(() => setLokasiSuggestions([]), 150)}
+              onChange={(e) => setUbahLokasi(e.target.value)}
               placeholder="Contoh: Bank Mandiri"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              required
             />
-            {lokasiSuggestions.length > 0 && (
-              <ul className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg text-sm max-h-40 overflow-y-auto">
-                {lokasiSuggestions.map((sug) => (
-                  <li
-                    key={sug}
-                    onMouseDown={() => {
-                      setUbahLokasi(sug);
-                      setLokasiSuggestions([]);
-                    }}
-                    className="cursor-pointer px-3 py-2 hover:bg-indigo-50 text-gray-700"
-                  >
-                    {sug}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          </Field>
+          <datalist id="ubah-lokasi-list">
+            {getCustomLokasis().map((l) => (
+              <option key={l} value={l} />
+            ))}
+          </datalist>
 
-          {/* Keterangan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-            <textarea
-              value={ubahKeterangan}
-              onChange={(e) => setUbahKeterangan(e.target.value)}
-              rows={2}
-              placeholder="Opsional"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
+          <Field label="Keterangan" optional>
+            <textarea rows={2} className="control" value={ubahKeterangan} onChange={(e) => setUbahKeterangan(e.target.value)} />
+          </Field>
 
-          {/* Conditional: Pinjaman Bank */}
           {ubahStatus === 'dijaminkan' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pinjaman Bank <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={ubahPinjamanId}
-                  onChange={(e) => handlePinjamanChange(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                >
-                  <option value="">— Pilih pinjaman —</option>
-                  {aktivPinjamans.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.namaBank} — Rp {p.totalPencairan.toLocaleString('id-ID')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {ubahNamaBank && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Bank</label>
-                  <input
-                    type="text"
-                    value={ubahNamaBank}
-                    readOnly
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600"
-                  />
-                </div>
-              )}
-            </>
+            <Field label="Pinjaman bank" required hint={ubahNamaBank ? `Bank: ${ubahNamaBank}` : undefined}>
+              <select className="control" value={ubahPinjamanId} onChange={(e) => handlePinjamanChange(e.target.value)}>
+                <option value="">Pilih pinjaman</option>
+                {aktivPinjamans.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.namaBank}, {formatRupiah(p.totalPencairan)}
+                  </option>
+                ))}
+              </select>
+            </Field>
           )}
         </form>
       </Modal>
 
-      {/* Delete Confirm */}
       <ConfirmDialog
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) removeShm(deleteTarget.id);
         }}
-        title="Hapus Dokumen Legal"
-        message={`Yakin ingin menghapus SHM "${deleteTarget?.nomorShm ?? ''}"? Data riwayat juga akan terhapus.`}
-        confirmLabel="Ya, Hapus"
-        isDestructive
+        title="Hapus dokumen legal"
+        message={`Hapus SHM "${deleteTarget?.nomorShm ?? ''}"? Riwayat statusnya ikut terhapus.`}
+        confirmLabel="Hapus dokumen"
       />
-    </div>
+    </Panel>
   );
 }

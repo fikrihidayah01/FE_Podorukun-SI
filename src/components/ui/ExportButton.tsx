@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { MdTableChart, MdDescription, MdSync } from 'react-icons/md';
+import { PiMicrosoftExcelLogo, PiFilePdf } from 'react-icons/pi';
 import { exportExcel, exportPDF, type ExportColumn, type ExportOptions } from '../../utils/exportUtils';
+import Button from './Button';
 
 interface ExportButtonProps {
   getColumns: () => ExportColumn[];
@@ -9,6 +10,7 @@ interface ExportButtonProps {
   className?: string;
 }
 
+/** Ekspor tabel yang sedang tampil (dengan filter aktif) ke Excel atau PDF. */
 export default function ExportButton({ getColumns, getData, opts, className = '' }: ExportButtonProps) {
   const [loading, setLoading] = useState<'excel' | 'pdf' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -17,19 +19,11 @@ export default function ExportButton({ getColumns, getData, opts, className = ''
     setLoading(format);
     setError(null);
     try {
-      const columns = getColumns();
-      const data = getData();
-      const exportOpts: ExportOptions = {
-        ...opts,
-        filename: opts.filenameBase,
-      };
-      if (format === 'excel') {
-        await exportExcel(columns, data, exportOpts);
-      } else {
-        await exportPDF(columns, data, exportOpts);
-      }
+      const exportOpts: ExportOptions = { ...opts, filename: opts.filenameBase };
+      if (format === 'excel') await exportExcel(getColumns(), getData(), exportOpts);
+      else await exportPDF(getColumns(), getData(), exportOpts);
     } catch (e) {
-      setError('Gagal mengekspor. Coba lagi.');
+      setError('Ekspor gagal. Coba lagi.');
       console.error(e);
     } finally {
       setLoading(null);
@@ -37,39 +31,23 @@ export default function ExportButton({ getColumns, getData, opts, className = ''
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-2 ${className}`} role="group" aria-label="Ekspor data">
       {error && (
-        <span className="text-xs text-red-500 mr-1">{error}</span>
+        <span role="alert" className="text-xs font-medium text-danger">
+          {error}
+        </span>
       )}
-      <button
+      <Button
+        icon={PiMicrosoftExcelLogo}
+        loading={loading === 'excel'}
+        disabled={loading !== null}
         onClick={() => handle('excel')}
-        disabled={loading !== null}
-        title="Export Excel"
-        className="flex items-center gap-2 rounded-xl bg-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-xs hover:bg-emerald-800 disabled:opacity-50 transition-colors cursor-pointer"
       >
-        {loading === 'excel' ? (
-          <MdSync className="h-4 w-4 animate-spin text-white" />
-        ) : (
-          <MdTableChart className="h-4 w-4 text-white" />
-        )}
-        Export Excel
-      </button>
-      <button
-        onClick={() => handle('pdf')}
-        disabled={loading !== null}
-        title="Export PDF"
-        className="flex items-center gap-2 rounded-xl bg-red-700 px-6 py-3 text-sm font-semibold text-white shadow-xs hover:bg-red-800 disabled:opacity-50 transition-colors cursor-pointer"
-      >
-        {loading === 'pdf' ? (
-          <MdSync className="h-4 w-4 animate-spin text-white" />
-        ) : (
-          <MdDescription className="h-4 w-4 text-white" />
-        )}
-        Export PDF
-      </button>
-      {loading && (
-        <span className="text-xs text-gray-400 ml-1">Mengekspor...</span>
-      )}
+        Excel
+      </Button>
+      <Button icon={PiFilePdf} loading={loading === 'pdf'} disabled={loading !== null} onClick={() => handle('pdf')}>
+        PDF
+      </Button>
     </div>
   );
 }
