@@ -17,7 +17,7 @@ interface PanelProps {
 export default function Panel({ title, description, actions, children, flush, className = '' }: PanelProps) {
   const hasHeader = title || actions;
   return (
-    <section className={`overflow-hidden rounded-xl border border-line bg-surface shadow-sm ${className}`}>
+    <section className={`overflow-hidden rounded-xl bg-surface shadow-sm ${className}`}>
       {hasHeader && (
         <div className="flex flex-col gap-3 border-b border-line px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="min-w-0">

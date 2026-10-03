@@ -104,7 +104,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         ref={panelRef}
         aria-label="Navigasi utama"
         // visibility langsung tampil saat dibuka (supaya bisa difokus), dan baru disembunyikan setelah slide-out selesai
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-ink text-white lg:visible lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[#2d2014] text-white lg:visible lg:translate-x-0 ${
           isOpen
             ? 'visible translate-x-0 shadow-pop [transition:transform_200ms_ease-out,visibility_0s] lg:shadow-none'
             : 'invisible -translate-x-full [transition:transform_200ms_ease-out,visibility_0s_linear_200ms]'

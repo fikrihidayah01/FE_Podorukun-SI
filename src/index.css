@@ -2,52 +2,88 @@
 @import 'tailwindcss';
 
 /*
-  Design tokens. Light mode only (project rule in AGENTS.md).
-  - Neutrals are cool greys so they sit on the #F4F6F8 canvas without a warm/cool clash.
-  - Brand is cobalt: green and red are reserved for debit/kredit and paid/overdue states,
-    amber for due-date warnings, so the accent had to be a hue none of those use.
-  - Every text pairing below was checked with antislop-human/contrast-check.py (AA or better).
-  - Radius rule: panels 12px (rounded-xl), controls and buttons 8px (rounded-lg), badges 6px (rounded-md).
+  Neumorphism warm theme. Light mode only.
+  Design Read: B2B internal finance dashboard, warm parchment base,
+  neumorphic elevation using split shadows (light top-left, warm-dark bottom-right).
+  
+  Palette rationale:
+  - Canvas: warm parchment #f5f0e8 — the "table surface" the whole app rests on.
+  - Surface: #faf8f4 — slightly warmer than canvas, so raised cards read as lifted.
+  - Ink: warm near-black #2a1f14 — brown-tinted, no harsh cool grey.
+  - Brand: deep teal #1a6b5a — accessible (5.8:1 on surface), distinct from amber-warning.
+  - Positive: muted olive-green #3a6b2a, danger: warm crimson #b83020.
+  - Warning: amber-brown #8a5200.
+
+  Neumorphism rules:
+  1. Only Panel, Modal, StatTile, and Button carry neumorphic shadows.
+  2. Never apply both inset and outset shadows to the same element simultaneously at rest.
+  3. Controls (inputs) use a soft inset shadow to read as "recessed" — the opposite of raised.
+  4. Radius is unchanged: panels 12px, controls 8px, badges 6px.
 */
 @theme {
   --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  --color-canvas: #f4f6f8;
-  --color-surface: #ffffff;
-  --color-subtle: #f7f8fa;
+  /* Warm neutrals */
+  --color-canvas: #f5f0e8;
+  --color-surface: #faf8f4;
+  --color-subtle: #f0ece2;
 
-  --color-ink: #18212b;
-  --color-ink-2: #4a5562;
-  --color-ink-3: #5f6b78;
+  /* Warm ink tones */
+  --color-ink: #2a1f14;
+  --color-ink-2: #5c4a38;
+  --color-ink-3: #8a7260;
 
-  --color-line: #e3e7ec;
-  --color-line-strong: #8592a0;
+  /* Warm border lines */
+  --color-line: #e2d9cc;
+  --color-line-strong: #b8a898;
 
-  --color-brand-50: #eef2fd;
-  --color-brand-100: #dce4fb;
-  --color-brand-200: #bccbf5;
-  --color-brand-600: #2b4fcb;
-  --color-brand-700: #2341a8;
-  --color-brand-800: #1c3586;
+  /* Brand: deep teal — warm enough, distinct from amber */
+  --color-brand-50: #e8f4f1;
+  --color-brand-100: #c5e5de;
+  --color-brand-200: #96cec4;
+  --color-brand-600: #1a6b5a;
+  --color-brand-700: #155849;
+  --color-brand-800: #0f4538;
 
-  --color-positive: #0e6b45;
-  --color-positive-soft: #e7f4ec;
-  --color-warning: #8a4b00;
-  --color-warning-soft: #fcf1dc;
-  --color-danger: #b42318;
-  --color-danger-soft: #fdecea;
-  --color-neutral-soft: #eef1f4;
+  /* Semantic states — warm variants */
+  --color-positive: #3a6b2a;
+  --color-positive-soft: #e8f2e3;
+  --color-warning: #8a5200;
+  --color-warning-soft: #fdf0d8;
+  --color-danger: #b83020;
+  --color-danger-soft: #fce8e5;
+  --color-neutral-soft: #ede8de;
 
-  /* Tinted with the ink hue instead of pure black, so elevation reads crisp on the cool canvas */
-  --shadow-sm: 0 1px 2px rgb(24 33 43 / 0.06), 0 4px 14px -4px rgb(24 33 43 / 0.12);
-  --shadow-pop: 0 2px 6px rgb(24 33 43 / 0.08), 0 24px 48px -12px rgb(24 33 43 / 0.28);
+  /*
+    Neumorphic shadows: dual-shadow technique.
+    Light source: top-left. Shadow cast: bottom-right.
+    Canvas is #f5f0e8 (warm parchment).
+    - Light highlight: rgba(255,252,245) — nearly white with warm tint.
+    - Dark shadow: rgba(190,168,140) — warm tan shadow, not cool grey.
+  */
 
-  --animate-dialog-in: dialog-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Standard raised element — Panel, cards */
+  --shadow-sm:
+    4px 4px 10px rgb(190 168 140 / 0.45),
+    -3px -3px 8px rgb(255 252 245 / 0.85);
+
+  /* Strong popup — Modal */
+  --shadow-pop:
+    6px 6px 18px rgb(190 168 140 / 0.55),
+    -4px -4px 12px rgb(255 252 245 / 0.90),
+    0 24px 48px -12px rgb(42 31 20 / 0.18);
+
+  /* Pressed / active state — inset */
+  --shadow-inset:
+    inset 2px 2px 6px rgb(190 168 140 / 0.40),
+    inset -1px -1px 4px rgb(255 252 245 / 0.75);
+
+  --animate-dialog-in: dialog-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-in: fade-in 160ms ease-out;
 }
 
 @keyframes dialog-in {
-  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  from { opacity: 0; transform: translateY(8px) scale(0.982); }
   to { opacity: 1; transform: none; }
 }
 
@@ -102,28 +138,35 @@
     color: var(--color-ink-2);
   }
 
+  /*
+    Controls: inset shadow creates a "pressed into the canvas" feel — the
+    neumorphic inverse of the raised panel. Border is subtle, not harsh.
+  */
   .control {
     display: block;
     width: 100%;
     min-height: 2.5rem;
     border-radius: 0.5rem;
-    border: 1px solid var(--color-line-strong);
-    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    background-color: var(--color-canvas);
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     color: var(--color-ink);
-    transition: border-color 120ms, box-shadow 120ms;
+    box-shadow: var(--shadow-inset);
+    transition: border-color 140ms, box-shadow 140ms;
   }
 
   .control:hover:not(:disabled):not([readonly]) {
-    border-color: var(--color-ink-3);
+    border-color: var(--color-line-strong);
   }
 
   .control:focus-visible {
     outline: none;
     border-color: var(--color-brand-600);
-    box-shadow: 0 0 0 3px var(--color-brand-100);
+    box-shadow:
+      var(--shadow-inset),
+      0 0 0 3px rgb(26 107 90 / 0.14);
   }
 
   .control[aria-invalid='true'] {
@@ -131,15 +174,18 @@
   }
 
   .control[aria-invalid='true']:focus-visible {
-    box-shadow: 0 0 0 3px var(--color-danger-soft);
+    box-shadow:
+      var(--shadow-inset),
+      0 0 0 3px var(--color-danger-soft);
   }
 
   .control:disabled,
   .control[readonly] {
     background-color: var(--color-subtle);
     border-color: var(--color-line);
-    color: var(--color-ink-2);
+    color: var(--color-ink-3);
     cursor: not-allowed;
+    box-shadow: none;
   }
 
   .control-sm {

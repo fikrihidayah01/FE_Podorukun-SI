@@ -5,19 +5,19 @@ import type { UserRole } from '../store/authStore';
   Warna identitas. Setiap warna mewakili arti, bukan hiasan:
   - Hutang = terakota: uang yang harus keluar. (#c2410c)
   - Tagihan user / Piutang = zamrud: uang yang akan masuk. (#047857)
-  - Jurnal = cobalt: warna aksi utama pembukuan. (#2b4fcb)
+  - Jurnal = teal: warna aksi utama pembukuan. (#1a6b5a)
   - COA = violet: struktur/kerangka bagan akun. (#6d28d9)
   - Legal = sian tua: arsip dokumen perjanjian. (#0e7490)
-  - Master PT = slate: entitas perusahaan. (#334155)
+  - Master PT = slate hangat: entitas perusahaan. (#334155)
   - Pustaka Pasal = ungu: repositori klausul hukum. (#7c3aed)
   Semua warna di bawah lolos kontras >= 4.5:1 dengan teks putih.
 */
 export const MODULE_ACCENT: Record<string, string> = {
-  '/dashboard': '#2b4fcb',
+  '/dashboard': '#1a6b5a',
   '/keuangan/hutang': '#c2410c',
   '/keuangan/piutang': '#047857',
   '/keuangan/coa': '#6d28d9',
-  '/keuangan/jurnal': '#2b4fcb',
+  '/keuangan/jurnal': '#1a6b5a',
   '/keuangan/legal': '#0e7490',
   '/keuangan/srp': '#0e7490',
   '/keuangan/master-pt': '#334155',
@@ -31,7 +31,7 @@ export function accentFor(path: string) {
   const key = Object.keys(MODULE_ACCENT)
     .filter((k) => path.startsWith(k))
     .sort((a, b) => b.length - a.length)[0];
-  return key ? MODULE_ACCENT[key] : '#2b4fcb';
+  return key ? MODULE_ACCENT[key] : '#1a6b5a';
 }
 
 export const ROLE_ACCENT: Record<UserRole, string> = {
@@ -43,13 +43,13 @@ export const ROLE_ACCENT: Record<UserRole, string> = {
 
 /** Warna kategori hutang: dipakai konsisten di badge, legenda, dan grafik komposisi. */
 export const KATEGORI_HUTANG_HEX: Record<KategoriHutang, string> = {
-  bank: '#2b4fcb',
+  bank: '#1a6b5a',
   lahan: '#a16207',
   antar_proyek: '#0f766e',
   pihak_ketiga: '#7c3aed',
   pemegang_saham: '#0369a1',
   karyawan: '#be185d',
-  ppn: '#475569',
+  ppn: '#5c4a38',
 };
 
 /** Latar dan teks badge yang diturunkan dari satu warna dasar. */

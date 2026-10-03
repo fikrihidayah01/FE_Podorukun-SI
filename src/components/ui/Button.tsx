@@ -7,11 +7,11 @@ type Size = 'sm' | 'md';
 
 const VARIANT: Record<Variant, string> = {
   primary:
-    'bg-brand-600 text-white shadow-[inset_0_-1px_0_rgb(0_0_0/0.12)] hover:bg-brand-700 active:bg-brand-800',
+    'bg-brand-600 text-white shadow-[3px_3px_8px_rgb(190_168_140/0.35),-2px_-2px_6px_rgb(255_252_245/0.70)] hover:bg-brand-700 active:shadow-[inset_2px_2px_5px_rgb(15_69_56/0.35),inset_-1px_-1px_3px_rgb(255_255_255/0.15)]',
   secondary:
-    'bg-surface text-ink border border-line-strong/70 hover:bg-subtle hover:border-line-strong active:bg-neutral-soft',
+    'bg-surface text-ink shadow-[3px_3px_8px_rgb(190_168_140/0.35),-2px_-2px_6px_rgb(255_252_245/0.80)] hover:bg-subtle active:shadow-[inset_2px_2px_5px_rgb(190_168_140/0.30),inset_-1px_-1px_3px_rgb(255_252_245/0.70)]',
   ghost: 'text-ink-2 hover:bg-neutral-soft hover:text-ink active:bg-line',
-  danger: 'bg-danger text-white hover:bg-[#9a1d14] active:bg-[#82180f]',
+  danger: 'bg-danger text-white shadow-[3px_3px_8px_rgb(190_168_140/0.30)] hover:bg-[#9a1d14] active:shadow-[inset_2px_2px_5px_rgb(100_20_15/0.30)]',
   'danger-ghost': 'text-danger hover:bg-danger-soft active:bg-[#fbdcd8]',
 };
 
