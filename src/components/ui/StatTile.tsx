@@ -24,13 +24,15 @@ export function StatTile({
 }: StatTileProps) {
   return (
     <div
-      className="group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden p-4 text-white sm:p-5 min-h-[114px] sm:min-h-[122px] transition-all duration-200"
+      className="group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden rounded-xl p-4 text-white sm:p-5 min-h-[114px] sm:min-h-[122px] transition-all duration-200"
       style={{
         backgroundImage: `
           linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.05) 32%, rgba(0, 0, 0, 0.02) 65%, rgba(0, 0, 0, 0.24) 100%),
           linear-gradient(135deg, ${color} 0%, ${shade(color, 60)} 100%)
         `,
         boxShadow: `
+          0 6px 16px -2px rgba(0, 0, 0, 0.32),
+          0 2px 6px -1px rgba(0, 0, 0, 0.2),
           inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45),
           inset 1.5px 0 1px 0 rgba(255, 255, 255, 0.25),
           inset 0 -2.5px 4px 0 rgba(0, 0, 0, 0.35),
@@ -82,19 +84,19 @@ export function StatTile({
 }
 
 /**
- * Ringkasan angka dalam satu panel div utuh bersekat (gap-px dengan border line luar),
+ * Ringkasan angka dalam satu panel div utuh bersekat (gap-1.5 dengan border line luar),
  * dengan efek neumorphic emboss dan bayangan soft bertingkat.
  */
 export function StatGrid({ children, columns = 4 }: { children: ReactNode; columns?: 3 | 4 }) {
   const cols = columns === 3 ? 'sm:grid-cols-3 max-sm:[&>*:first-child]:col-span-2' : 'xl:grid-cols-4';
   return (
     <div
-      className={`grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/50 bg-black/25 ${cols}`}
+      className={`grid grid-cols-2 gap-1.5 p-1.5 overflow-hidden rounded-2xl border border-white/50 bg-black/15 ${cols}`}
       style={{
         boxShadow: `
-          14px 18px 36px -4px rgba(185, 160, 130, 0.48),
-          -10px -10px 28px 0px rgba(255, 255, 255, 0.95),
-          0 8px 18px -2px rgba(42, 31, 20, 0.16)
+           10px 12px 24px -4px rgba(185, 160, 130, 0.25),
+           -8px -8px 20px 0px rgba(255, 255, 255, 0.8),
+           0 6px 12px -2px rgba(42, 31, 20, 0.1)
         `,
       }}
     >
