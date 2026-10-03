@@ -43,7 +43,7 @@ export const ROLE_ACCENT: Record<UserRole, string> = {
 
 /** Warna kategori hutang: dipakai konsisten di badge, legenda, dan grafik komposisi. */
 export const KATEGORI_HUTANG_HEX: Record<KategoriHutang, string> = {
-  bank: '#1a6b5a',
+  bank: '#2b4fcb',
   lahan: '#a16207',
   antar_proyek: '#0f766e',
   pihak_ketiga: '#7c3aed',
