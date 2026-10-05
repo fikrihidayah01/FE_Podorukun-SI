@@ -25,8 +25,8 @@
 
   /* Warm neutrals */
   --color-canvas: #f0eff4;
-  --color-surface: #faf8f4;
-  --color-subtle: #f0ece2;
+  --color-surface: #f0eff4;
+  --color-subtle: #e6e5ea;
 
   /* Warm ink tones */
   --color-ink: #2a1f14;
@@ -54,18 +54,12 @@
   --color-danger-soft: #fce8e5;
   --color-neutral-soft: #ede8de;
 
-  /*
-    Neumorphic shadows: dual-shadow technique.
-    Light source: top-left. Shadow cast: bottom-right.
-    Canvas is #f5f0e8 (warm parchment).
-    - Light highlight: rgba(255,252,245) — nearly white with warm tint.
-    - Dark shadow: rgba(190,168,140) — warm tan shadow, not cool grey.
-  */
-
   /* Standard raised element — Panel, cards */
   --shadow-sm:
-    4px 4px 10px rgb(190 168 140 / 0.45),
-    -3px -3px 8px rgb(255 252 245 / 0.85);
+    8px 8px 10px -1px rgba(0, 0, 0, 0.3),
+    -8px -8px 10px -1px rgba(255, 255, 255, 0.7),
+    inset 0 1px 2px rgba(0, 0, 0, 0.06),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.5);
 
   /* Strong popup — Modal */
   --shadow-pop:

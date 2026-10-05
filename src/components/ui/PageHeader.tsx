@@ -31,7 +31,7 @@ export default function PageHeader({ title, description, status, back, actions, 
   return (
     <header
       className="relative border-b border-line bg-surface"
-      style={{ backgroundImage: `linear-gradient(180deg, ${tint(accent, 9)} 0%, #faf8f4 85%)` }}
+      style={{ backgroundImage: `linear-gradient(180deg, ${tint(accent, 9)} 0%, #f0eff4 85%)` }}
     >
       <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: accent }} aria-hidden />
       <div className="mx-auto w-full max-w-[1400px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
