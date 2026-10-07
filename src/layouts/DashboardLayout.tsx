@@ -19,7 +19,11 @@ export default function DashboardLayout() {
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
 
       <div className="flex min-h-dvh flex-col lg:pl-64">
-        <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-2 lg:hidden">
+        <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface px-3 lg:hidden">
+          <Link to="/dashboard" className="flex items-center gap-2 rounded-lg">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-white">SI</span>
+            <span className="text-sm font-bold text-ink">SI-Podorukun</span>
+          </Link>
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
@@ -29,10 +33,6 @@ export default function DashboardLayout() {
             <PiList className="h-5 w-5" aria-hidden />
             Menu
           </button>
-          <Link to="/dashboard" className="ml-auto mr-2 flex items-center gap-2 rounded-lg">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-white">SI</span>
-            <span className="text-sm font-bold text-ink">SI-Podorukun</span>
-          </Link>
         </div>
 
         <main id="konten" tabIndex={-1} className="flex flex-1 flex-col outline-none">

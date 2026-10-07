@@ -37,6 +37,18 @@ export interface MenuGroup {
 }
 
 const menuConfig: Record<UserRole, MenuGroup[]> = {
+  admin: [
+    {
+      items: [
+        {
+          label: 'Dashboard',
+          path: '/dashboard',
+          icon: PiSquaresFour,
+          allowedRoles: ['admin'],
+        },
+      ],
+    },
+  ],
   keuangan: [
     {
       items: [

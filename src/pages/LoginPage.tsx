@@ -1,30 +1,57 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { IconType } from 'react-icons';
-import { PiCaretRight, PiWallet, PiWrench, PiMegaphone, PiHardHat } from 'react-icons/pi';
 import { useAuthStore, type UserRole } from '../store/authStore';
-import Badge from '../components/ui/Badge';
-import { ROLE_ACCENT } from '../config/theme';
-
-const ROLES: { value: UserRole; label: string; description: string; icon: IconType; ready: boolean }[] = [
-  { value: 'keuangan', label: 'Keuangan', description: 'Hutang, tagihan user, jurnal umum, COA, SRP', icon: PiWallet, ready: true },
-  { value: 'teknisi', label: 'Teknisi', description: 'Pekerjaan, jadwal, laporan teknis', icon: PiWrench, ready: false },
-  { value: 'marketing', label: 'Marketing', description: 'Prospek, klien, campaign', icon: PiMegaphone, ready: false },
-  { value: 'kontraktor', label: 'Kontraktor / subkon', description: 'Proyek, subkontraktor, progres', icon: PiHardHat, ready: false },
-];
 
 export default function LoginPage() {
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, devLogin, isAuthenticated, error, isInitializing } = useAuthStore();
   const navigate = useNavigate();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.endsWith('.localhost'));
 
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard', { replace: true });
   }, [isAuthenticated, navigate]);
 
-  const handleLogin = (role: UserRole) => {
-    login(role);
-    navigate('/dashboard', { replace: true });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    await login(email, password);
+    setLoading(false);
   };
+
+  const handleDevAutoLogin = async (role: UserRole = 'keuangan') => {
+    const devEmail = `${role}@example.test`;
+    const devPass = 'password';
+    setEmail(devEmail);
+    setPassword(devPass);
+    setLoading(true);
+    try {
+      await login(devEmail, devPass);
+      if (!useAuthStore.getState().isAuthenticated) {
+        devLogin(role);
+      }
+    } catch {
+      devLogin(role);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isInitializing) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-canvas">
+        <p className="text-ink-3">Memuat sesi...</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -42,38 +69,93 @@ export default function LoginPage() {
 
         <div className="rounded-xl border border-line bg-surface p-5 shadow-sm sm:p-6">
           <h1 className="text-xl font-bold text-ink">Masuk</h1>
-          <p className="mt-1 text-sm text-ink-3">Mode simulasi. Pilih peran untuk membuka dasbornya.</p>
+          <p className="mt-1 text-sm text-ink-3">Gunakan email dan password Anda.</p>
 
-          <ul className="mt-5 space-y-2">
-            {ROLES.map((role) => (
-              <li key={role.value}>
+          <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+            {error && (
+              <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1" htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg border border-line p-2.5 text-sm outline-none focus:border-ink focus:ring-1 focus:ring-ink"
+                placeholder="keuangan@example.test"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1" htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-line p-2.5 text-sm outline-none focus:border-ink focus:ring-1 focus:ring-ink"
+                placeholder="••••••••"
+              />
+            </div>
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-70"
+            >
+              {loading ? 'Masuk...' : 'Masuk'}
+            </button>
+          </form>
+
+          {isLocalhost && (
+            <div className="mt-5 rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-3.5 text-xs text-amber-900">
+              <div className="flex items-center justify-between font-semibold text-amber-800">
+                <span>⚡ Dev Auto Login (Localhost Only)</span>
+                <span className="rounded bg-amber-200/80 px-1.5 py-0.5 font-mono text-[10px] text-amber-900">
+                  DEV
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-amber-800/80">
+                Pilih role di bawah untuk langsung masuk otomatis:
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => handleLogin(role.value)}
-                  className="group flex w-full items-center gap-3.5 rounded-lg border border-line bg-surface p-3.5 text-left transition-colors hover:border-line-strong hover:bg-subtle active:bg-neutral-soft"
+                  disabled={loading}
+                  onClick={() => handleDevAutoLogin('keuangan')}
+                  className="flex-1 rounded-md bg-amber-600 px-2.5 py-1.5 font-bold text-white shadow-sm hover:bg-amber-700 active:scale-95 disabled:opacity-50"
                 >
-                  <span
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-hover:scale-105"
-                    style={{ backgroundColor: ROLE_ACCENT[role.value] }}
-                  >
-                    <role.icon className="h-5 w-5" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-ink">{role.label}</span>
-                      {!role.ready && <Badge>Dalam pengembangan</Badge>}
-                    </span>
-                    <span className="mt-0.5 block text-[13px] text-ink-3">{role.description}</span>
-                  </span>
-                  <PiCaretRight className="h-4 w-4 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  ⚡ Keuangan
                 </button>
-              </li>
-            ))}
-          </ul>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleDevAutoLogin('admin')}
+                  className="rounded-md border border-amber-400 bg-white px-2.5 py-1.5 font-semibold text-amber-900 shadow-sm hover:bg-amber-100 active:scale-95 disabled:opacity-50"
+                >
+                  Admin
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleDevAutoLogin('teknisi')}
+                  className="rounded-md border border-amber-400 bg-white px-2.5 py-1.5 font-semibold text-amber-900 shadow-sm hover:bg-amber-100 active:scale-95 disabled:opacity-50"
+                >
+                  Teknisi
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
-      <p className="mx-auto mt-8 text-center text-xs text-ink-3">SI-Podorukun © 2026</p>
+      <p className="mx-auto mt-8 text-center text-xs text-ink-3">SI-Podorukun Ac 2026</p>
     </div>
   );
 }

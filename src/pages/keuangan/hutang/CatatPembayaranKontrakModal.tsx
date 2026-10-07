@@ -69,7 +69,15 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
       }
     >
       <form id="bayar-kontrak-form" onSubmit={handleSubmit} className="space-y-5">
-        <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
+        <dl
+          className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/50 bg-line sm:grid-cols-3"
+          style={{
+            boxShadow: `
+              8px 8px 10px -1px rgba(0, 0, 0, 0.7),
+              -8px -8px 10px -1px rgba(255, 255, 255, 0.7)
+            `,
+          }}
+        >
           {[
             { label: 'Nilai kontrak', value: nilaiTerkini },
             { label: 'Sudah dibayar', value: totalTerbayar },

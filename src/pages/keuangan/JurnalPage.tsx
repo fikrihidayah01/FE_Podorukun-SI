@@ -607,7 +607,15 @@ export default function JurnalPage() {
       >
         {detailJurnal && (
           <div className="space-y-5">
-            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line md:grid-cols-4">
+            <dl
+              className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/50 bg-line md:grid-cols-4"
+              style={{
+                boxShadow: `
+                  8px 8px 10px -1px rgba(0, 0, 0, 0.7),
+                  -8px -8px 10px -1px rgba(255, 255, 255, 0.7)
+                `,
+              }}
+            >
               {[
                 { label: 'Tanggal', value: formatTanggal(detailJurnal.tanggal) },
                 { label: 'Proyek', value: getProyekName(detailJurnal.proyekId) },

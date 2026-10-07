@@ -9,12 +9,20 @@ interface RoleGuardProps {
 
 /**
  * RoleGuard wraps protected routes.
- * - Unauthenticated users → /login
- * - Authenticated but wrong role → /unauthorized
- * - Correct role → renders <Outlet />
+ * - Unauthenticated users -> /login
+ * - Authenticated but wrong role -> /unauthorized
+ * - Correct role -> renders <Outlet />
  */
 export default function RoleGuard({ allowedRoles }: RoleGuardProps) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, isInitializing } = useAuthStore();
+
+  if (isInitializing) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-canvas">
+        <p className="text-ink-3">Memuat sesi...</p>
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;

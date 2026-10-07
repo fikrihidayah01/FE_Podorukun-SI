@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   PiPlus, PiPencilSimple, PiTrash, PiCopy, PiBuildings, PiFileText,
 } from 'react-icons/pi';
@@ -41,7 +41,8 @@ const EMPTY_PT = (): Omit<MasterPt, 'id'> => ({
 });
 
 export default function MasterPtPage() {
-  const { items: pts, add: addPt, update: updatePt, remove: removePt } = useMasterPtStore();
+  const { items: pts, add: addPt, update: updatePt, remove: removePt, fetch: fetchPts} = useMasterPtStore();
+  useEffect(() => { fetchPts(); }, [fetchPts]);
   const { items: templates, add: addTemplate, update: updateTemplate, duplikat, remove: removeTemplate } = useTemplateDokumenStore();
   const { items: pasals } = usePustakaPasalStore();
 
@@ -90,8 +91,8 @@ export default function MasterPtPage() {
     const errs: typeof ptErrors = {};
     if (!ptForm.namaPt.trim()) errs.namaPt = 'Nama PT wajib diisi.';
     if (!ptForm.namaDirektur.trim()) errs.namaDirektur = 'Nama direktur wajib diisi.';
-    if (!ptForm.ttl.trim()) errs.ttl = 'Tempat & tanggal lahir wajib diisi.';
-    if (!ptForm.alamat.trim()) errs.alamat = 'Alamat wajib diisi.';
+    if (!ptForm.ttl?.trim()) errs.ttl = 'Tempat & tanggal lahir wajib diisi.';
+    if (!ptForm.alamat?.trim()) errs.alamat = 'Alamat wajib diisi.';
     if (Object.keys(errs).length > 0) { setPtErrors(errs); return; }
 
     if (editingPtId) updatePt(editingPtId, ptForm);
@@ -180,7 +181,7 @@ export default function MasterPtPage() {
                         <td>{pt.namaDirektur}</td>
                         <td className="text-ink-2">{pt.ttl}</td>
                         <td className="text-ink-2">{pt.pekerjaan}</td>
-                        <td className="max-w-[200px] truncate text-ink-2" title={pt.alamat}>{pt.alamat}</td>
+                        <td className="max-w-[200px] truncate text-ink-2" title={pt.alamat || undefined}>{pt.alamat}</td>
                         <td className="flex items-center gap-1">
                           <IconButton icon={PiPencilSimple} label={`Edit ${pt.namaPt}`} onClick={() => openEditPt(pt)} />
                           <IconButton icon={PiTrash} tone="danger" label={`Hapus ${pt.namaPt}`} onClick={() => setDeletePtId(pt.id)} />
@@ -272,24 +273,24 @@ export default function MasterPtPage() {
       >
         <div className="space-y-4">
           <Field label="Nama PT" required error={ptErrors.namaPt}>
-            <input className="control" value={ptForm.namaPt} onChange={(e) => setPtForm((p) => ({ ...p, namaPt: e.target.value }))} placeholder="PT Contoh Sejahtera" />
+            <input className="control" value={ptForm.namaPt || ''} onChange={(e) => setPtForm((p) => ({ ...p, namaPt: e.target.value }))} placeholder="PT Contoh Sejahtera" />
           </Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Nama Direktur" required error={ptErrors.namaDirektur}>
-              <input className="control" value={ptForm.namaDirektur} onChange={(e) => setPtForm((p) => ({ ...p, namaDirektur: e.target.value }))} />
+              <input className="control" value={ptForm.namaDirektur || ''} onChange={(e) => setPtForm((p) => ({ ...p, namaDirektur: e.target.value }))} />
             </Field>
             <Field label="Tempat, Tanggal Lahir" required hint="Contoh: Jakarta, 15 Agustus 1980" error={ptErrors.ttl}>
-              <input className="control" value={ptForm.ttl} onChange={(e) => setPtForm((p) => ({ ...p, ttl: e.target.value }))} />
+              <input className="control" value={ptForm.ttl || ''} onChange={(e) => setPtForm((p) => ({ ...p, ttl: e.target.value }))} />
             </Field>
             <Field label="Pekerjaan">
-              <input className="control" value={ptForm.pekerjaan} onChange={(e) => setPtForm((p) => ({ ...p, pekerjaan: e.target.value }))} placeholder="Direktur" />
+              <input className="control" value={ptForm.pekerjaan || ''} onChange={(e) => setPtForm((p) => ({ ...p, pekerjaan: e.target.value }))} placeholder="Direktur" />
             </Field>
             <Field label="No. KTP">
-              <input className="control tabular-nums" value={ptForm.noKtp} onChange={(e) => setPtForm((p) => ({ ...p, noKtp: e.target.value }))} maxLength={16} />
+              <input className="control tabular-nums" value={ptForm.noKtp || ''} onChange={(e) => setPtForm((p) => ({ ...p, noKtp: e.target.value }))} maxLength={16} />
             </Field>
           </div>
           <Field label="Alamat" required error={ptErrors.alamat}>
-            <textarea className="control" rows={2} value={ptForm.alamat} onChange={(e) => setPtForm((p) => ({ ...p, alamat: e.target.value }))} />
+            <textarea className="control" rows={2} value={ptForm.alamat || ''} onChange={(e) => setPtForm((p) => ({ ...p, alamat: e.target.value }))} />
           </Field>
         </div>
       </Modal>

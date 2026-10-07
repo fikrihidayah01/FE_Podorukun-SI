@@ -56,7 +56,7 @@
 
   /* Standard raised element — Panel, cards */
   --shadow-sm:
-    8px 8px 10px -1px rgba(0, 0, 0, 0.3),
+    8px 8px 10px -3px rgba(0, 0, 0, 0.3),
     -8px -8px 10px -1px rgba(255, 255, 255, 0.7),
     inset 0 1px 2px rgba(0, 0, 0, 0.06),
     inset 0 -1px 1px rgba(255, 255, 255, 0.5);
@@ -185,6 +185,42 @@
   .control-sm {
     min-height: 2.125rem;
     padding: 0.375rem 0.625rem;
+  }
+
+  /* Control cembung: outset neumorphic emboss for dropdowns and pickers */
+  .control-cembung {
+    border: none;
+    background-color: var(--color-surface);
+    box-shadow:
+      4px 4px 8px rgba(0, 0, 0, 0.12),
+      -4px -4px 8px rgba(255, 255, 255, 0.9),
+      inset 0 1px 2px rgba(0, 0, 0, 0.08),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+  }
+
+  .control-cembung:hover:not(:disabled):not([readonly]) {
+    border: none;
+    box-shadow:
+      5px 5px 10px rgba(0, 0, 0, 0.15),
+      -5px -5px 10px rgba(255, 255, 255, 1),
+      inset 0 1px 2px rgba(0, 0, 0, 0.08),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.6);
+  }
+
+  .control-cembung:focus-visible {
+    outline: none;
+    border: none;
+    box-shadow:
+      4px 4px 8px rgba(0, 0, 0, 0.12),
+      -4px -4px 8px rgba(255, 255, 255, 0.9),
+      inset 0 1px 2px rgba(0, 0, 0, 0.08),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.6),
+      0 0 0 3px rgb(26 107 90 / 0.14);
+  }
+
+  .control-cembung:active:not(:disabled) {
+    box-shadow: var(--shadow-inset);
   }
 
   textarea.control {

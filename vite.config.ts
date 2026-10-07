@@ -8,4 +8,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://podorukunsi.my.id',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 })

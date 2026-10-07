@@ -1,27 +1,38 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchApi } from '../lib/api';
 
 export interface Proyek {
   id: string;
   nama: string;
   kode: string;
+  ptId?: string;
 }
 
 interface ProyekState {
   items: Proyek[];
+  isLoading: boolean;
+  error: string | null;
+  fetch: () => Promise<void>;
 }
 
-const DUMMY_PROYEK: Proyek[] = [
-  { id: 'p1', nama: 'Atlantis Hills', kode: 'ATH' },
-  { id: 'p2', nama: 'Atlantis Icon', kode: 'ATI' },
-  { id: 'p3', nama: 'Aya Sophia', kode: 'AYS' },
-];
+export const useProyekStore = create<ProyekState>((set) => ({
+  items: [],
+  isLoading: false,
+  error: null,
 
-export const useProyekStore = create<ProyekState>()(
-  persist(
-    () => ({
-      items: DUMMY_PROYEK,
-    }),
-    { name: 'si-proyek' }
-  )
-);
+  fetch: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetchApi('/proyek');
+      const json = await res.json();
+      if (res.ok) {
+        // the backend returns a list of proyek, possibly mapping fields
+        set({ items: json.data || [], isLoading: false });
+      } else {
+        set({ error: json.message || 'Gagal memuat Proyek', isLoading: false });
+      }
+    } catch (err) {
+      set({ error: 'Terjadi kesalahan jaringan', isLoading: false });
+    }
+  },
+}));

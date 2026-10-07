@@ -35,7 +35,7 @@ export function accentFor(path: string) {
 }
 
 export const ROLE_ACCENT: Record<UserRole, string> = {
-  keuangan: '#047857',
+  admin: '#334155', keuangan: '#047857',
   teknisi: '#0369a1',
   marketing: '#be185d',
   kontraktor: '#b45309',

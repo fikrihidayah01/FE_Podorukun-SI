@@ -47,6 +47,18 @@ export const STATUS_PERIODE_TONE: Record<StatusPeriode, Tone> = {
 
 // ── Data Models ───────────────────────────────────────────────
 
+export interface BuktiTransaksi {
+  id: string;
+  nomorBukti?: string;
+  namaBerkas: string;
+  url?: string;
+  dataUrl?: string;
+  tipe: 'image' | 'pdf';
+  ukuranBytes?: number;
+  tanggal?: string;
+  keterangan?: string;
+}
+
 export interface PeriodeAngsuran {
   periode: string; // 'YYYY-MM'
   tanggalJatuhTempo: string; // ISO date
@@ -55,6 +67,7 @@ export interface PeriodeAngsuran {
   tanggalBayar: string | null; // ISO date or null
   prTrackPaymentId?: string;
   isDuplicateSuspect?: boolean;
+  buktiTransaksi?: BuktiTransaksi | null;
 }
 
 export interface PembayaranLainnya {
@@ -106,10 +119,70 @@ const DUMMY_KAVLING: KavlingTagihan[] = [
     periodeAwal: '2024-01',
     totalBulanAngsuran: 12,
     periodeAngsuran: [
-      { periode: '2024-01', tanggalJatuhTempo: '2024-01-15', tagihan: 25_000_000, dibayar: 25_000_000, tanggalBayar: '2024-01-15' },
-      { periode: '2024-02', tanggalJatuhTempo: '2024-02-15', tagihan: 25_000_000, dibayar: 25_000_000, tanggalBayar: '2024-02-14' },
-      { periode: '2024-03', tanggalJatuhTempo: '2024-03-15', tagihan: 25_000_000, dibayar: 25_000_000, tanggalBayar: '2024-03-15' },
-      { periode: '2024-04', tanggalJatuhTempo: '2024-04-15', tagihan: 25_000_000, dibayar: 25_000_000, tanggalBayar: '2024-04-15' },
+      {
+        periode: '2024-01',
+        tanggalJatuhTempo: '2024-01-15',
+        tagihan: 25_000_000,
+        dibayar: 25_000_000,
+        tanggalBayar: '2024-01-15',
+        buktiTransaksi: {
+          id: 'bkt-1',
+          nomorBukti: 'TRX/PRT/24/0115',
+          namaBerkas: 'bukti_transfer_bca_jan.pdf',
+          tipe: 'pdf',
+          ukuranBytes: 142000,
+          tanggal: '2024-01-15',
+          keterangan: 'Transfer m-Banking BCA Budi Santoso',
+        },
+      },
+      {
+        periode: '2024-02',
+        tanggalJatuhTempo: '2024-02-15',
+        tagihan: 25_000_000,
+        dibayar: 25_000_000,
+        tanggalBayar: '2024-02-14',
+        buktiTransaksi: {
+          id: 'bkt-2',
+          nomorBukti: 'TRX/PRT/24/0214',
+          namaBerkas: 'struk_atm_feb.jpg',
+          tipe: 'image',
+          ukuranBytes: 285000,
+          tanggal: '2024-02-14',
+          keterangan: 'Setoran ATM Mandiri',
+        },
+      },
+      {
+        periode: '2024-03',
+        tanggalJatuhTempo: '2024-03-15',
+        tagihan: 25_000_000,
+        dibayar: 25_000_000,
+        tanggalBayar: '2024-03-15',
+        buktiTransaksi: {
+          id: 'bkt-3',
+          nomorBukti: 'TRX/PRT/24/0315',
+          namaBerkas: 'kuitansi_prt_mar.pdf',
+          tipe: 'pdf',
+          ukuranBytes: 98000,
+          tanggal: '2024-03-15',
+          keterangan: 'Kuitansi resmi kantor',
+        },
+      },
+      {
+        periode: '2024-04',
+        tanggalJatuhTempo: '2024-04-15',
+        tagihan: 25_000_000,
+        dibayar: 25_000_000,
+        tanggalBayar: '2024-04-15',
+        buktiTransaksi: {
+          id: 'bkt-4',
+          nomorBukti: 'TRX/PRT/24/0415',
+          namaBerkas: 'bukti_transfer_apr.jpg',
+          tipe: 'image',
+          ukuranBytes: 312000,
+          tanggal: '2024-04-15',
+          keterangan: 'Transfer m-Banking BCA',
+        },
+      },
       { periode: '2024-05', tanggalJatuhTempo: '2024-05-15', tagihan: 25_000_000, dibayar: 0, tanggalBayar: null },
       { periode: '2024-06', tanggalJatuhTempo: '2024-06-15', tagihan: 25_000_000, dibayar: 0, tanggalBayar: null },
     ],
@@ -192,6 +265,8 @@ interface TagihanState {
   getTotalDibayar: (proyekId?: string) => number;
   getTotalSisa: (proyekId?: string) => number;
   updateAlokasi: (kavlingId: string, periode: string, dibayar: number, tanggalBayar: string | null) => void;
+  updateJadwalAngsuran: (kavlingId: string, periode: string, tagihan: number, tanggalJatuhTempo: string) => void;
+  updateBuktiTransaksi: (kavlingId: string, periode: string, bukti: BuktiTransaksi | null) => void;
   addFromLegal: (legalData: any) => void;
 }
 
@@ -232,6 +307,40 @@ export const usePiutangStore = create<TagihanState>()(
               periodeAngsuran: k.periodeAngsuran.map((p) => {
                 if (p.periode !== periode) return p;
                 return { ...p, dibayar, tanggalBayar };
+              }),
+            };
+          }),
+        }));
+      },
+
+      updateJadwalAngsuran: (kavlingId, periode, tagihan, tanggalJatuhTempo) => {
+        set((state) => ({
+          items: state.items.map((k) => {
+            if (k.id !== kavlingId) return k;
+            const updatedPeriode = k.periodeAngsuran.map((p) => {
+              if (p.periode !== periode) return p;
+              return { ...p, tagihan, tanggalJatuhTempo };
+            });
+            const totalTagihan = updatedPeriode.reduce((sum, p) => sum + p.tagihan, 0);
+            const totalLainnya = (k.pembayaranLainnya || []).reduce((sum, p) => sum + p.nominal, 0);
+            return {
+              ...k,
+              nilaiSppr: totalTagihan + totalLainnya,
+              periodeAngsuran: updatedPeriode,
+            };
+          }),
+        }));
+      },
+
+      updateBuktiTransaksi: (kavlingId, periode, bukti) => {
+        set((state) => ({
+          items: state.items.map((k) => {
+            if (k.id !== kavlingId) return k;
+            return {
+              ...k,
+              periodeAngsuran: k.periodeAngsuran.map((p) => {
+                if (p.periode !== periode) return p;
+                return { ...p, buktiTransaksi: bukti };
               }),
             };
           }),

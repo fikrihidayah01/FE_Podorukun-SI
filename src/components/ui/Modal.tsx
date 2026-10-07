@@ -10,7 +10,7 @@ interface ModalProps {
   /** Konteks singkat di bawah judul, mis. nama pihak atau nomor dokumen. */
   description?: ReactNode;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   /** Tombol aksi; ditata rata kanan di dasar dialog. */
   footer?: ReactNode;
   /** Aksi tambahan di kiri tombol tutup. */
@@ -22,6 +22,7 @@ const SIZE_CLASS = {
   md: 'sm:max-w-lg',
   lg: 'sm:max-w-2xl',
   xl: 'sm:max-w-5xl',
+  '2xl': 'sm:max-w-[1340px]',
 };
 
 const FOCUSABLE =

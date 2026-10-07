@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchApi } from '../lib/api';
 
-export type UserRole = 'keuangan' | 'teknisi' | 'marketing' | 'kontraktor';
+export type UserRole = 'admin' | 'keuangan' | 'teknisi' | 'marketing' | 'kontraktor';
 
 export const ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'Admin',
   keuangan: 'Keuangan',
   teknisi: 'Teknisi',
   marketing: 'Marketing',
@@ -20,54 +21,72 @@ export interface AuthUser {
 interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (role: UserRole) => void;
-  logout: () => void;
+  isInitializing: boolean;
+  error: string | null;
+  initAuth: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  devLogin: (role?: UserRole) => void;
+  logout: () => Promise<void>;
 }
 
-const MOCK_USERS: Record<UserRole, AuthUser> = {
-  keuangan: {
-    id: '1',
-    name: 'Siti Rahayu',
-    role: 'keuangan',
-    email: 'siti@podorukun.id',
-  },
-  teknisi: {
-    id: '2',
-    name: 'Budi Santoso',
-    role: 'teknisi',
-    email: 'budi@podorukun.id',
-  },
-  marketing: {
-    id: '3',
-    name: 'Rina Marlina',
-    role: 'marketing',
-    email: 'rina@podorukun.id',
-  },
-  kontraktor: {
-    id: '4',
-    name: 'Ahmad Fauzi',
-    role: 'kontraktor',
-    email: 'ahmad@podorukun.id',
-  },
-};
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isAuthenticated: false,
+  isInitializing: true,
+  error: null,
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      isAuthenticated: false,
-
-      login: (role: UserRole) => {
-        const user = MOCK_USERS[role];
-        set({ user, isAuthenticated: true });
-      },
-
-      logout: () => {
-        set({ user: null, isAuthenticated: false });
-      },
-    }),
-    {
-      name: 'si-podorukun-auth',
+  initAuth: async () => {
+    try {
+      const res = await fetchApi('/auth/me');
+      if (res.ok) {
+        const json = await res.json();
+        set({ user: json.data, isAuthenticated: true, isInitializing: false });
+      } else {
+        set({ user: null, isAuthenticated: false, isInitializing: false });
+      }
+    } catch (err) {
+      set({ user: null, isAuthenticated: false, isInitializing: false });
     }
-  )
-);
+  },
+
+  login: async (email, password) => {
+    set({ error: null });
+    try {
+      const res = await fetchApi('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const json = await res.json();
+      
+      if (res.ok) {
+        set({ user: json.data.user, isAuthenticated: true });
+      } else {
+        set({ error: json.message || 'Login gagal' });
+      }
+    } catch (err) {
+      set({ error: 'Terjadi kesalahan jaringan' });
+    }
+  },
+
+  devLogin: (role = 'keuangan') => {
+    set({
+      user: {
+        id: 'dev-user-1',
+        name: `Dev ${role.charAt(0).toUpperCase() + role.slice(1)}`,
+        role,
+        email: `${role}@example.test`,
+      },
+      isAuthenticated: true,
+      error: null,
+    });
+  },
+
+  logout: async () => {
+    try {
+      await fetchApi('/auth/logout', { method: 'POST' });
+    } finally {
+      set({ user: null, isAuthenticated: false });
+    }
+  },
+}));

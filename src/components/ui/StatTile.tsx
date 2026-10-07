@@ -82,14 +82,14 @@ export function StatTile({
 }
 
 /**
- * Ringkasan angka dalam satu panel div utuh bersekat (gap-px dengan border line luar),
+ * Ringkasan angka dalam satu panel div utuh bersekat,
  * dengan efek neumorphic emboss dan bayangan soft bertingkat.
  */
 export function StatGrid({ children, columns = 4 }: { children: ReactNode; columns?: 3 | 4 }) {
   const cols = columns === 3 ? 'sm:grid-cols-3 max-sm:[&>*:first-child]:col-span-2' : 'xl:grid-cols-4';
   return (
-    <div
-      className={`grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/50 bg-black/25 ${cols}`}
+      <div
+        className={`grid grid-cols-2 gap-px overflow-hidden rounded-2xl  bg-black/25 ${cols}`}
       style={{
         boxShadow: `
           8px 8px 10px -1px rgba(0, 0, 0, 0.3),

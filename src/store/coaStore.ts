@@ -21,6 +21,7 @@ export interface Akun {
   wajibKodePembantu: boolean;
   wajibProyek: boolean;
   isKasBank: boolean;
+  kasBankInduk?: string;
   
   kategoriHutangPiutang?: KategoriHutangPiutang;
 }

@@ -1,64 +1,84 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchApi } from '../lib/api';
 
 export interface MasterPt {
   id: string;
   namaPt: string;
+  singkatan?: string | null;
   namaDirektur: string;
-  ttl: string; // tempat, tanggal lahir
-  pekerjaan: string;
-  alamat: string;
-  noKtp: string;
-  perumahanId?: string; // terikat ke satu perumahan
+  ttl?: string | null;
+  pekerjaan?: string | null;
+  alamat?: string | null;
+  noKtp?: string | null;
+  perumahanId?: string | null;
 }
 
 interface MasterPtState {
   items: MasterPt[];
-  add: (data: Omit<MasterPt, 'id'>) => string;
-  update: (id: string, data: Partial<Omit<MasterPt, 'id'>>) => void;
-  remove: (id: string) => void;
+  isLoading: boolean;
+  error: string | null;
+  fetch: () => Promise<void>;
+  add: (data: Omit<MasterPt, 'id'>) => Promise<string>;
+  update: (id: string, data: Partial<Omit<MasterPt, 'id'>>) => Promise<void>;
+  remove: (id: string) => Promise<void>;
 }
 
-export const useMasterPtStore = create<MasterPtState>()(
-  persist(
-    (set) => ({
-      items: [
-        {
-          id: 'pt-001',
-          namaPt: 'PT Pesona Raya Sejahtera Mandiri',
-          namaDirektur: 'Budi Hartanto',
-          ttl: 'Jakarta, 12 Maret 1975',
-          pekerjaan: 'Direktur',
-          alamat: 'Jl. Sudirman No. 45, Jakarta Selatan',
-          noKtp: '3174012203750002',
-          perumahanId: undefined,
-        },
-        {
-          id: 'pt-002',
-          namaPt: 'PT Prima Realty Nusantara',
-          namaDirektur: 'Sari Dewi Kusuma',
-          ttl: 'Surabaya, 8 Juli 1980',
-          pekerjaan: 'Direktur',
-          alamat: 'Jl. Pemuda No. 12, Surabaya',
-          noKtp: '3578054807800003',
-          perumahanId: undefined,
-        },
-      ],
+export const useMasterPtStore = create<MasterPtState>((set, get) => ({
+  items: [],
+  isLoading: false,
+  error: null,
 
-      add: (data) => {
-        const id = crypto.randomUUID();
-        set((state) => ({ items: [...state.items, { ...data, id }] }));
-        return id;
-      },
+  fetch: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetchApi('/master-pt');
+      const json = await res.json();
+      if (res.ok) {
+        set({ items: json.data || [], isLoading: false });
+      } else {
+        set({ error: json.message || 'Gagal memuat PT', isLoading: false });
+      }
+    } catch (err) {
+      set({ error: 'Terjadi kesalahan jaringan', isLoading: false });
+    }
+  },
 
-      update: (id, data) =>
-        set((state) => ({
-          items: state.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
-        })),
+  add: async (data) => {
+    const res = await fetchApi('/master-pt', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Gagal menambah PT');
+    
+    // Refresh list
+    await get().fetch();
+    return json.data?.id || '';
+  },
 
-      remove: (id) =>
-        set((state) => ({ items: state.items.filter((item) => item.id !== id) })),
-    }),
-    { name: 'si-master-pt-v1' }
-  )
-);
+  update: async (id, data) => {
+    const res = await fetchApi(`/master-pt/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Gagal mengubah PT');
+    
+    // Optimistic update or refresh
+    set((state) => ({
+      items: state.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
+    }));
+  },
+
+  remove: async (id) => {
+    const res = await fetchApi(`/master-pt/${id}`, {
+      method: 'DELETE',
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Gagal menghapus PT');
+    
+    set((state) => ({
+      items: state.items.filter((item) => item.id !== id),
+    }));
+  },
+}));

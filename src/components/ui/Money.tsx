@@ -24,15 +24,26 @@ const TONE = {
  */
 export default function Money({ value, accounting, signed, short, tone = 'default', className = '' }: MoneyProps) {
   const negative = value < 0;
+  const effectiveTone =
+    tone !== 'default'
+      ? tone
+      : signed
+      ? negative
+        ? 'danger'
+        : value > 0
+        ? 'positive'
+        : 'default'
+      : 'default';
+
   if (short) {
-    return <span className={`tabular-nums ${TONE[tone]} ${className}`}>{formatRupiahShort(value)}</span>;
+    return <span className={`tabular-nums ${TONE[effectiveTone]} ${className}`}>{formatRupiahShort(value)}</span>;
   }
   const body = formatAngka(Math.abs(value));
   const prefix = negative && accounting ? '(' : negative ? '-' : signed && value > 0 ? '+' : '';
   return (
-    <span className={`whitespace-nowrap tabular-nums ${TONE[tone]} ${className}`}>
+    <span className={`whitespace-nowrap tabular-nums ${TONE[effectiveTone]} ${className}`}>
       {prefix}
-      <span className="text-[0.85em] font-medium opacity-70">Rp{' '}</span>
+      <span className="text-[0.85em] font-medium opacity-70">Rp{' '}</span>
       {body}
       {negative && accounting ? ')' : ''}
     </span>

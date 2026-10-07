@@ -167,7 +167,15 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
       <div className="space-y-6">
         <Notice>{POLA_NOTE[fresh.pola]}</Notice>
 
-        <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
+        <dl
+          className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/50 bg-line sm:grid-cols-3"
+          style={{
+            boxShadow: `
+              8px 8px 10px -1px rgba(0, 0, 0, 0.7),
+              -8px -8px 10px -1px rgba(255, 255, 255, 0.7)
+            `,
+          }}
+        >
           {ringkasan.map((r) => (
             <div key={r.label} className="bg-subtle px-4 py-3">
               <dt className="text-xs font-semibold text-ink-3">{r.label}</dt>

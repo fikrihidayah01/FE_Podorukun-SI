@@ -35,6 +35,7 @@ const EMPTY_FORM: Partial<Akun> = {
   wajibKodePembantu: false,
   wajibProyek: false,
   isKasBank: false,
+  kasBankInduk: undefined,
   kategoriHutangPiutang: undefined,
   akunIndukId: '',
 };
@@ -102,7 +103,13 @@ export default function DaftarAkunTab() {
     if (!kode) e.kodeAkun = 'Kode akun wajib diisi.';
     else if (kode.length !== 6) e.kodeAkun = 'Kode akun harus 6 digit.';
     else if (!editId && items.some((a) => a.kodeAkun.toLowerCase() === kode.toLowerCase())) e.kodeAkun = 'Kode akun ini sudah dipakai.';
+    
     if (!form.namaAkun?.trim()) e.namaAkun = 'Nama akun wajib diisi.';
+    
+    if (form.isKasBank && !form.kasBankInduk) {
+      e.kasBankInduk = 'Rekening penampung wajib dipilih jika akun adalah kas / bank.';
+    }
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -120,6 +127,7 @@ export default function DaftarAkunTab() {
       wajibKodePembantu: form.wajibKodePembantu || false,
       wajibProyek: form.wajibProyek || false,
       isKasBank: form.isKasBank || false,
+      kasBankInduk: form.isKasBank ? form.kasBankInduk : undefined,
       kategoriHutangPiutang: ['hutang', 'aktiva'].includes(form.kategori as string) ? form.kategoriHutangPiutang : undefined,
     };
     if (editId) {
@@ -304,7 +312,7 @@ export default function DaftarAkunTab() {
           {editLocked && <Notice tone="warning">Akun ini sudah dipakai di transaksi, jadi kodenya terkunci. Akun hanya bisa dinonaktifkan, tidak dihapus.</Notice>}
 
           <Field label="Akun induk" optional>
-            <select className="control" value={form.akunIndukId || ''} onChange={(e) => setForm({ ...form, akunIndukId: e.target.value })}>
+            <select className="control control-cembung" value={form.akunIndukId || ''} onChange={(e) => setForm({ ...form, akunIndukId: e.target.value })}>
               <option value="">Tidak ada (akun level atas)</option>
               {items.map((i) => (
                 <option key={i.id} value={i.id} disabled={i.id === editId}>
@@ -333,20 +341,20 @@ export default function DaftarAkunTab() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Kategori">
-              <select className="control" value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value as KategoriAkun })}>
+              <select className="control control-cembung" value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value as KategoriAkun })}>
                 {Object.entries(KATEGORI_AKUN_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
               </select>
             </Field>
             <Field label="Saldo normal">
-              <select className="control" value={form.tipeSaldo} onChange={(e) => setForm({ ...form, tipeSaldo: e.target.value as TipeSaldo })}>
+              <select className="control control-cembung" value={form.tipeSaldo} onChange={(e) => setForm({ ...form, tipeSaldo: e.target.value as TipeSaldo })}>
                 <option value="d">Debit</option>
                 <option value="k">Kredit</option>
               </select>
             </Field>
             <Field label="Klasifikasi">
-              <select className="control" value={form.klasifikasi} onChange={(e) => setForm({ ...form, klasifikasi: e.target.value as KlasifikasiAkun })}>
+              <select className="control control-cembung" value={form.klasifikasi} onChange={(e) => setForm({ ...form, klasifikasi: e.target.value as KlasifikasiAkun })}>
                 {Object.entries(KLASIFIKASI_AKUN_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
@@ -358,7 +366,7 @@ export default function DaftarAkunTab() {
             {['hutang', 'aktiva'].includes(form.kategori as string) && (
               <Field label="Kelompok hutang / piutang" hint="Menentukan pengelompokan di halaman Hutang dan Tagihan user">
                 <select
-                  className="control"
+                  className="control control-cembung"
                   value={form.kategoriHutangPiutang || ''}
                   onChange={(e) => setForm({ ...form, kategoriHutangPiutang: (e.target.value || undefined) as KategoriHutangPiutang | undefined })}
                 >
@@ -370,7 +378,7 @@ export default function DaftarAkunTab() {
               </Field>
             )}
             <Field label="Status">
-              <select className="control" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as StatusAkun })}>
+              <select className="control control-cembung" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as StatusAkun })}>
                 <option value="aktif">Aktif</option>
                 <option value="nonaktif">Nonaktif</option>
               </select>
@@ -381,18 +389,37 @@ export default function DaftarAkunTab() {
             <legend className="field-label">Aturan akun</legend>
             <div className="divide-y divide-line rounded-lg border border-line">
               {ATURAN.map((a) => (
-                <label key={a.key} className="flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-subtle">
-                  <input
-                    type="checkbox"
-                    className="checkbox mt-0.5"
-                    checked={Boolean(form[a.key])}
-                    onChange={(e) => setForm({ ...form, [a.key]: e.target.checked })}
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-ink">{a.label}</span>
-                    <span className="mt-0.5 block text-[13px] text-ink-3">{a.hint}</span>
-                  </span>
-                </label>
+                <div key={a.key}>
+                  <label className="flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-subtle">
+                    <input
+                      type="checkbox"
+                      className="checkbox mt-0.5"
+                      checked={Boolean(form[a.key])}
+                      onChange={(e) => setForm({ ...form, [a.key]: e.target.checked })}
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-ink">{a.label}</span>
+                      <span className="mt-0.5 block text-[13px] text-ink-3">{a.hint}</span>
+                    </span>
+                  </label>
+                  {a.key === 'isKasBank' && form.isKasBank && (
+                    <div className="border-t border-line bg-subtle px-4 py-3 pl-11">
+                      <Field label="Tersambung ke" hint="Pilih rekening penampung" required error={errors.kasBankInduk}>
+                        <select
+                          className={`control control-cembung ${errors.kasBankInduk ? 'border-danger focus:ring-danger/20' : ''}`}
+                          value={form.kasBankInduk || ''}
+                          onChange={(e) => setForm({ ...form, kasBankInduk: e.target.value || undefined })}
+                        >
+                          <option value="">-- Pilih Rekening --</option>
+                          <option value="REKENING TABUNGAN PENAMPUNG">REKENING TABUNGAN PENAMPUNG</option>
+                          <option value="BANK BCA BRI BSI BNI (GIRO)">BANK BCA BRI BSI BNI (GIRO)</option>
+                          <option value="BANK BTN BTNS (GIRO)">BANK BTN BTNS (GIRO)</option>
+                          <option value="BANK MANDIRI">BANK MANDIRI</option>
+                        </select>
+                      </Field>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </fieldset>

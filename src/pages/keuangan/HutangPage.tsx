@@ -250,11 +250,11 @@ export default function HutangPage() {
                               <button
                                 type="button"
                                 onClick={() => setSelectedJurnalRow(row)}
-                                className="group inline-flex items-center gap-1.5 rounded-md font-medium text-brand-700 underline-offset-2 hover:underline"
+                                className="group inline-flex items-center gap-1.5 rounded-md font-medium text-ink hover:text-brand-700 underline-offset-2 hover:underline"
                                 aria-label={`Lihat jurnal pembentuk mutasi ${row.kodePembantu.nama}`}
                               >
                                 {row.mutasiBulan === 0 ? <span className="text-ink-3">-</span> : <Money value={row.mutasiBulan} signed />}
-                                <PiArrowSquareOut className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100" aria-hidden />
+                                <PiArrowSquareOut className="h-3.5 w-3.5 text-ink-3 opacity-60 group-hover:opacity-100" aria-hidden />
                               </button>
                             </td>
                             <td className="num font-semibold text-ink">
