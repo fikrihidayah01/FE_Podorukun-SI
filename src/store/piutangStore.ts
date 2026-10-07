@@ -131,7 +131,7 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
       const response = await fetchApi('/piutang');
       if (!response.ok) throw new Error('Gagal mengambil data piutang');
       const data = await response.json();
-      set({ items: data, isLoading: false });
+      set({ items: data?.data || [], isLoading: false });
     } catch (err: any) {
       set({ error: err.message, isLoading: false });
     }
@@ -169,7 +169,7 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
       if (!response.ok) throw new Error('Gagal update alokasi');
       const updated = await response.json();
       set((state) => ({
-        items: state.items.map((k) => (k.id === kavlingId ? updated : k)),
+        items: state.items.map((k) => (k.id === kavlingId ? updated.data : k)),
       }));
     } catch (error) {
       console.error(error);
@@ -186,7 +186,7 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
       if (!response.ok) throw new Error('Gagal update jadwal');
       const updated = await response.json();
       set((state) => ({
-        items: state.items.map((k) => (k.id === kavlingId ? updated : k)),
+        items: state.items.map((k) => (k.id === kavlingId ? updated.data : k)),
       }));
     } catch (error) {
       console.error(error);
@@ -203,7 +203,7 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
       if (!response.ok) throw new Error('Gagal update bukti transaksi');
       const updated = await response.json();
       set((state) => ({
-        items: state.items.map((k) => (k.id === kavlingId ? updated : k)),
+        items: state.items.map((k) => (k.id === kavlingId ? updated.data : k)),
       }));
     } catch (error) {
       console.error(error);
@@ -218,7 +218,8 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
         body: JSON.stringify(legalData),
       });
       if (!response.ok) throw new Error('Gagal menambahkan dari legal');
-      const newTagihan = await response.json();
+      const newTagihanRes = await response.json();
+      const newTagihan = newTagihanRes.data;
       set((state) => {
         const exists = state.items.some((k) => k.id === newTagihan.id);
         if (exists) return state;
