@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isLocalhost =
+  // const isLocalhost =
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1' ||
