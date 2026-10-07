@@ -41,18 +41,18 @@ export default function ExportButton({ getColumns, getData, opts, className = ''
         loading={loading === 'excel'}
         disabled={loading !== null}
         onClick={() => handle('excel')}
-        className="text-emerald-700 hover:text-emerald-800"
+        className="!bg-emerald-700 !text-white border border-white/30 shadow-[4px_4px_8px_rgba(0,0,0,0.18),-4px_-4px_8px_rgba(255,255,255,0.9)] hover:!bg-emerald-800"
       >
-        <PiMicrosoftExcelLogo className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+        <PiMicrosoftExcelLogo className="h-4 w-4 shrink-0 text-white" aria-hidden />
         Excel
       </Button>
       <Button
         loading={loading === 'pdf'}
         disabled={loading !== null}
         onClick={() => handle('pdf')}
-        className="text-rose-700 hover:text-rose-800"
+        className="!bg-rose-700 !text-white border border-white/30 shadow-[4px_4px_8px_rgba(0,0,0,0.18),-4px_-4px_8px_rgba(255,255,255,0.9)] hover:!bg-rose-800"
       >
-        <PiFilePdf className="h-4 w-4 shrink-0 text-rose-600" aria-hidden />
+        <PiFilePdf className="h-4 w-4 shrink-0 text-white" aria-hidden />
         PDF
       </Button>
     </div>

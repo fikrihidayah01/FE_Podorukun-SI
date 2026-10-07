@@ -23,6 +23,7 @@ export interface DataTableProps<T> {
   onPageChange?: (page: number) => void;
   empty?: ReactNode;
   rowClassName?: (item: T) => string;
+  tableClassName?: string;
   label: string;
 }
 
@@ -37,6 +38,7 @@ export default function DataTable<T>({
   onPageChange,
   empty,
   rowClassName,
+  tableClassName,
   label,
 }: DataTableProps<T>) {
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
@@ -45,7 +47,7 @@ export default function DataTable<T>({
   return (
     <div>
       <div className="relative overflow-x-auto" role="region" aria-label={label} tabIndex={0}>
-        <table className="tbl">
+        <table className={`tbl ${tableClassName ?? ''}`}>
           <thead>
             <tr>
               {columns.map((col) => (

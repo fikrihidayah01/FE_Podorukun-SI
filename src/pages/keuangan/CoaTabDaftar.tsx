@@ -1,5 +1,16 @@
-import { useMemo, useState } from 'react';
-import { PiPlus, PiPencilSimple, PiTrash, PiMagnifyingGlass, PiClockCounterClockwise, PiLockSimple, PiTreeStructure, PiSpinnerGap } from 'react-icons/pi';
+import { useMemo, useState, useEffect } from 'react';
+import {
+  PiPlus,
+  PiPencilSimple,
+  PiTrash,
+  PiMagnifyingGlass,
+  PiClockCounterClockwise,
+  PiLockSimple,
+  PiTreeStructure,
+  PiSpinnerGap,
+  PiCaretDown,
+  PiCaretRight,
+} from 'react-icons/pi';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -56,6 +67,7 @@ export default function DaftarAkunTab() {
   const [search, setSearch] = useState('');
   const [filterKategori, setFilterKategori] = useState('all');
   const [filterKlasifikasi, setFilterKlasifikasi] = useState('all');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -65,23 +77,102 @@ export default function DaftarAkunTab() {
   const [riwayatId, setRiwayatId] = useState<string | null>(null);
   const [statusConfirm, setStatusConfirm] = useState<{ id: string; payload: Omit<Akun, 'id'> } | null>(null);
 
+  useEffect(() => {
+    if (items.length > 0 && expandedIds.size === 0) {
+      setExpandedIds(new Set(items.map((i) => i.id)));
+    }
+  }, [items]);
+
   const hasTransactions = (akunId: string) =>
     jurnals.some((j) => j.rows.some((r) => r.akunId === akunId)) ||
     periodes.some((p) => p.saldo.some((s) => s.akunId === akunId && (s.debit > 0 || s.kredit > 0)));
 
-  const parentIds = useMemo(() => new Set(items.map((a) => a.akunIndukId).filter(Boolean)), [items]);
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return items
-      .filter(
-        (a) =>
-          (a.namaAkun.toLowerCase().includes(q) || a.kodeAkun.toLowerCase().includes(q)) &&
-          (filterKategori === 'all' || a.kategori === filterKategori) &&
-          (filterKlasifikasi === 'all' || a.klasifikasi === filterKlasifikasi),
-      )
-      .sort((a, b) => a.kodeAkun.localeCompare(b.kodeAkun));
-  }, [items, search, filterKategori, filterKlasifikasi]);
+  const expandAll = () => {
+    setExpandedIds(new Set(items.map((i) => i.id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedIds(new Set());
+  };
+
+  const childrenMap = useMemo(() => {
+    const map = new Map<string, Akun[]>();
+    items.forEach((item) => {
+      const parentId = item.akunIndukId || 'root';
+      if (!map.has(parentId)) map.set(parentId, []);
+      map.get(parentId)!.push(item);
+    });
+    map.forEach((list) => list.sort((a, b) => a.kodeAkun.localeCompare(b.kodeAkun)));
+    return map;
+  }, [items]);
+
+  type TreeRow = Akun & { depth: number; hasChildren: boolean; isExpanded: boolean };
+
+  const treeRows = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    const isFiltering = Boolean(q || filterKategori !== 'all' || filterKlasifikasi !== 'all');
+
+    const matchesFilter = (a: Akun) => {
+      const matchSearch = !q || a.namaAkun.toLowerCase().includes(q) || a.kodeAkun.toLowerCase().includes(q);
+      const matchKat = filterKategori === 'all' || a.kategori === filterKategori;
+      const matchKlas = filterKlasifikasi === 'all' || a.klasifikasi === filterKlasifikasi;
+      return matchSearch && matchKat && matchKlas;
+    };
+
+    const keepIds = new Set<string>();
+    const autoExpandIds = new Set<string>();
+
+    if (isFiltering) {
+      items.forEach((a) => {
+        if (matchesFilter(a)) {
+          keepIds.add(a.id);
+          let currentParentId = a.akunIndukId;
+          while (currentParentId) {
+            keepIds.add(currentParentId);
+            autoExpandIds.add(currentParentId);
+            const parentItem = items.find((i) => i.id === currentParentId);
+            currentParentId = parentItem?.akunIndukId || null;
+          }
+        }
+      });
+    }
+
+    const rows: TreeRow[] = [];
+
+    const traverse = (parentId: string | null, depth: number) => {
+      const children = childrenMap.get(parentId || 'root') || [];
+      children.forEach((child) => {
+        if (isFiltering && !keepIds.has(child.id)) return;
+
+        const hasChildren = (childrenMap.get(child.id)?.length || 0) > 0;
+        const isExpanded = isFiltering ? autoExpandIds.has(child.id) || expandedIds.has(child.id) : expandedIds.has(child.id);
+
+        rows.push({
+          ...child,
+          depth,
+          hasChildren,
+          isExpanded,
+        });
+
+        if (hasChildren && isExpanded) {
+          traverse(child.id, depth + 1);
+        }
+      });
+    };
+
+    traverse(null, 0);
+
+    return rows;
+  }, [items, childrenMap, search, filterKategori, filterKlasifikasi, expandedIds]);
 
   const openAdd = () => {
     setForm(EMPTY_FORM);
@@ -153,27 +244,56 @@ export default function DaftarAkunTab() {
     .filter((r) => r.akunId === riwayatId)
     .sort((a, b) => new Date(b.waktu).getTime() - new Date(a.waktu).getTime());
 
-  const columns: Column<Akun>[] = [
+  const columns: Column<TreeRow>[] = [
     {
       key: 'kodeAkun',
       label: 'Kode',
-      render: (r) => <span className={`tabular-nums ${parentIds.has(r.id) ? 'font-bold text-ink' : ''}`}>{r.kodeAkun}</span>,
+      className: 'w-[100px]',
+      render: (r) => <span className={`tabular-nums ${r.hasChildren ? 'font-bold text-ink' : ''}`}>{r.kodeAkun}</span>,
     },
     {
       key: 'namaAkun',
       label: 'Nama akun',
-      render: (r) => (
-        <span className={`block ${r.akunIndukId ? 'pl-5' : ''} ${parentIds.has(r.id) ? 'font-bold text-ink' : 'text-ink'}`}>{r.namaAkun}</span>
-      ),
+      className: 'w-[320px]',
+      render: (r) => {
+        const indentPx = r.depth * 20;
+        return (
+          <div className="flex items-center gap-1.5" style={{ paddingLeft: `${indentPx}px` }}>
+            {r.hasChildren ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpand(r.id);
+                }}
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-black/5 text-ink-2 transition-transform duration-150"
+                aria-label={r.isExpanded ? `Tutup sub-akun ${r.namaAkun}` : `Buka sub-akun ${r.namaAkun}`}
+              >
+                {r.isExpanded ? (
+                  <PiCaretDown className="h-4 w-4 text-brand-600 font-bold" aria-hidden />
+                ) : (
+                  <PiCaretRight className="h-4 w-4 text-ink-3" aria-hidden />
+                )}
+              </button>
+            ) : (
+              <span className="inline-block h-6 w-6 shrink-0" aria-hidden />
+            )}
+            <span className={`truncate ${r.hasChildren ? 'font-bold text-ink' : r.depth === 0 ? 'font-semibold text-ink' : 'text-ink-2'}`}>
+              {r.namaAkun}
+            </span>
+          </div>
+        );
+      },
     },
-    { key: 'kategori', label: 'Kategori', render: (r) => KATEGORI_AKUN_LABELS[r.kategori] },
-    { key: 'tipeSaldo', label: 'Saldo normal', render: (r) => (r.tipeSaldo === 'd' ? 'Debit' : 'Kredit') },
-    { key: 'klasifikasi', label: 'Klasifikasi', render: (r) => KLASIFIKASI_AKUN_LABELS[r.klasifikasi] },
+    { key: 'kategori', label: 'Kategori', className: 'w-[130px]', render: (r) => KATEGORI_AKUN_LABELS[r.kategori] },
+    { key: 'tipeSaldo', label: 'Saldo normal', className: 'w-[130px]', render: (r) => (r.tipeSaldo === 'd' ? 'Debit' : 'Kredit') },
+    { key: 'klasifikasi', label: 'Klasifikasi', className: 'w-[130px]', render: (r) => KLASIFIKASI_AKUN_LABELS[r.klasifikasi] },
     {
       key: 'aturan',
       label: 'Aturan',
+      className: 'w-[220px]',
       render: (r) => {
-        const tags = parentIds.has(r.id)
+        const tags = r.hasChildren
           ? ['Akun induk']
           : [r.isKasBank && 'Kas / bank', r.wajibProyek && 'Wajib proyek', r.wajibKodePembantu && 'Kode pembantu'].filter(Boolean);
         if (tags.length === 0) return <span className="text-ink-3">-</span>;
@@ -189,12 +309,13 @@ export default function DaftarAkunTab() {
     {
       key: 'status',
       label: 'Status',
+      className: 'w-[110px]',
       render: (r) => <Badge tone={r.status === 'aktif' ? 'positive' : 'neutral'}>{r.status === 'aktif' ? 'Aktif' : 'Nonaktif'}</Badge>,
     },
     {
       key: 'aksi',
       label: 'Aksi',
-      className: 'w-px whitespace-nowrap',
+      className: 'w-[110px] whitespace-nowrap',
       render: (r) => {
         const inUse = hasTransactions(r.id);
         return (
@@ -215,7 +336,7 @@ export default function DaftarAkunTab() {
   return (
     <>
       <Panel
-        title="Daftar akun"
+        title="Daftar akun berjenjang"
         description={`${items.filter((i) => i.status === 'aktif').length} akun aktif dari ${items.length}`}
         flush
         actions={
@@ -278,15 +399,31 @@ export default function DaftarAkunTab() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-subtle/30 px-4 py-2.5 sm:px-5">
+          <div className="flex items-center gap-2 text-xs font-semibold text-ink-2">
+            <PiTreeStructure className="h-4 w-4 text-brand-600" aria-hidden />
+            <span>Navigasi Berjenjang (Hierarki Akun)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={expandAll} icon={PiCaretDown}>
+              Buka semua
+            </Button>
+            <Button size="sm" variant="secondary" onClick={collapseAll} icon={PiCaretRight}>
+              Tutup semua
+            </Button>
+          </div>
+        </div>
+
         <DataTable
-          label="Daftar akun"
-          columns={columns}
-          data={filtered}
+          label="Daftar akun berjenjang"
+          columns={columns as any}
+          data={treeRows}
           keyExtractor={(r) => r.id}
           page={page}
-          pageSize={20}
+          pageSize={50}
           onPageChange={setPage}
-          rowClassName={(r) => (parentIds.has(r.id) ? '[&>td]:bg-subtle' : '')}
+          tableClassName="table-fixed min-w-[1150px]"
+          rowClassName={(r) => (r.hasChildren ? 'bg-subtle/40 font-semibold' : '')}
           empty={
             isLoading ? (
               <div className="flex justify-center p-10"><PiSpinnerGap className="h-6 w-6 animate-spin text-ink-3" /></div>
