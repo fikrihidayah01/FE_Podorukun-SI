@@ -105,8 +105,7 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
       return setPayError('Porsi pokok dan bunga belum sama dengan total transfer.');
     }
 
-    addEntry({
-      pinjamanId: fresh.id,
+    addEntry(fresh.id, {
       tanggal: payForm.tanggal,
       jenis,
       nominal: pNominal,

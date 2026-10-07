@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchApi } from '../lib/api';
 
 export type JurnalStatus = 'draft' | 'diposting' | 'dikoreksi';
 
@@ -15,7 +15,7 @@ export interface JurnalRow {
 export interface Lampiran {
   id: string;
   nama: string;
-  dataUrl: string; // base64 data URL untuk storage lokal
+  dataUrl: string;
   tipe: 'pdf' | 'gambar';
   ukuranBytes: number;
 }
@@ -35,51 +35,130 @@ export interface Jurnal {
 
 interface JurnalState {
   items: Jurnal[];
-  counter: number;
-  add: (data: Omit<Jurnal, 'id' | 'nomorJurnal' | 'createdAt'>) => void;
-  updateStatus: (id: string, status: JurnalStatus) => void;
-  updateLampiran: (id: string, lampiran: Lampiran[]) => void;
-  remove: (id: string) => void;
+  isLoading: boolean;
+  error: string | null;
+  fetch: () => Promise<void>;
+  add: (data: Omit<Jurnal, 'id' | 'nomorJurnal' | 'createdAt'>) => Promise<void>;
+  updateStatus: (id: string, status: JurnalStatus) => Promise<void>;
+  updateLampiran: (id: string, lampiran: Lampiran[]) => Promise<void>;
+  remove: (id: string) => Promise<void>;
 }
 
-export const useJurnalStore = create<JurnalState>()(
-  persist(
-    (set) => ({
-      items: [],
-      counter: 0,
+export const useJurnalStore = create<JurnalState>((set) => ({
+  items: [],
+  isLoading: false,
+  error: null,
 
-      add: (data) =>
-        set((state) => {
-          const next = state.counter + 1;
-          return {
-            counter: next,
-            items: [
-              ...state.items,
-              {
-                ...data,
-                lampiran: data.lampiran ?? [],
-                id: crypto.randomUUID(),
-                nomorJurnal: `JU-${String(next).padStart(4, '0')}`,
-                createdAt: new Date().toISOString(),
-              },
-            ],
-          };
-        }),
+  fetch: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetchApi('/jurnal');
+      if (!res.ok) throw new Error('Gagal memuat jurnal');
+      const data = await res.json();
+      set({ items: Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [], isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
+    }
+  },
 
-      updateStatus: (id, status) => set(state => ({
-        items: state.items.map(item => item.id === id ? { ...item, status } : item)
-      })),
+  add: async (data) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetchApi('/jurnal', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Gagal menyimpan jurnal');
+      
+      const resData = await res.json();
+      const newItem = resData.data || resData;
 
-      updateLampiran: (id, lampiran) => set(state => ({
-        items: state.items.map(item => item.id === id ? { ...item, lampiran } : item)
-      })),
+      set((state) => ({
+        items: [newItem, ...state.items],
+        isLoading: false,
+      }));
+    } catch (err: any) {
+      set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
+      throw err;
+    }
+  },
 
-      remove: (id) =>
-        set((state) => ({
-          items: state.items.filter((item) => item.id !== id),
-        })),
-    }),
-    { name: 'si-jurnal-v3' }
-  )
-);
+  updateStatus: async (id, status) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Endpoint depends on actual API spec. Assuming PATCH /jurnal/:id/status
+      const res = await fetchApi(`/jurnal/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        // Fallback to full update if status endpoint doesn't exist
+        if (res.status === 404) {
+          const updateRes = await fetchApi(`/jurnal/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+          });
+          if (!updateRes.ok) throw new Error('Gagal mengubah status jurnal');
+        } else {
+          throw new Error('Gagal mengubah status jurnal');
+        }
+      }
+      
+      set((state) => ({
+        items: state.items.map((item) => (item.id === id ? { ...item, status } : item)),
+        isLoading: false,
+      }));
+    } catch (err: any) {
+      set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
+      throw err;
+    }
+  },
 
+  updateLampiran: async (id, lampiran) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetchApi(`/jurnal/${id}/lampiran`, {
+        method: 'PATCH',
+        body: JSON.stringify({ lampiran }),
+      });
+      if (!res.ok) {
+        // Fallback to full patch
+        if (res.status === 404) {
+          const updateRes = await fetchApi(`/jurnal/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ lampiran }),
+          });
+          if (!updateRes.ok) throw new Error('Gagal memperbarui lampiran');
+        } else {
+          throw new Error('Gagal memperbarui lampiran');
+        }
+      }
+
+      set((state) => ({
+        items: state.items.map((item) => (item.id === id ? { ...item, lampiran } : item)),
+        isLoading: false,
+      }));
+    } catch (err: any) {
+      set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
+      throw err;
+    }
+  },
+
+  remove: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetchApi(`/jurnal/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Gagal menghapus jurnal');
+      
+      set((state) => ({
+        items: state.items.filter((item) => item.id !== id),
+        isLoading: false,
+      }));
+    } catch (err: any) {
+      set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
+      throw err;
+    }
+  },
+}));

@@ -1,8 +1,10 @@
 import { useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
 import TabBar, { TabPanel } from '../../components/ui/TabBar';
 import DaftarAkunTab from './CoaTabDaftar';
 import CoaTabSaldoAwal from './CoaTabSaldoAwal';
+import { useCoaStore } from '../../store/coaStore';
 
 const TABS = [
   { key: 'daftar', label: 'Daftar akun' },
@@ -12,6 +14,11 @@ const TABS = [
 export default function CoaPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') === 'saldo_awal' ? 'saldo_awal' : 'daftar';
+  
+  const { fetch } = useCoaStore();
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
   return (
     <>

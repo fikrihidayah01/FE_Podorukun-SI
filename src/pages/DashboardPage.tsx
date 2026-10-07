@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   PiHandCoins,
@@ -71,6 +72,13 @@ function Donut({ parts, total }: { parts: { key: string; value: number; color: s
 
 function KeuanganDashboard() {
   const bulan = bulanIni();
+  useEffect(() => {
+    useProyekStore.getState().fetch();
+    usePinjamanBankStore.getState().fetch();
+    usePinjamanBankStore.getState().fetchReminders(30);
+    // Note: hutangStore, piutangStore, and jurnalStore fetch will be called here if needed.
+  }, []);
+
   const { getSaldoPerKodePembantu } = useHutangStore();
   const kavlings = usePiutangStore((s) => s.items);
   const { pinjamans, getDueReminders } = usePinjamanBankStore();

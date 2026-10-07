@@ -67,10 +67,10 @@
     -4px -4px 12px rgb(255 252 245 / 0.90),
     0 24px 48px -12px rgb(42 31 20 / 0.18);
 
-  /* Pressed / active state — inset */
+  /* Pressed / active state — inset (neutral black & grey-white) */
   --shadow-inset:
-    inset 2px 2px 6px rgb(190 168 140 / 0.40),
-    inset -1px -1px 4px rgb(255 252 245 / 0.75);
+    inset 2px 2px 5px rgba(0, 0, 0, 0.16),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.8);
 
   --animate-dialog-in: dialog-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-in: fade-in 160ms ease-out;
@@ -187,40 +187,47 @@
     padding: 0.375rem 0.625rem;
   }
 
-  /* Control cembung: outset neumorphic emboss for dropdowns and pickers */
+  /* All select dropdowns get the cembung neumorphic format style matching pop up berkas piutang */
+  select.control,
+  select,
   .control-cembung {
-    border: none;
-    background-color: var(--color-surface);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background-color: #f0eff4;
+    border-radius: 0.75rem;
     box-shadow:
-      4px 4px 8px rgba(0, 0, 0, 0.12),
-      -4px -4px 8px rgba(255, 255, 255, 0.9),
-      inset 0 1px 2px rgba(0, 0, 0, 0.08),
-      inset 0 -1px 2px rgba(255, 255, 255, 0.6);
+      4px 4px 8px rgba(0, 0, 0, 0.16),
+      -4px -4px 8px rgba(255, 255, 255, 0.9);
     cursor: pointer;
+    transition: all 140ms ease;
   }
 
+  select.control:hover:not(:disabled):not([readonly]),
+  select:hover:not(:disabled):not([readonly]),
   .control-cembung:hover:not(:disabled):not([readonly]) {
-    border: none;
+    background-color: #e6e5ea;
+    border-color: rgba(255, 255, 255, 0.8);
     box-shadow:
-      5px 5px 10px rgba(0, 0, 0, 0.15),
-      -5px -5px 10px rgba(255, 255, 255, 1),
-      inset 0 1px 2px rgba(0, 0, 0, 0.08),
-      inset 0 -1px 2px rgba(255, 255, 255, 0.6);
+      5px 5px 10px rgba(0, 0, 0, 0.18),
+      -5px -5px 10px rgba(255, 255, 255, 0.95);
   }
 
+  select.control:focus-visible,
+  select:focus-visible,
   .control-cembung:focus-visible {
     outline: none;
-    border: none;
+    border-color: var(--color-brand-600);
     box-shadow:
-      4px 4px 8px rgba(0, 0, 0, 0.12),
+      4px 4px 8px rgba(0, 0, 0, 0.16),
       -4px -4px 8px rgba(255, 255, 255, 0.9),
-      inset 0 1px 2px rgba(0, 0, 0, 0.08),
-      inset 0 -1px 2px rgba(255, 255, 255, 0.6),
       0 0 0 3px rgb(26 107 90 / 0.14);
   }
 
+  select.control:active:not(:disabled),
+  select:active:not(:disabled),
   .control-cembung:active:not(:disabled) {
-    box-shadow: var(--shadow-inset);
+    box-shadow:
+      inset 2px 2px 4px rgba(0, 0, 0, 0.2),
+      inset -2px -2px 4px rgba(255, 255, 255, 0.7);
   }
 
   textarea.control {

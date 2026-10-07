@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { PiArrowsClockwise, PiReceipt, PiFileText, PiCheckCircle, PiHourglassMedium } from 'react-icons/pi';
 import { usePiutangStore, TIPE_TRANSAKSI_LABELS, type StatusBast, type TipeTransaksi, type KavlingTagihan } from '../../store/piutangStore';
 import { useProyekStore } from '../../store/proyekStore';
@@ -19,8 +19,12 @@ const dibayarOf = (kv: KavlingTagihan) => kv.periodeAngsuran.reduce((s, p) => s 
 const sisaOf = (kv: KavlingTagihan) => Math.max(0, kv.nilaiSppr - dibayarOf(kv));
 
 export default function PiutangPage() {
-  const { items } = usePiutangStore();
+  const { items, fetchItems } = usePiutangStore();
   const { items: proyeks } = useProyekStore();
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   const [selectedProyek, setSelectedProyek] = useState('');
   const [selectedBast, setSelectedBast] = useState<StatusBast | 'semua'>('belum_bast');

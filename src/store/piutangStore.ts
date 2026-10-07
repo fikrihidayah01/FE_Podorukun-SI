@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchApi } from '../lib/api';
 import type { Tone } from '../components/ui/Badge';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -103,290 +103,130 @@ export interface KavlingTagihan {
   riwayatAlokasi?: AlokasiKoreksi[];
 }
 
-// ── Dummy Data ────────────────────────────────────────────────
-// Exact match with screenshot media_1788804367016.png and media_1788804395580.png
-
-const DUMMY_KAVLING: KavlingTagihan[] = [
-  {
-    id: 'kv1',
-    proyekId: 'p1', // Atlantis Hills
-    nomorKavling: 'Kav A7',
-    namaUser: 'Budi Santoso',
-    tipeTransaksi: 'kpr',
-    statusBast: 'belum_bast',
-    nilaiSppr: 500_000_000,
-    tanggalAcuanAngsuran: 15,
-    periodeAwal: '2024-01',
-    totalBulanAngsuran: 12,
-    periodeAngsuran: [
-      {
-        periode: '2024-01',
-        tanggalJatuhTempo: '2024-01-15',
-        tagihan: 25_000_000,
-        dibayar: 25_000_000,
-        tanggalBayar: '2024-01-15',
-        buktiTransaksi: {
-          id: 'bkt-1',
-          nomorBukti: 'TRX/PRT/24/0115',
-          namaBerkas: 'bukti_transfer_bca_jan.pdf',
-          tipe: 'pdf',
-          ukuranBytes: 142000,
-          tanggal: '2024-01-15',
-          keterangan: 'Transfer m-Banking BCA Budi Santoso',
-        },
-      },
-      {
-        periode: '2024-02',
-        tanggalJatuhTempo: '2024-02-15',
-        tagihan: 25_000_000,
-        dibayar: 25_000_000,
-        tanggalBayar: '2024-02-14',
-        buktiTransaksi: {
-          id: 'bkt-2',
-          nomorBukti: 'TRX/PRT/24/0214',
-          namaBerkas: 'struk_atm_feb.jpg',
-          tipe: 'image',
-          ukuranBytes: 285000,
-          tanggal: '2024-02-14',
-          keterangan: 'Setoran ATM Mandiri',
-        },
-      },
-      {
-        periode: '2024-03',
-        tanggalJatuhTempo: '2024-03-15',
-        tagihan: 25_000_000,
-        dibayar: 25_000_000,
-        tanggalBayar: '2024-03-15',
-        buktiTransaksi: {
-          id: 'bkt-3',
-          nomorBukti: 'TRX/PRT/24/0315',
-          namaBerkas: 'kuitansi_prt_mar.pdf',
-          tipe: 'pdf',
-          ukuranBytes: 98000,
-          tanggal: '2024-03-15',
-          keterangan: 'Kuitansi resmi kantor',
-        },
-      },
-      {
-        periode: '2024-04',
-        tanggalJatuhTempo: '2024-04-15',
-        tagihan: 25_000_000,
-        dibayar: 25_000_000,
-        tanggalBayar: '2024-04-15',
-        buktiTransaksi: {
-          id: 'bkt-4',
-          nomorBukti: 'TRX/PRT/24/0415',
-          namaBerkas: 'bukti_transfer_apr.jpg',
-          tipe: 'image',
-          ukuranBytes: 312000,
-          tanggal: '2024-04-15',
-          keterangan: 'Transfer m-Banking BCA',
-        },
-      },
-      { periode: '2024-05', tanggalJatuhTempo: '2024-05-15', tagihan: 25_000_000, dibayar: 0, tanggalBayar: null },
-      { periode: '2024-06', tanggalJatuhTempo: '2024-06-15', tagihan: 25_000_000, dibayar: 0, tanggalBayar: null },
-    ],
-    pembayaranLainnya: [
-      { id: 'pl1', tipe: 'booking_fee', tanggal: '2023-12-10', nominal: 10_000_000, keterangan: 'Booking Fee' },
-      { id: 'pl2', tipe: 'dp', tanggal: '2023-12-28', nominal: 40_000_000, keterangan: 'Uang Muka Penjualan' },
-    ],
-  },
-  {
-    id: 'kv2',
-    proyekId: 'p1', // Atlantis Hills
-    nomorKavling: 'Kav B12',
-    namaUser: 'Sri Wahyuni',
-    tipeTransaksi: 'in_house',
-    statusBast: 'belum_bast',
-    nilaiSppr: 475_000_000,
-    tanggalAcuanAngsuran: 15,
-    periodeAwal: '2024-04',
-    totalBulanAngsuran: 6,
-    // Exact match for media_1788804395580.png (Kav B-05 / B12)
-    periodeAngsuran: [
-      { periode: '2024-04', tanggalJatuhTempo: '2024-04-15', tagihan: 41_000_000, dibayar: 41_000_000, tanggalBayar: '2024-04-15' },
-      { periode: '2024-05', tanggalJatuhTempo: '2024-05-15', tagihan: 41_000_000, dibayar: 41_000_000, tanggalBayar: '2024-05-15' },
-      { periode: '2024-06', tanggalJatuhTempo: '2024-06-15', tagihan: 41_000_000, dibayar: 41_000_000, tanggalBayar: '2024-06-08' },
-      { periode: '2024-07', tanggalJatuhTempo: '2024-07-15', tagihan: 41_000_000, dibayar: 41_000_000, tanggalBayar: '2024-06-09' },
-      { periode: '2024-08', tanggalJatuhTempo: '2024-08-15', tagihan: 41_000_000, dibayar: 25_000_000, tanggalBayar: '2024-08-20' },
-      { periode: '2024-09', tanggalJatuhTempo: '2024-09-15', tagihan: 41_000_000, dibayar: 0, tanggalBayar: null },
-    ],
-    pembayaranLainnya: [
-      { id: 'pl3', tipe: 'booking_fee', tanggal: '2024-03-01', nominal: 10_000_000, keterangan: 'Booking Fee' },
-      { id: 'pl4', tipe: 'dp', tanggal: '2024-03-20', nominal: 37_500_000, keterangan: 'DP In House' },
-    ],
-  },
-  {
-    id: 'kv3',
-    proyekId: 'p3', // Aya Sophia
-    nomorKavling: 'Kav C3',
-    namaUser: 'Agus Priyono',
-    tipeTransaksi: 'cash',
-    statusBast: 'belum_bast',
-    nilaiSppr: 620_000_000,
-    tanggalAcuanAngsuran: 10,
-    periodeAwal: '2024-02',
-    totalBulanAngsuran: 1,
-    periodeAngsuran: [
-      { periode: '2024-02', tanggalJatuhTempo: '2024-02-10', tagihan: 620_000_000, dibayar: 620_000_000, tanggalBayar: '2024-02-08' },
-    ],
-    pembayaranLainnya: [
-      { id: 'pl5', tipe: 'booking_fee', tanggal: '2024-01-15', nominal: 20_000_000, keterangan: 'Booking Fee Cash' },
-    ],
-  },
-  {
-    id: 'kv4',
-    proyekId: 'p3', // Aya Sophia
-    nomorKavling: 'Kav C9',
-    namaUser: 'Dewi Lestari',
-    tipeTransaksi: 'kpr',
-    statusBast: 'belum_bast',
-    nilaiSppr: 545_000_000,
-    tanggalAcuanAngsuran: 25,
-    periodeAwal: '2024-05',
-    totalBulanAngsuran: 12,
-    periodeAngsuran: [
-      { periode: '2024-05', tanggalJatuhTempo: '2024-05-25', tagihan: 27_250_000, dibayar: 27_250_000, tanggalBayar: '2024-05-24' },
-      { periode: '2024-06', tanggalJatuhTempo: '2024-06-25', tagihan: 27_250_000, dibayar: 0, tanggalBayar: null },
-      { periode: '2024-07', tanggalJatuhTempo: '2024-07-25', tagihan: 27_250_000, dibayar: 0, tanggalBayar: null },
-    ],
-    pembayaranLainnya: [
-      { id: 'pl6', tipe: 'booking_fee', tanggal: '2024-04-10', nominal: 10_000_000, keterangan: 'Booking Fee KPR' },
-    ],
-  },
-];
-
 // ── Store Interface ───────────────────────────────────────────
 
 interface TagihanState {
   items: KavlingTagihan[];
+  isLoading: boolean;
+  error: string | null;
+  fetchItems: () => Promise<void>;
   getById: (id: string) => KavlingTagihan | undefined;
   getTotalNilaiKontrak: (proyekId?: string) => number;
   getTotalDibayar: (proyekId?: string) => number;
   getTotalSisa: (proyekId?: string) => number;
-  updateAlokasi: (kavlingId: string, periode: string, dibayar: number, tanggalBayar: string | null) => void;
-  updateJadwalAngsuran: (kavlingId: string, periode: string, tagihan: number, tanggalJatuhTempo: string) => void;
-  updateBuktiTransaksi: (kavlingId: string, periode: string, bukti: BuktiTransaksi | null) => void;
-  addFromLegal: (legalData: any) => void;
+  updateAlokasi: (kavlingId: string, periode: string, dibayar: number, tanggalBayar: string | null) => Promise<void>;
+  updateJadwalAngsuran: (kavlingId: string, periode: string, tagihan: number, tanggalJatuhTempo: string) => Promise<void>;
+  updateBuktiTransaksi: (kavlingId: string, periode: string, bukti: BuktiTransaksi | null) => Promise<void>;
+  addFromLegal: (legalData: any) => Promise<void>;
 }
 
-export const usePiutangStore = create<TagihanState>()(
-  persist(
-    (set, get) => ({
-      items: DUMMY_KAVLING,
+export const usePiutangStore = create<TagihanState>((set, get) => ({
+  items: [],
+  isLoading: false,
+  error: null,
 
-      getById: (id) => get().items.find((k) => k.id === id),
+  fetchItems: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetchApi('/piutang');
+      if (!response.ok) throw new Error('Gagal mengambil data piutang');
+      const data = await response.json();
+      set({ items: data, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
 
-      getTotalNilaiKontrak: (proyekId) => {
-        const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
-        return filtered.reduce((s, k) => s + k.nilaiSppr, 0);
-      },
+  getById: (id) => get().items.find((k) => k.id === id),
 
-      getTotalDibayar: (proyekId) => {
-        const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
-        return filtered.reduce((s, k) => {
-          const dibayarAngsuran = k.periodeAngsuran.reduce((sum, p) => sum + p.dibayar, 0);
-          return s + dibayarAngsuran;
-        }, 0);
-      },
+  getTotalNilaiKontrak: (proyekId) => {
+    const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
+    return filtered.reduce((s, k) => s + k.nilaiSppr, 0);
+  },
 
-      getTotalSisa: (proyekId) => {
-        const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
-        return filtered.reduce((s, k) => {
-          const dibayarAngsuran = k.periodeAngsuran.reduce((sum, p) => sum + p.dibayar, 0);
-          return s + (k.nilaiSppr - dibayarAngsuran);
-        }, 0);
-      },
+  getTotalDibayar: (proyekId) => {
+    const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
+    return filtered.reduce((s, k) => {
+      const dibayarAngsuran = k.periodeAngsuran.reduce((sum, p) => sum + p.dibayar, 0);
+      return s + dibayarAngsuran;
+    }, 0);
+  },
 
-      updateAlokasi: (kavlingId, periode, dibayar, tanggalBayar) => {
-        set((state) => ({
-          items: state.items.map((k) => {
-            if (k.id !== kavlingId) return k;
-            return {
-              ...k,
-              periodeAngsuran: k.periodeAngsuran.map((p) => {
-                if (p.periode !== periode) return p;
-                return { ...p, dibayar, tanggalBayar };
-              }),
-            };
-          }),
-        }));
-      },
+  getTotalSisa: (proyekId) => {
+    const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
+    return filtered.reduce((s, k) => {
+      const dibayarAngsuran = k.periodeAngsuran.reduce((sum, p) => sum + p.dibayar, 0);
+      return s + (k.nilaiSppr - dibayarAngsuran);
+    }, 0);
+  },
 
-      updateJadwalAngsuran: (kavlingId, periode, tagihan, tanggalJatuhTempo) => {
-        set((state) => ({
-          items: state.items.map((k) => {
-            if (k.id !== kavlingId) return k;
-            const updatedPeriode = k.periodeAngsuran.map((p) => {
-              if (p.periode !== periode) return p;
-              return { ...p, tagihan, tanggalJatuhTempo };
-            });
-            const totalTagihan = updatedPeriode.reduce((sum, p) => sum + p.tagihan, 0);
-            const totalLainnya = (k.pembayaranLainnya || []).reduce((sum, p) => sum + p.nominal, 0);
-            return {
-              ...k,
-              nilaiSppr: totalTagihan + totalLainnya,
-              periodeAngsuran: updatedPeriode,
-            };
-          }),
-        }));
-      },
+  updateAlokasi: async (kavlingId, periode, dibayar, tanggalBayar) => {
+    try {
+      const response = await fetchApi(`/piutang/${kavlingId}/alokasi`, {
+        method: 'PUT',
+        body: JSON.stringify({ periode, dibayar, tanggalBayar }),
+      });
+      if (!response.ok) throw new Error('Gagal update alokasi');
+      const updated = await response.json();
+      set((state) => ({
+        items: state.items.map((k) => (k.id === kavlingId ? updated : k)),
+      }));
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
 
-      updateBuktiTransaksi: (kavlingId, periode, bukti) => {
-        set((state) => ({
-          items: state.items.map((k) => {
-            if (k.id !== kavlingId) return k;
-            return {
-              ...k,
-              periodeAngsuran: k.periodeAngsuran.map((p) => {
-                if (p.periode !== periode) return p;
-                return { ...p, buktiTransaksi: bukti };
-              }),
-            };
-          }),
-        }));
-      },
-      
-      addFromLegal: (legalData: any) => {
-        set((state) => {
-          // Hanya tambahkan jika belum ada di Piutang (berdasarkan legalData.id)
-          // Dalam skenario nyata, kavlingId bisa jadi unik per transaksi jika belum serah terima.
-          const exists = state.items.some((k) => k.id === legalData.id);
-          if (exists) return state;
+  updateJadwalAngsuran: async (kavlingId, periode, tagihan, tanggalJatuhTempo) => {
+    try {
+      const response = await fetchApi(`/piutang/${kavlingId}/jadwal`, {
+        method: 'PUT',
+        body: JSON.stringify({ periode, tagihan, tanggalJatuhTempo }),
+      });
+      if (!response.ok) throw new Error('Gagal update jadwal');
+      const updated = await response.json();
+      set((state) => ({
+        items: state.items.map((k) => (k.id === kavlingId ? updated : k)),
+      }));
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
 
-          const jadwal = legalData.jadwalPembayaran;
-          const periodeAngsuran: PeriodeAngsuran[] = jadwal?.baris?.map((b: any) => {
-            const date = new Date(b.tanggal);
-            const periodeStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            return {
-              periode: periodeStr,
-              tanggalJatuhTempo: b.tanggal,
-              tagihan: b.jumlah,
-              dibayar: 0,
-              tanggalBayar: null
-            };
-          }) ?? [];
-
-          const newTagihan: KavlingTagihan = {
-            id: legalData.id,
-            proyekId: legalData.perumahanId,
-            nomorKavling: legalData.kavlingId, // Idealnya ambil nomor aktual
-            namaUser: legalData.pembeli.nama,
-            tipeTransaksi: legalData.tipeTransaksi.toLowerCase() as TipeTransaksi,
-            statusBast: 'belum_bast',
-            nilaiSppr: legalData.hargaAwal + legalData.bphtb + legalData.ajbBbn,
-            tanggalAcuanAngsuran: parseInt(jadwal?.tanggalAcuan ?? '1', 10) || 1,
-            periodeAwal: periodeAngsuran.length > 0 ? periodeAngsuran[0].periode : '',
-            totalBulanAngsuran: periodeAngsuran.length,
-            periodeAngsuran,
-            pembayaranLainnya: [],
-          };
-
-          return { items: [...state.items, newTagihan] };
-        });
-      },
-
-    }),
-    { name: 'si-tagihan-v2' }
-  )
-);
+  updateBuktiTransaksi: async (kavlingId, periode, bukti) => {
+    try {
+      const response = await fetchApi(`/piutang/${kavlingId}/bukti`, {
+        method: 'PUT',
+        body: JSON.stringify({ periode, buktiTransaksi: bukti }),
+      });
+      if (!response.ok) throw new Error('Gagal update bukti transaksi');
+      const updated = await response.json();
+      set((state) => ({
+        items: state.items.map((k) => (k.id === kavlingId ? updated : k)),
+      }));
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
+  
+  addFromLegal: async (legalData: any) => {
+    try {
+      const response = await fetchApi('/piutang/legal', {
+        method: 'POST',
+        body: JSON.stringify(legalData),
+      });
+      if (!response.ok) throw new Error('Gagal menambahkan dari legal');
+      const newTagihan = await response.json();
+      set((state) => {
+        const exists = state.items.some((k) => k.id === newTagihan.id);
+        if (exists) return state;
+        return { items: [...state.items, newTagihan] };
+      });
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
+}));

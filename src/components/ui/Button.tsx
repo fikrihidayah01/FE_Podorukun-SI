@@ -7,17 +7,18 @@ type Size = 'sm' | 'md';
 
 const VARIANT: Record<Variant, string> = {
   primary:
-    'bg-brand-600 text-white shadow-[3px_3px_8px_rgb(190_168_140/0.35),-2px_-2px_6px_rgb(255_252_245/0.70)] hover:bg-brand-700 active:shadow-[inset_2px_2px_5px_rgb(15_69_56/0.35),inset_-1px_-1px_3px_rgb(255_255_255/0.15)]',
+    'bg-brand-600 text-white border border-white/30 shadow-[4px_4px_8px_rgba(0,0,0,0.18),-4px_-4px_8px_rgba(255,255,255,0.9)] hover:bg-brand-700 active:scale-95 active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.35),inset_-1px_-1px_3px_rgba(255,255,255,0.2)]',
   secondary:
-    'bg-surface text-ink shadow-[3px_3px_8px_rgb(190_168_140/0.35),-2px_-2px_6px_rgb(255_252_245/0.80)] hover:bg-subtle active:shadow-[inset_2px_2px_5px_rgb(190_168_140/0.30),inset_-1px_-1px_3px_rgb(255_252_245/0.70)]',
+    'bg-[#f0eff4] text-ink border border-white/60 shadow-[4px_4px_8px_rgba(0,0,0,0.16),-4px_-4px_8px_rgba(255,255,255,0.9)] hover:bg-[#e6e5ea] active:scale-95 active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]',
   ghost: 'text-ink-2 hover:bg-neutral-soft hover:text-ink active:bg-line',
-  danger: 'bg-danger text-white shadow-[3px_3px_8px_rgb(190_168_140/0.30)] hover:bg-[#9a1d14] active:shadow-[inset_2px_2px_5px_rgb(100_20_15/0.30)]',
+  danger:
+    'bg-danger text-white border border-white/30 shadow-[4px_4px_8px_rgba(0,0,0,0.18),-4px_-4px_8px_rgba(255,255,255,0.9)] hover:bg-[#9a1d14] active:scale-95 active:shadow-[inset_2px_2px_5px_rgba(100,20,15,0.35)]',
   'danger-ghost': 'text-danger hover:bg-danger-soft active:bg-[#fbdcd8]',
 };
 
 const SIZE: Record<Size, string> = {
-  sm: 'h-8 gap-1.5 px-3 text-[13px]',
-  md: 'h-10 gap-2 px-4 text-sm',
+  sm: 'h-8 gap-1.5 px-3.5 text-xs font-bold rounded-xl',
+  md: 'h-10 gap-2 px-4 text-sm font-semibold rounded-xl',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

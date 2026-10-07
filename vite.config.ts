@@ -14,6 +14,7 @@ export default defineConfig({
         target: 'https://podorukunsi.my.id',
         changeOrigin: true,
         secure: false,
+        cookieDomainRewrite: 'localhost',
       },
     },
   },

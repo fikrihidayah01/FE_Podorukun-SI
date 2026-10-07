@@ -113,7 +113,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {isLocalhost && (
+          {false && (
             <div className="mt-5 rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-3.5 text-xs text-amber-900">
               <div className="flex items-center justify-between font-semibold text-amber-800">
                 <span>⚡ Dev Auto Login (Localhost Only)</span>

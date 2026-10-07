@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchApi } from '../lib/api';
 
 // ── Kategori Hutang ──────────────────────────────────────────
 export type KategoriHutang =
@@ -20,7 +20,6 @@ export const KATEGORI_HUTANG_LABELS: Record<KategoriHutang, string> = {
   antar_proyek: 'Antar proyek',
   bank: 'Bank',
 };
-
 
 // ── Kode Pembantu (pihak hutang) ─────────────────────────────
 export interface KodePembantu {
@@ -44,10 +43,9 @@ export interface MutasiHutang {
   nominal: number;
   akunCoaId?: string;
   referensi?: string;
-  lampiran?: string; // filename only (no actual storage)
-  // Khusus antar proyek
+  lampiran?: string;
   proyekLawanId?: string;
-  mirrorMutasiId?: string; // ID of the mirrored entry
+  mirrorMutasiId?: string;
   createdAt: string;
 }
 
@@ -64,282 +62,136 @@ export interface SaldoKodePembantu {
 // ── Store ────────────────────────────────────────────────────
 interface HutangState {
   kodePembantus: KodePembantu[];
-  mutasis: MutasiHutang[];
+  mutasis: Record<string, MutasiHutang[]>; // key: kodePembantuId
+  mutasiAntarProyek: MutasiHutang[];
+  saldos: SaldoKodePembantu[];
+  isLoading: boolean;
+  error: string | null;
 
-  // Kode Pembantu CRUD
-  addKodePembantu: (data: Omit<KodePembantu, 'id'>) => string;
-  removeKodePembantu: (id: string) => void;
+  fetchKodePembantus: (proyekId?: string, kategori?: KategoriHutang) => Promise<void>;
+  addKodePembantu: (data: Omit<KodePembantu, 'id'>) => Promise<string>;
+  removeKodePembantu: (id: string) => Promise<void>;
 
-  // Mutasi CRUD
-  addMutasi: (data: Omit<MutasiHutang, 'id' | 'createdAt' | 'mirrorMutasiId'>) => void;
-  removeMutasi: (id: string) => void;
+  fetchMutasiByKodePembantu: (kodePembantuId: string) => Promise<void>;
+  fetchMutasiAntarProyek: (proyekId?: string) => Promise<void>;
+  addMutasi: (data: Omit<MutasiHutang, 'id' | 'createdAt' | 'mirrorMutasiId'>) => Promise<void>;
+  removeMutasi: (id: string) => Promise<void>;
 
-  // Computed / queries
+  fetchSaldo: (bulan: string) => Promise<void>;
+
+  // Synchronous getters (reads from state, for UI compatibility)
   getSaldoPerKodePembantu: (
-    bulan: string, // 'YYYY-MM'
+    bulan?: string,
     proyekId?: string,
     kategori?: KategoriHutang
   ) => SaldoKodePembantu[];
-
-  getTotalHutang: (bulan: string) => number;
-  getTotalByKategori: (bulan: string, kategori: KategoriHutang) => number;
-  getDueSoonCount: (hari: number) => number;
+  getTotalHutang: () => number;
+  getTotalByKategori: (kategori: KategoriHutang) => number;
   getMutasiByKodePembantu: (kodePembantuId: string) => MutasiHutang[];
   getMutasiAntarProyek: (proyekId?: string) => MutasiHutang[];
 }
 
-// ── Dummy Data ───────────────────────────────────────────────
-const DUMMY_KODE_PEMBANTU: KodePembantu[] = [
-  { id: 'kp1', nama: 'Pak Warsito (pemilik lahan)', proyekId: 'p1', kategori: 'lahan' },
-  { id: 'kp2', nama: 'Bank Mandiri', proyekId: 'p2', kategori: 'bank' },
-  { id: 'kp3', nama: 'Aya Sophia', proyekId: 'p1', kategori: 'antar_proyek' },
-  { id: 'kp4', nama: 'Arohma (investor)', proyekId: 'p2', kategori: 'pihak_ketiga' },
-  { id: 'kp5', nama: 'PT Beton Jaya', proyekId: 'p1', kategori: 'pihak_ketiga' },
-  { id: 'kp6', nama: 'Kantor Pajak', proyekId: 'p1', kategori: 'ppn' },
-];
+export const useHutangStore = create<HutangState>((set, get) => ({
+  kodePembantus: [],
+  mutasis: {},
+  mutasiAntarProyek: [],
+  saldos: [],
+  isLoading: false,
+  error: null,
 
-const now = new Date();
-const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-const DUMMY_MUTASI: MutasiHutang[] = [
-  // Pak Warsito — lahan — saldo awal 2.476.557.881
-  {
-    id: 'm1', proyekId: 'p1', kodePembantuId: 'kp1', kategori: 'lahan',
-    tanggal: '2026-01-01', uraian: 'Saldo awal hutang lahan', jenisMutasi: 'kredit',
-    nominal: 2476557881, createdAt: '2026-01-01T00:00:00Z',
+  fetchKodePembantus: async (proyekId, kategori) => {
+    set({ isLoading: true, error: null });
+    try {
+      const p = new URLSearchParams();
+      if (proyekId) p.append('proyekId', proyekId);
+      if (kategori) p.append('kategori', kategori);
+      const res = await fetchApi('/kode-pembantu?' + p.toString());
+      const json = await res.json();
+      if (res.ok) set({ kodePembantus: json.data || [] });
+    } catch (e) {
+      set({ error: 'Gagal memuat pihak/rekanan' });
+    } finally {
+      set({ isLoading: false });
+    }
   },
-  {
-    id: 'm1_curr', proyekId: 'p1', kodePembantuId: 'kp1', kategori: 'lahan',
-    tanggal: `${currentYm}-05`, uraian: 'Pembayaran termin lahan tahap 3', jenisMutasi: 'debit',
-    nominal: 150000000, createdAt: `${currentYm}-05T00:00:00Z`,
+
+  addKodePembantu: async (data) => {
+    const res = await fetchApi('/kode-pembantu', { method: 'POST', body: JSON.stringify(data) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message);
+    await get().fetchKodePembantus();
+    return json.data.id;
   },
-  // Bank Mandiri — bank — saldo awal 40.900.400.000, mutasi debit 300jt
-  {
-    id: 'm2', proyekId: 'p2', kodePembantuId: 'kp2', kategori: 'bank',
-    tanggal: '2026-01-01', uraian: 'Saldo awal pinjaman bank', jenisMutasi: 'kredit',
-    nominal: 40900400000, createdAt: '2026-01-01T00:00:00Z',
+
+  removeKodePembantu: async (id) => {
+    const res = await fetchApi(`/kode-pembantu/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error((await res.json()).message);
+    await get().fetchKodePembantus();
   },
-  {
-    id: 'm3', proyekId: 'p2', kodePembantuId: 'kp2', kategori: 'bank',
-    tanggal: `${currentYm}-15`, uraian: 'Pembayaran angsuran pokok', jenisMutasi: 'debit',
-    nominal: 300000000, createdAt: `${currentYm}-15T00:00:00Z`,
+
+  fetchMutasiByKodePembantu: async (kodePembantuId) => {
+    try {
+      const res = await fetchApi(`/hutang/mutasi?kodePembantuId=${kodePembantuId}`);
+      const json = await res.json();
+      if (res.ok) {
+        set((state) => ({ mutasis: { ...state.mutasis, [kodePembantuId]: json.data || [] } }));
+      }
+    } catch (e) {}
   },
-  // Aya Sophia — antar proyek — saldo awal 2.161.240.190, kredit 25jt
-  {
-    id: 'm4', proyekId: 'p1', kodePembantuId: 'kp3', kategori: 'antar_proyek',
-    tanggal: '2026-01-01', uraian: 'Saldo awal hutang antar proyek', jenisMutasi: 'kredit',
-    nominal: 2161240190, proyekLawanId: 'p3', createdAt: '2026-01-01T00:00:00Z',
+
+  fetchMutasiAntarProyek: async (proyekId) => {
+    try {
+      const res = await fetchApi(`/hutang/antar-proyek${proyekId ? '?proyekId=' + proyekId : ''}`);
+      const json = await res.json();
+      if (res.ok) {
+        set({ mutasiAntarProyek: json.data || [] });
+      }
+    } catch (e) {}
   },
-  {
-    id: 'm5', proyekId: 'p1', kodePembantuId: 'kp3', kategori: 'antar_proyek',
-    tanggal: `${currentYm}-12`, uraian: 'Pinjaman operasional dari Aya Sophia', jenisMutasi: 'kredit',
-    nominal: 25000000, proyekLawanId: 'p3', mirrorMutasiId: 'm5_mirror',
-    createdAt: `${currentYm}-12T00:00:00Z`,
+
+  addMutasi: async (data) => {
+    const res = await fetchApi('/hutang/mutasi', { method: 'POST', body: JSON.stringify(data) });
+    if (!res.ok) throw new Error((await res.json()).message);
+    // UI can call fetchMutasi/fetchSaldo directly after adding
   },
-  // Investor Arohma — pihak ketiga — saldo awal 5mily, debit 500jt
-  {
-    id: 'm6', proyekId: 'p2', kodePembantuId: 'kp4', kategori: 'pihak_ketiga',
-    tanggal: '2026-01-01', uraian: 'Saldo awal hutang investor', jenisMutasi: 'kredit',
-    nominal: 5000000000, createdAt: '2026-01-01T00:00:00Z',
+
+  removeMutasi: async (id) => {
+    const res = await fetchApi(`/hutang/mutasi/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error((await res.json()).message);
   },
-  {
-    id: 'm7', proyekId: 'p2', kodePembantuId: 'kp4', kategori: 'pihak_ketiga',
-    tanggal: `${currentYm}-10`, uraian: 'Pengembalian investasi sebagian', jenisMutasi: 'debit',
-    nominal: 500000000, createdAt: `${currentYm}-10T00:00:00Z`,
+
+  fetchSaldo: async (bulan) => {
+    try {
+      const res = await fetchApi(`/hutang/saldo?bulan=${bulan}`);
+      const json = await res.json();
+      if (res.ok) {
+        set({ saldos: json.data || [] });
+      }
+    } catch (e) {}
   },
-];
 
-// ── Helper ───────────────────────────────────────────────────
-function parseBulan(bulan: string): { year: number; month: number } {
-  const [y, m] = bulan.split('-').map(Number);
-  return { year: y, month: m };
-}
+  getSaldoPerKodePembantu: (_bulan, proyekId, kategori) => {
+    let result = get().saldos;
+    if (proyekId) result = result.filter((s) => s.kodePembantu.proyekId === proyekId);
+    if (kategori) result = result.filter((s) => s.kodePembantu.kategori === kategori);
+    return result;
+  },
 
-function isBefore(tanggal: string, bulan: string): boolean {
-  const { year, month } = parseBulan(bulan);
-  const d = new Date(tanggal);
-  return d < new Date(year, month - 1, 1);
-}
+  getTotalHutang: () => {
+    return get().saldos.reduce((sum, s) => sum + s.saldoAkhir, 0);
+  },
 
-function isInMonth(tanggal: string, bulan: string): boolean {
-  const { year, month } = parseBulan(bulan);
-  const d = new Date(tanggal);
-  return d.getFullYear() === year && d.getMonth() === month - 1;
-}
+  getTotalByKategori: (kategori) => {
+    return get().saldos.filter((s) => s.kodePembantu.kategori === kategori).reduce((sum, s) => sum + s.saldoAkhir, 0);
+  },
 
-// ── Store Implementation ─────────────────────────────────────
-export const useHutangStore = create<HutangState>()(
-  persist(
-    (set, get) => ({
-      kodePembantus: DUMMY_KODE_PEMBANTU,
-      mutasis: DUMMY_MUTASI,
+  getMutasiByKodePembantu: (kodePembantuId) => {
+    return get().mutasis[kodePembantuId] || [];
+  },
 
-      addKodePembantu: (data) => {
-        const id = crypto.randomUUID();
-        set((state) => ({
-          kodePembantus: [...state.kodePembantus, { ...data, id }],
-        }));
-        return id;
-      },
-
-      removeKodePembantu: (id) =>
-        set((state) => ({
-          kodePembantus: state.kodePembantus.filter((kp) => kp.id !== id),
-        })),
-
-      addMutasi: (data) => {
-        const id = crypto.randomUUID();
-        const now = new Date().toISOString();
-
-        set((state) => {
-          const newMutasis = [
-            ...state.mutasis,
-            { ...data, id, mirrorMutasiId: undefined, createdAt: now },
-          ];
-
-          // Mirror entry for antar_proyek
-          if (data.kategori === 'antar_proyek' && data.proyekLawanId) {
-            const mirrorId = crypto.randomUUID();
-
-            // Find or create mirror kode pembantu in the other project
-            let mirrorKpId: string | undefined;
-            const sourceProyekNama = (() => {
-              // Just use the project ID as label lookup
-              const p = state.kodePembantus.find((kp) => kp.proyekId === data.proyekId);
-              return p?.nama ?? data.proyekId;
-            })();
-
-            const existingMirrorKp = state.kodePembantus.find(
-              (kp) => kp.proyekId === data.proyekLawanId && kp.kategori === 'antar_proyek'
-                && kp.nama.includes(data.proyekId)
-            );
-
-            if (existingMirrorKp) {
-              mirrorKpId = existingMirrorKp.id;
-            } else {
-              mirrorKpId = crypto.randomUUID();
-              // Add mirror kode pembantu
-              state.kodePembantus = [
-                ...state.kodePembantus,
-                {
-                  id: mirrorKpId,
-                  nama: `${sourceProyekNama} (piutang)`,
-                  proyekId: data.proyekLawanId,
-                  kategori: 'antar_proyek',
-                },
-              ];
-            }
-
-            // Mirror: debit hutang di peminjam = kredit piutang di pemberi, dan sebaliknya
-            newMutasis.push({
-              id: mirrorId,
-              proyekId: data.proyekLawanId,
-              kodePembantuId: mirrorKpId,
-              kategori: 'antar_proyek',
-              tanggal: data.tanggal,
-              uraian: `[Mirror] ${data.uraian}`,
-              jenisMutasi: data.jenisMutasi, // same direction — kredit di peminjam = kredit (piutang) di pemberi
-              nominal: data.nominal,
-              akunCoaId: data.akunCoaId,
-              referensi: data.referensi,
-              proyekLawanId: data.proyekId,
-              mirrorMutasiId: id,
-              createdAt: now,
-            });
-
-            // Update original mutasi with mirror reference
-            const origIdx = newMutasis.findIndex((m) => m.id === id);
-            if (origIdx >= 0) {
-              newMutasis[origIdx] = { ...newMutasis[origIdx], mirrorMutasiId: mirrorId };
-            }
-          }
-
-          return { mutasis: newMutasis, kodePembantus: [...state.kodePembantus] };
-        });
-      },
-
-      removeMutasi: (id) =>
-        set((state) => {
-          const mutasi = state.mutasis.find((m) => m.id === id);
-          // Also remove mirror if exists
-          const idsToRemove = new Set([id]);
-          if (mutasi?.mirrorMutasiId) {
-            idsToRemove.add(mutasi.mirrorMutasiId);
-          }
-          // Check if any other mutasi mirrors this one
-          state.mutasis
-            .filter((m) => m.mirrorMutasiId === id)
-            .forEach((m) => idsToRemove.add(m.id));
-
-          return {
-            mutasis: state.mutasis.filter((m) => !idsToRemove.has(m.id)),
-          };
-        }),
-
-      getSaldoPerKodePembantu: (bulan, proyekId, kategori) => {
-        const { kodePembantus, mutasis } = get();
-
-        let filteredKp = kodePembantus;
-        if (proyekId) filteredKp = filteredKp.filter((kp) => kp.proyekId === proyekId);
-        if (kategori) filteredKp = filteredKp.filter((kp) => kp.kategori === kategori);
-
-        return filteredKp.map((kp) => {
-          const kpMutasis = mutasis.filter((m) => m.kodePembantuId === kp.id);
-
-          // Saldo awal = semua mutasi sebelum bulan ini
-          const beforeMutasis = kpMutasis.filter((m) => isBefore(m.tanggal, bulan));
-          const saldoAwal = beforeMutasis.reduce((sum, m) => {
-            return sum + (m.jenisMutasi === 'kredit' ? m.nominal : -m.nominal);
-          }, 0);
-
-          // Mutasi bulan ini
-          const monthMutasis = kpMutasis.filter((m) => isInMonth(m.tanggal, bulan));
-          const totalDebit = monthMutasis
-            .filter((m) => m.jenisMutasi === 'debit')
-            .reduce((sum, m) => sum + m.nominal, 0);
-          const totalKredit = monthMutasis
-            .filter((m) => m.jenisMutasi === 'kredit')
-            .reduce((sum, m) => sum + m.nominal, 0);
-          const mutasiBulan = totalKredit - totalDebit;
-
-          return {
-            kodePembantu: kp,
-            saldoAwal,
-            totalDebit,
-            totalKredit,
-            mutasiBulan,
-            saldoAkhir: saldoAwal + mutasiBulan,
-          };
-        });
-      },
-
-      getTotalHutang: (bulan) => {
-        const saldos = get().getSaldoPerKodePembantu(bulan);
-        return saldos.reduce((sum, s) => sum + s.saldoAkhir, 0);
-      },
-
-      getTotalByKategori: (bulan, kategori) => {
-        const saldos = get().getSaldoPerKodePembantu(bulan, undefined, kategori);
-        return saldos.reduce((sum, s) => sum + s.saldoAkhir, 0);
-      },
-
-      getDueSoonCount: (_hari) => {
-        // Placeholder — actual implementation tied to pinjamanBank jatuh tempo
-        return 2;
-      },
-
-      getMutasiByKodePembantu: (kodePembantuId) => {
-        return get().mutasis
-          .filter((m) => m.kodePembantuId === kodePembantuId)
-          .sort((a, b) => a.tanggal.localeCompare(b.tanggal));
-      },
-
-      getMutasiAntarProyek: (proyekId) => {
-        return get().mutasis
-          .filter((m) => m.kategori === 'antar_proyek' && (!proyekId || m.proyekId === proyekId))
-          .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-      },
-    }),
-    { name: 'si-hutang-v3' }
-  )
-);
+  getMutasiAntarProyek: (proyekId) => {
+    let result = get().mutasiAntarProyek;
+    if (proyekId) result = result.filter((m) => m.proyekId === proyekId);
+    return result;
+  },
+}));

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { PiPlus, PiPencilSimple, PiTrash, PiMagnifyingGlass, PiClockCounterClockwise, PiLockSimple, PiTreeStructure } from 'react-icons/pi';
+import { PiPlus, PiPencilSimple, PiTrash, PiMagnifyingGlass, PiClockCounterClockwise, PiLockSimple, PiTreeStructure, PiSpinnerGap } from 'react-icons/pi';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -47,7 +47,7 @@ const ATURAN = [
 ] as const;
 
 export default function DaftarAkunTab() {
-  const { items, riwayat, add, update, remove } = useCoaStore();
+  const { items, riwayat, add, update, remove, isLoading, error } = useCoaStore();
   const jurnals = useJurnalStore((s) => s.items);
   const periodes = useSaldoAwalStore((s) => s.periodes);
   const userName = useAuthStore((s) => s.user?.name ?? 'Sistem');
@@ -114,7 +114,7 @@ export default function DaftarAkunTab() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
     const payload: Omit<Akun, 'id'> = {
       kodeAkun: form.kodeAkun!.trim(),
@@ -123,24 +123,28 @@ export default function DaftarAkunTab() {
       tipeSaldo: form.tipeSaldo as TipeSaldo,
       klasifikasi: form.klasifikasi as KlasifikasiAkun,
       status: form.status as StatusAkun,
-      akunIndukId: form.akunIndukId || undefined,
+      akunIndukId: form.akunIndukId || null,
       wajibKodePembantu: form.wajibKodePembantu || false,
       wajibProyek: form.wajibProyek || false,
       isKasBank: form.isKasBank || false,
-      kasBankInduk: form.isKasBank ? form.kasBankInduk : undefined,
-      kategoriHutangPiutang: ['hutang', 'aktiva'].includes(form.kategori as string) ? form.kategoriHutangPiutang : undefined,
+      kasBankInduk: form.isKasBank ? form.kasBankInduk : null,
+      kategoriHutangPiutang: ['hutang', 'aktiva'].includes(form.kategori as string) ? form.kategoriHutangPiutang : null,
     };
-    if (editId) {
-      const wasAktif = items.find((i) => i.id === editId)?.status === 'aktif';
-      if (form.status === 'nonaktif' && wasAktif && hasTransactions(editId)) {
-        setStatusConfirm({ id: editId, payload });
-        return;
+    try {
+      if (editId) {
+        const wasAktif = items.find((i) => i.id === editId)?.status === 'aktif';
+        if (form.status === 'nonaktif' && wasAktif && hasTransactions(editId)) {
+          setStatusConfirm({ id: editId, payload });
+          return;
+        }
+        await update(editId, payload, userName);
+      } else {
+        await add(payload, userName);
       }
-      update(editId, payload, userName);
-    } else {
-      add(payload, userName);
+      setModalOpen(false);
+    } catch (err: any) {
+      setErrors({ ...errors, submit: err.message || 'Terjadi kesalahan' });
     }
-    setModalOpen(false);
   };
 
   const editLocked = editId ? hasTransactions(editId) : false;
@@ -284,12 +288,18 @@ export default function DaftarAkunTab() {
           onPageChange={setPage}
           rowClassName={(r) => (parentIds.has(r.id) ? '[&>td]:bg-subtle' : '')}
           empty={
-            <EmptyState
-              compact
-              icon={PiTreeStructure}
-              title={items.length === 0 ? 'Belum ada akun' : 'Tidak ada akun yang cocok'}
-              description={items.length === 0 ? 'Tambahkan akun pertama untuk mulai mencatat jurnal.' : 'Ubah kata kunci atau filter kategori dan klasifikasi.'}
-            />
+            isLoading ? (
+              <div className="flex justify-center p-10"><PiSpinnerGap className="h-6 w-6 animate-spin text-ink-3" /></div>
+            ) : error ? (
+              <EmptyState compact title="Gagal memuat" description={error} />
+            ) : (
+              <EmptyState
+                compact
+                icon={PiTreeStructure}
+                title={items.length === 0 ? 'Belum ada akun' : 'Tidak ada akun yang cocok'}
+                description={items.length === 0 ? 'Tambahkan akun pertama untuk mulai mencatat jurnal.' : 'Ubah kata kunci atau filter kategori dan klasifikasi.'}
+              />
+            )
           }
         />
       </Panel>
@@ -309,6 +319,7 @@ export default function DaftarAkunTab() {
         }
       >
         <div className="space-y-4">
+          {errors.submit && <Notice tone="danger">{errors.submit}</Notice>}
           {editLocked && <Notice tone="warning">Akun ini sudah dipakai di transaksi, jadi kodenya terkunci. Akun hanya bisa dinonaktifkan, tidak dihapus.</Notice>}
 
           <Field label="Akun induk" optional>

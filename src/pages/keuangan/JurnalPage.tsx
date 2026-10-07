@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import {
   PiPlus, PiMagnifyingGlass, PiTrash, PiLockSimpleOpen, PiNotebook,
   PiPaperclip, PiFilePdf, PiImage, PiX, PiDownloadSimple, PiArrowSquareOut,
@@ -54,9 +54,13 @@ function formatUkuran(bytes: number) {
 }
 
 export default function JurnalPage() {
-  const { items, counter, add, remove } = useJurnalStore();
+  const { items, isLoading, error, fetch, add, remove } = useJurnalStore();
   const { items: akuns } = useCoaStore();
   const { items: proyeks } = useProyekStore();
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
@@ -79,7 +83,7 @@ export default function JurnalPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const nomorBerikutnya = `JU-${String(counter + 1).padStart(4, '0')}`;
+  const nomorBerikutnya = 'Otomatis';
   const totalDebit = rows.reduce((s, r) => s + (Number(r.debit) || 0), 0);
   const totalKredit = rows.reduce((s, r) => s + (Number(r.kredit) || 0), 0);
   const isBalanced = totalDebit > 0 && totalDebit === totalKredit;
@@ -280,6 +284,13 @@ export default function JurnalPage() {
       />
 
       <PageBody>
+        {error && (
+          <div className="mb-4">
+            <Notice tone="danger" title="Gagal memuat atau menyimpan jurnal">
+              {error}
+            </Notice>
+          </div>
+        )}
         <Panel title="Daftar jurnal" description={`${items.length} jurnal tercatat. Klik baris untuk melihat rinciannya.`} flush>
           <div className="grid grid-cols-1 gap-3 border-b border-line px-4 py-3.5 sm:grid-cols-2 sm:px-5 xl:grid-cols-[minmax(0,1.5fr)_1fr_1fr_1fr_1fr]">
             <div>
@@ -343,16 +354,20 @@ export default function JurnalPage() {
             onRowClick={(r) => setDetailJurnal(r)}
             rowActionLabel={(r) => `Buka jurnal ${r.nomorJurnal}`}
             empty={
-              <EmptyState
-                compact
-                icon={PiNotebook}
-                title={hasFilter ? 'Tidak ada jurnal yang cocok' : 'Belum ada jurnal'}
-                description={
-                  hasFilter
-                    ? 'Ubah kata kunci atau filter.'
-                    : 'Pakai tombol Buat jurnal di atas. Jurnal dari modul hutang juga muncul di daftar ini.'
-                }
-              />
+              isLoading ? (
+                <div className="py-10 text-center text-sm text-ink-3">Memuat data...</div>
+              ) : (
+                <EmptyState
+                  compact
+                  icon={PiNotebook}
+                  title={hasFilter ? 'Tidak ada jurnal yang cocok' : 'Belum ada jurnal'}
+                  description={
+                    hasFilter
+                      ? 'Ubah kata kunci atau filter.'
+                      : 'Pakai tombol Buat jurnal di atas. Jurnal dari modul hutang juga muncul di daftar ini.'
+                  }
+                />
+              )
             }
           />
         </Panel>

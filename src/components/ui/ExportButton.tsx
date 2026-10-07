@@ -38,14 +38,21 @@ export default function ExportButton({ getColumns, getData, opts, className = ''
         </span>
       )}
       <Button
-        icon={PiMicrosoftExcelLogo}
         loading={loading === 'excel'}
         disabled={loading !== null}
         onClick={() => handle('excel')}
+        className="text-emerald-700 hover:text-emerald-800"
       >
+        <PiMicrosoftExcelLogo className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
         Excel
       </Button>
-      <Button icon={PiFilePdf} loading={loading === 'pdf'} disabled={loading !== null} onClick={() => handle('pdf')}>
+      <Button
+        loading={loading === 'pdf'}
+        disabled={loading !== null}
+        onClick={() => handle('pdf')}
+        className="text-rose-700 hover:text-rose-800"
+      >
+        <PiFilePdf className="h-4 w-4 shrink-0 text-rose-600" aria-hidden />
         PDF
       </Button>
     </div>

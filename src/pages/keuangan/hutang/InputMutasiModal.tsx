@@ -68,13 +68,13 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
     const kpId = pihakBaru
-      ? addKodePembantu({ nama: form.kodePembantuBaru.trim(), proyekId: form.proyekId, kategori: form.kategori as KategoriHutang })
+      ? await addKodePembantu({ nama: form.kodePembantuBaru.trim(), proyekId: form.proyekId, kategori: form.kategori as KategoriHutang })
       : form.kodePembantuId;
 
-    addMutasi({
+    await addMutasi({
       proyekId: form.proyekId,
       kodePembantuId: kpId,
       kategori: form.kategori as KategoriHutang,
