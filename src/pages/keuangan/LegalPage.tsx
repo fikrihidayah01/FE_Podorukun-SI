@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PiPlus, PiMagnifyingGlass, PiFileText,
@@ -52,11 +52,19 @@ function TipeBadge({ tipe }: { tipe: TipeTransaksi }) {
 }
 
 export default function LegalPage() {
-  const { items, add } = useDokumenLegalStore();
-  const { items: pts } = useMasterPtStore();
+  const { items, add, fetch: fetchDokumen } = useDokumenLegalStore();
+  const { items: pts, fetch: fetchPts } = useMasterPtStore();
   const { items: proyeks } = useProyekStore();
-  const { items: templates } = useTemplateDokumenStore();
+  const { items: templates, fetch: fetchTemplates } = useTemplateDokumenStore();
+  const { fetch: fetchPasals } = usePustakaPasalStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchDokumen();
+    fetchPts();
+    fetchTemplates();
+    fetchPasals();
+  }, [fetchDokumen, fetchPts, fetchTemplates, fetchPasals]);
 
   const [page, setPage] = useState(1);
   const [buatOpen, setBuatOpen] = useState(false);
@@ -116,7 +124,7 @@ export default function LegalPage() {
 
   const handleNext = () => setStep(2);
 
-  const handleSimpan = (statusFinal: StatusDokumen) => {
+  const handleSimpan = async (statusFinal: StatusDokumen) => {
     if (!formPtId || !formKavlingId) return;
     const pt = pts.find((p) => p.id === formPtId);
     const ptSingkatan = pt?.namaPt.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 4) ?? 'DOK';
@@ -134,7 +142,7 @@ export default function LegalPage() {
       };
     }).filter(Boolean) as any;
 
-    const id = add({
+    const id = await add({
       ptId: formPtId,
       kavlingId: formKavlingId,
       perumahanId: formPerumahanId,
@@ -151,7 +159,9 @@ export default function LegalPage() {
     });
 
     setBuatOpen(false);
-    navigate(`/keuangan/legal/${id}`);
+    if (id) {
+      navigate(`/keuangan/legal/${id}`);
+    }
   };
 
 

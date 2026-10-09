@@ -42,6 +42,7 @@ interface CoaState {
   isLoading: boolean;
   error: string | null;
   fetch: () => Promise<void>;
+  fetchRiwayat: (id: string) => Promise<void>;
   add: (data: Omit<Akun, 'id'>, oleh?: string) => Promise<void>;
   update: (id: string, data: Partial<Omit<Akun, 'id'>>, oleh?: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -63,6 +64,11 @@ export const useCoaStore = create<CoaState>()((set) => ({
     } catch (err: any) {
       set({ error: err.message, isLoading: false });
     }
+  },
+
+  fetchRiwayat: async (_id: string) => {
+    // dummy implementation or call backend
+    set({ riwayat: [] });
   },
 
   add: async (data, _oleh = 'System') => {

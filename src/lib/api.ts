@@ -1,14 +1,34 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
-let isRefreshing = false;
-let refreshSubscribers: ((success: boolean) => void)[] = [];
+export function getAccessToken(): string | null {
+  return localStorage.getItem('si_access_token');
+}
 
-function onRefreshed(success: boolean) {
-  refreshSubscribers.forEach((callback) => callback(success));
+export function getRefreshToken(): string | null {
+  return localStorage.getItem('si_refresh_token');
+}
+
+export function setTokens(accessToken: string, refreshToken?: string) {
+  localStorage.setItem('si_access_token', accessToken);
+  if (refreshToken) {
+    localStorage.setItem('si_refresh_token', refreshToken);
+  }
+}
+
+export function clearTokens() {
+  localStorage.removeItem('si_access_token');
+  localStorage.removeItem('si_refresh_token');
+}
+
+let isRefreshing = false;
+let refreshSubscribers: ((newToken: string | null) => void)[] = [];
+
+function onRefreshed(newToken: string | null) {
+  refreshSubscribers.forEach((callback) => callback(newToken));
   refreshSubscribers = [];
 }
 
-function addRefreshSubscriber(callback: (success: boolean) => void) {
+function addRefreshSubscriber(callback: (newToken: string | null) => void) {
   refreshSubscribers.push(callback);
 }
 
@@ -20,6 +40,11 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
     headers.set('Content-Type', 'application/json');
   }
 
+  const token = getAccessToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   const config: RequestInit = {
     ...options,
     headers,
@@ -29,6 +54,8 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
   let response = await fetch(url, config);
 
   if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
+    const refreshToken = getRefreshToken();
+
     if (!isRefreshing) {
       isRefreshing = true;
       try {
@@ -36,29 +63,39 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
+          body: JSON.stringify({ refreshToken: refreshToken || undefined }),
         });
-        const success = refreshResponse.ok;
-        isRefreshing = false;
-        onRefreshed(success);
-        
-        if (!success) {
-          // Refresh failed
-          return response;
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          const newAccessToken = refreshData?.data?.accessToken || refreshData?.accessToken;
+          const newRefreshToken = refreshData?.data?.refreshToken || refreshData?.refreshToken;
+
+          if (newAccessToken) {
+            setTokens(newAccessToken, newRefreshToken);
+            isRefreshing = false;
+            onRefreshed(newAccessToken);
+            
+            headers.set('Authorization', `Bearer ${newAccessToken}`);
+            return await fetch(url, { ...config, headers });
+          }
         }
       } catch (err) {
-        isRefreshing = false;
-        onRefreshed(false);
-        return response;
+        // Fallthrough
       }
-    }
+      clearTokens();
+      isRefreshing = false;
+      onRefreshed(null);
+      return response;
+    } else {
+      const newAccessToken = await new Promise<string | null>((resolve) => {
+        addRefreshSubscriber(resolve);
+      });
 
-    const refreshSucceeded = await new Promise<boolean>((resolve) => {
-      addRefreshSubscriber(resolve);
-    });
-
-    if (refreshSucceeded) {
-      // Retry the original request
-      response = await fetch(url, config);
+      if (newAccessToken) {
+        headers.set('Authorization', `Bearer ${newAccessToken}`);
+        return await fetch(url, { ...config, headers });
+      }
     }
   }
 

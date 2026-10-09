@@ -15,18 +15,18 @@ import { formatRupiah, formatTanggalPanjang } from '../../utils/format';
 export default function CoaTabSaldoAwal() {
   const proyeks = useProyekStore((s) => s.items);
   const akuns = useCoaStore((s) => s.items);
-  const { periodes, getOrCreatePeriode, updateSaldo, tutupBuku } = useSaldoAwalStore();
+  const { periodes, fetchSaldoAwal, updateSaldo, tutupBuku } = useSaldoAwalStore();
 
   const [selectedProyekId, setSelectedProyekId] = useState(proyeks[0]?.id || '');
   const [filterKategori, setFilterKategori] = useState('all');
   const [confirmTutup, setConfirmTutup] = useState(false);
 
-  const periode = periodes.find((p) => p.proyekId === selectedProyekId) ?? null;
+  const periode = periodes[selectedProyekId] ?? null;
 
   // Periode saldo awal dibuat saat proyek pertama kali dibuka, di luar render
   useEffect(() => {
-    if (selectedProyekId && !periode) getOrCreatePeriode(selectedProyekId);
-  }, [selectedProyekId, periode, getOrCreatePeriode]);
+    if (selectedProyekId && !periode) fetchSaldoAwal(selectedProyekId);
+  }, [selectedProyekId, periode, fetchSaldoAwal]);
 
   // Hanya akun daun yang aktif: saldo akun induk adalah jumlah anak-anaknya
   const leafAkuns = useMemo(() => {
@@ -38,7 +38,7 @@ export default function CoaTabSaldoAwal() {
   }, [akuns, filterKategori]);
 
   const isTerbuka = periode?.status === 'terbuka';
-  const getSaldo = (akunId: string) => periode?.saldo.find((x) => x.akunId === akunId) ?? { debit: 0, kredit: 0 };
+  const getSaldo = (akunId: string) => periode?.saldo.find((x: any) => x.akunId === akunId) ?? { debit: 0, kredit: 0 };
 
   const totalDebit = leafAkuns.reduce((sum, a) => sum + getSaldo(a.id).debit, 0);
   const totalKredit = leafAkuns.reduce((sum, a) => sum + getSaldo(a.id).kredit, 0);
@@ -50,7 +50,10 @@ export default function CoaTabSaldoAwal() {
     const num = Number(val);
     const existing = getSaldo(akunId);
     const value = Number.isNaN(num) ? 0 : num;
-    updateSaldo(periode.id, akunId, side === 'debit' ? value : existing.debit, side === 'kredit' ? value : existing.kredit);
+    updateSaldo(selectedProyekId, akunId, {
+      debit: side === 'debit' ? value : existing.debit,
+      kredit: side === 'kredit' ? value : existing.kredit
+    });
   };
 
   if (!proyeks.length) {

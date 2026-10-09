@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PiPlus, PiPencilSimple, PiTrash, PiBookOpen } from 'react-icons/pi';
 import { usePustakaPasalStore, type Pasal, type PasalField, type BerlakuPasal } from '../../store/pustakaPasalStore';
 import { useDokumenLegalStore } from '../../store/dokumenLegalStore';
@@ -41,8 +41,13 @@ const EMPTY_PASAL = (): Omit<Pasal, 'id' | 'createdAt'> => ({
 });
 
 export default function PustakaPasalPage() {
-  const { items, add, update, nonaktifkan, aktifkan, remove } = usePustakaPasalStore();
-  const { getDokumenByPasalPustaka } = useDokumenLegalStore();
+  const { items, add, update, nonaktifkan, aktifkan, remove, fetch: fetchPasals } = usePustakaPasalStore();
+  const { getDokumenByPasalPustaka, fetch: fetchDokumen } = useDokumenLegalStore();
+
+  useEffect(() => {
+    fetchPasals();
+    fetchDokumen();
+  }, [fetchPasals, fetchDokumen]);
 
   const [filterBerlaku, setFilterBerlaku] = useState<BerlakuPasal | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'aktif' | 'nonaktif'>('all');
@@ -80,14 +85,14 @@ export default function PustakaPasalPage() {
     setModalOpen(true);
   };
 
-  const saveForm = () => {
+  const saveForm = async () => {
     const errs: typeof formErrors = {};
     if (!form.judul.trim()) errs.judul = 'Judul pasal wajib diisi.';
     if (!form.isi.trim()) errs.isi = 'Isi pasal wajib diisi.';
     if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
 
-    if (editingId) update(editingId, form);
-    else add(form);
+    if (editingId) await update(editingId, form);
+    else await add(form);
     setModalOpen(false);
   };
 

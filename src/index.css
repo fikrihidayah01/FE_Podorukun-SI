@@ -37,13 +37,13 @@
   --color-line: #e2d9cc;
   --color-line-strong: #b8a898;
 
-  /* Brand: deep teal — warm enough, distinct from amber */
-  --color-brand-50: #e8f4f1;
-  --color-brand-100: #c5e5de;
-  --color-brand-200: #96cec4;
-  --color-brand-600: #1a6b5a;
-  --color-brand-700: #155849;
-  --color-brand-800: #0f4538;
+  /* Brand: royal blue (#003aba) */
+  --color-brand-50: #e8eeff;
+  --color-brand-100: #c5d5ff;
+  --color-brand-200: #96b5ff;
+  --color-brand-600: #003aba;
+  --color-brand-700: #00319e;
+  --color-brand-800: #002880;
 
   /* Semantic states — warm variants */
   --color-positive: #3a6b2a;

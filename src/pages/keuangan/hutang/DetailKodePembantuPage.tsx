@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { PiClockCounterClockwise, PiMagnifyingGlass } from 'react-icons/pi';
 import { useHutangStore, KATEGORI_HUTANG_LABELS } from '../../../store/hutangStore';
@@ -14,13 +15,34 @@ import { KATEGORI_HUTANG_HEX } from '../../../config/theme';
 
 export default function DetailKodePembantuPage() {
   const { kodePembantuId } = useParams<{ kodePembantuId: string }>();
-  const { kodePembantus, getMutasiByKodePembantu } = useHutangStore();
+  const { kodePembantus, getMutasiByKodePembantu, fetchKodePembantus, fetchMutasiByKodePembantu, isLoading } = useHutangStore();
+
+  useEffect(() => {
+    useProyekStore.getState().fetch();
+    fetchKodePembantus();
+    if (kodePembantuId) {
+      fetchMutasiByKodePembantu(kodePembantuId);
+    }
+  }, [kodePembantuId]);
   const { items: proyeks } = useProyekStore();
 
   const kp = kodePembantus.find((k) => k.id === kodePembantuId);
   const mutasis = kodePembantuId ? getMutasiByKodePembantu(kodePembantuId) : [];
   const proyekNama = proyeks.find((p) => p.id === kp?.proyekId)?.nama ?? '-';
   const back = { to: '/keuangan/hutang', label: 'Hutang' };
+
+  if (isLoading) {
+    return (
+      <>
+        <PageHeader title="Kode pembantu" back={back} />
+        <PageBody>
+          <Panel>
+            <div className="py-8 text-center text-sm text-ink-3">Memuat data pihak...</div>
+          </Panel>
+        </PageBody>
+      </>
+    );
+  }
 
   if (!kp) {
     return (

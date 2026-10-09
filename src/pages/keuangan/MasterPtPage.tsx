@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   PiPlus, PiPencilSimple, PiTrash, PiCopy, PiBuildings, PiFileText,
 } from 'react-icons/pi';
@@ -42,11 +43,19 @@ const EMPTY_PT = (): Omit<MasterPt, 'id'> => ({
 
 export default function MasterPtPage() {
   const { items: pts, add: addPt, update: updatePt, remove: removePt, fetch: fetchPts} = useMasterPtStore();
-  useEffect(() => { fetchPts(); }, [fetchPts]);
-  const { items: templates, add: addTemplate, update: updateTemplate, duplikat, remove: removeTemplate } = useTemplateDokumenStore();
-  const { items: pasals } = usePustakaPasalStore();
+  const { items: templates, add: addTemplate, update: updateTemplate, duplikat, remove: removeTemplate, fetch: fetchTemplates } = useTemplateDokumenStore();
+  const { items: pasals, fetch: fetchPasals } = usePustakaPasalStore();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('master-pt');
+  useEffect(() => {
+    fetchPts();
+    fetchTemplates();
+    fetchPasals();
+  }, [fetchPts, fetchTemplates, fetchPasals]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab: ActiveTab = tabParam === 'template' ? 'template' : 'master-pt';
+  const setActiveTab = (t: ActiveTab) => setSearchParams(t === 'master-pt' ? {} : { tab: t }, { replace: true });
 
   // State modal PT
   const [ptModalOpen, setPtModalOpen] = useState(false);
@@ -113,10 +122,10 @@ export default function MasterPtPage() {
     setTmplModalOpen(true);
   };
 
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     if (!tmplForm.ptId || !tmplForm.polaNomor.trim()) return;
-    if (editingTmplId) updateTemplate(editingTmplId, tmplForm);
-    else addTemplate(tmplForm);
+    if (editingTmplId) await updateTemplate(editingTmplId, tmplForm);
+    else await addTemplate(tmplForm);
     setTmplModalOpen(false);
   };
 

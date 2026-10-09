@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useHutangStore, type KategoriHutang, KATEGORI_HUTANG_LABELS } from '../../../store/hutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import { useCoaStore } from '../../../store/coaStore';
@@ -45,6 +45,14 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
   const pihakBaru = createNewKp || filteredKp.length === 0;
   const isAntarProyek = form.kategori === 'antar_proyek';
 
+  useEffect(() => {
+    if (isOpen) {
+      useProyekStore.getState().fetch();
+      useCoaStore.getState().fetch();
+      useHutangStore.getState().fetchKodePembantus();
+    }
+  }, [isOpen]);
+
   const handleClose = () => {
     setForm(EMPTY_FORM);
     setErrors({});
@@ -63,6 +71,7 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
     if (!form.tanggal) e.tanggal = 'Tanggal wajib diisi.';
     if (!form.nominal || Number(form.nominal) <= 0) e.nominal = 'Nominal harus lebih dari 0.';
     if (!form.uraian.trim()) e.uraian = 'Uraian wajib diisi.';
+    if (!form.akunCoaId) e.akunCoaId = 'Akun COA wajib diisi.';
     if (isAntarProyek && !form.proyekLawanId) e.proyekLawanId = 'Pilih proyek pemberi pinjaman.';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -70,23 +79,34 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
 
   const handleSubmit = async () => {
     if (!validate()) return;
-    const kpId = pihakBaru
-      ? await addKodePembantu({ nama: form.kodePembantuBaru.trim(), proyekId: form.proyekId, kategori: form.kategori as KategoriHutang })
-      : form.kodePembantuId;
+    try {
+      const kpId = pihakBaru
+        ? await addKodePembantu({ nama: form.kodePembantuBaru.trim(), proyekId: form.proyekId, kategori: form.kategori as KategoriHutang })
+        : form.kodePembantuId;
 
-    await addMutasi({
-      proyekId: form.proyekId,
-      kodePembantuId: kpId,
-      kategori: form.kategori as KategoriHutang,
-      tanggal: form.tanggal,
-      uraian: form.uraian.trim(),
-      jenisMutasi: form.jenisMutasi,
-      nominal: Number(form.nominal),
-      akunCoaId: form.akunCoaId || undefined,
-      referensi: form.referensi.trim() || undefined,
-      proyekLawanId: isAntarProyek ? form.proyekLawanId : undefined,
-    });
-    handleClose();
+      await addMutasi({
+        proyekId: form.proyekId,
+        kodePembantuId: kpId,
+        kategori: form.kategori as KategoriHutang,
+        tanggal: form.tanggal,
+        uraian: form.uraian.trim(),
+        jenisMutasi: form.jenisMutasi,
+        nominal: Number(form.nominal),
+        akunCoaId: form.akunCoaId,
+        referensi: form.referensi.trim() || undefined,
+        proyekLawanId: isAntarProyek ? form.proyekLawanId : undefined,
+      });
+
+      const d = new Date();
+      const currentMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      useHutangStore.getState().fetchSaldo(currentMonth);
+      useHutangStore.getState().fetchMutasiAntarProyek();
+      if (kpId) useHutangStore.getState().fetchMutasiByKodePembantu(kpId);
+
+      handleClose();
+    } catch (err: any) {
+      alert('Gagal menyimpan mutasi: ' + err.message);
+    }
   };
 
   return (
@@ -214,7 +234,7 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
           </Field>
         </div>
 
-        <Field label="Akun COA" optional>
+        <Field label="Akun COA" required error={errors.akunCoaId}>
           <select className="control" value={form.akunCoaId} onChange={(e) => setForm({ ...form, akunCoaId: e.target.value })}>
             <option value="">Pilih akun</option>
             {akuns.map((a) => (

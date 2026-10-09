@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { fetchApi } from '../lib/api';
+import { fetchApi, setTokens, clearTokens } from '../lib/api';
 
 export type UserRole = 'admin' | 'keuangan' | 'teknisi' | 'marketing' | 'kontraktor';
 
@@ -36,15 +36,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
 
   initAuth: async () => {
+    // If no token exists, we can still attempt /auth/me for cookies, but if it fails, reset cleanly
     try {
       const res = await fetchApi('/auth/me');
       if (res.ok) {
         const json = await res.json();
         set({ user: json.data, isAuthenticated: true, isInitializing: false });
       } else {
+        clearTokens();
         set({ user: null, isAuthenticated: false, isInitializing: false });
       }
-    } catch (err) {
+    } catch {
+      clearTokens();
       set({ user: null, isAuthenticated: false, isInitializing: false });
     }
   },
@@ -59,12 +62,20 @@ export const useAuthStore = create<AuthState>((set) => ({
       
       const json = await res.json();
       
-      if (res.ok) {
-        set({ user: json.data.user, isAuthenticated: true });
+      if (res.ok && json.data) {
+        const user = json.data.user || json.data;
+        const accessToken = json.data.accessToken;
+        const refreshToken = json.data.refreshToken;
+
+        if (accessToken) {
+          setTokens(accessToken, refreshToken);
+        }
+
+        set({ user, isAuthenticated: true });
       } else {
         set({ error: json.message || 'Login gagal' });
       }
-    } catch (err) {
+    } catch {
       set({ error: 'Terjadi kesalahan jaringan' });
     }
   },
@@ -86,6 +97,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await fetchApi('/auth/logout', { method: 'POST' });
     } finally {
+      clearTokens();
       set({ user: null, isAuthenticated: false });
     }
   },

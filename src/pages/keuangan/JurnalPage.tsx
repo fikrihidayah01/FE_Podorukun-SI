@@ -60,6 +60,8 @@ export default function JurnalPage() {
 
   useEffect(() => {
     fetch();
+    useCoaStore.getState().fetch();
+    useProyekStore.getState().fetch();
   }, [fetch]);
 
   const [page, setPage] = useState(1);

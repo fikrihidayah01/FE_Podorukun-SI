@@ -15,20 +15,25 @@ import {
   PiHandCoins,
   PiTreeStructure,
   PiNotebook,
-  PiWallet,
   PiScroll,
   PiBookOpen,
 } from 'react-icons/pi';
 
 import type { UserRole } from '../store/authStore';
 
+export interface SubMenuItem {
+  label: string;
+  path: string;
+  icon?: IconType;
+}
+
 export interface MenuItem {
   label: string;
   path: string;
   icon: IconType;
   allowedRoles: UserRole[];
-  /** Sub-items untuk accordion dropdown */
-  children?: Omit<MenuItem, 'children'>[];
+  /** Sub-items untuk navigasi berjenjang (accordion) */
+  children?: SubMenuItem[];
 }
 
 export interface MenuGroup {
@@ -64,54 +69,61 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
       groupLabel: 'Keuangan',
       items: [
         {
-          label: 'Keuangan',
-          path: '/keuangan',
-          icon: PiWallet,
+          label: 'Hutang',
+          path: '/keuangan/hutang',
+          icon: PiHandCoins,
           allowedRoles: ['keuangan'],
           children: [
-            {
-              label: 'Hutang',
-              path: '/keuangan/hutang',
-              icon: PiHandCoins,
-              allowedRoles: ['keuangan'],
-            },
-            {
-              label: 'Piutang',
-              path: '/keuangan/piutang',
-              icon: PiReceipt,
-              allowedRoles: ['keuangan'],
-            },
-            {
-              label: 'Akun (COA)',
-              path: '/keuangan/coa',
-              icon: PiTreeStructure,
-              allowedRoles: ['keuangan'],
-            },
-            {
-              label: 'Jurnal Umum',
-              path: '/keuangan/jurnal',
-              icon: PiNotebook,
-              allowedRoles: ['keuangan'],
-            },
-            {
-              label: 'Legal',
-              path: '/keuangan/legal',
-              icon: PiScroll,
-              allowedRoles: ['keuangan'],
-            },
-            {
-              label: 'Master PT',
-              path: '/keuangan/master-pt',
-              icon: PiBuildings,
-              allowedRoles: ['keuangan'],
-            },
-            {
-              label: 'Pustaka Pasal',
-              path: '/keuangan/pustaka-pasal',
-              icon: PiBookOpen,
-              allowedRoles: ['keuangan'],
-            },
+            { label: 'Saldo berjalan', path: '/keuangan/hutang' },
+            { label: 'Antar proyek', path: '/keuangan/hutang?tab=antar_proyek' },
+            { label: 'Pinjaman bank', path: '/keuangan/hutang?tab=pinjaman_bank' },
+            { label: 'Dokumen legal', path: '/keuangan/hutang?tab=agunan' },
+            { label: 'Kontraktor', path: '/keuangan/hutang?tab=kontraktor' },
           ],
+        },
+        {
+          label: 'Piutang',
+          path: '/keuangan/piutang',
+          icon: PiReceipt,
+          allowedRoles: ['keuangan'],
+        },
+        {
+          label: 'Akun (COA)',
+          path: '/keuangan/coa',
+          icon: PiTreeStructure,
+          allowedRoles: ['keuangan'],
+          children: [
+            { label: 'Daftar akun', path: '/keuangan/coa' },
+            { label: 'Saldo awal', path: '/keuangan/coa?tab=saldo_awal' },
+          ],
+        },
+        {
+          label: 'Jurnal Umum',
+          path: '/keuangan/jurnal',
+          icon: PiNotebook,
+          allowedRoles: ['keuangan'],
+        },
+        {
+          label: 'Legal',
+          path: '/keuangan/legal',
+          icon: PiScroll,
+          allowedRoles: ['keuangan'],
+        },
+        {
+          label: 'Master PT',
+          path: '/keuangan/master-pt',
+          icon: PiBuildings,
+          allowedRoles: ['keuangan'],
+          children: [
+            { label: 'Master PT', path: '/keuangan/master-pt' },
+            { label: 'Template Dokumen', path: '/keuangan/master-pt?tab=template' },
+          ],
+        },
+        {
+          label: 'Pustaka Pasal',
+          path: '/keuangan/pustaka-pasal',
+          icon: PiBookOpen,
+          allowedRoles: ['keuangan'],
         },
       ],
     },

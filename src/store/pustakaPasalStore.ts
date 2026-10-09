@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchApi } from '../lib/api';
 
 export type BerlakuPasal = 'semua' | 'cash' | 'kpr' | 'in_house';
 
@@ -22,116 +22,110 @@ export interface Pasal {
 
 interface PustakaPasalState {
   items: Pasal[];
-  add: (data: Omit<Pasal, 'id' | 'createdAt'>) => string;
-  update: (id: string, data: Partial<Omit<Pasal, 'id' | 'createdAt'>>) => void;
-  nonaktifkan: (id: string) => void;
-  aktifkan: (id: string) => void;
-  remove: (id: string) => void;
+  fetch: () => Promise<void>;
+  add: (data: Omit<Pasal, 'id' | 'createdAt'>) => Promise<string>;
+  update: (id: string, data: Partial<Omit<Pasal, 'id' | 'createdAt'>>) => Promise<void>;
+  nonaktifkan: (id: string) => Promise<void>;
+  aktifkan: (id: string) => Promise<void>;
+  remove: (id: string) => Promise<void>;
   hitungDipakai: (id: string, dokumenIds: string[]) => number;
 }
 
-export const usePustakaPasalStore = create<PustakaPasalState>()(
-  persist(
-    (set) => ({
-      items: [
-        {
-          id: 'pasal-001',
-          judul: 'Pasal 1 — Identitas Para Pihak',
-          isi: 'Pihak Pertama adalah {nama_pt}, diwakili oleh {nama_direktur}, berkedudukan di {alamat_pt}. Pihak Kedua adalah {nama_pembeli}, bertempat tinggal di {alamat_pembeli}.',
-          berlaku: 'semua',
-          fields: [
-            { id: 'f-001', key: 'nama_pt', label: 'Nama PT', tipe: 'teks' },
-            { id: 'f-002', key: 'nama_direktur', label: 'Nama Direktur', tipe: 'teks' },
-            { id: 'f-003', key: 'alamat_pt', label: 'Alamat PT', tipe: 'teks' },
-            { id: 'f-004', key: 'nama_pembeli', label: 'Nama Pembeli', tipe: 'teks' },
-            { id: 'f-005', key: 'alamat_pembeli', label: 'Alamat Pembeli', tipe: 'teks' },
-          ],
-          aktif: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'pasal-002',
-          judul: 'Pasal 2 — Obyek Perjanjian',
-          isi: 'Pihak Pertama setuju untuk menjual kavling nomor {no_kavling} seluas {luas_kavling} m² yang terletak di {nama_perumahan} kepada Pihak Kedua.',
-          berlaku: 'semua',
-          fields: [
-            { id: 'f-006', key: 'no_kavling', label: 'Nomor Kavling', tipe: 'teks' },
-            { id: 'f-007', key: 'luas_kavling', label: 'Luas Kavling (m²)', tipe: 'angka' },
-            { id: 'f-008', key: 'nama_perumahan', label: 'Nama Perumahan', tipe: 'teks' },
-          ],
-          aktif: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'pasal-003',
-          judul: 'Pasal 3 — Harga dan Cara Pembayaran KPR',
-          isi: 'Harga jual disepakati sebesar Rp {harga_nett} termasuk BPHTB dan AJB. Uang muka sebesar Rp {uang_muka} dibayar pada {tanggal_perjanjian}. Sisa sebesar Rp {sisa_kpr} dilunasi melalui fasilitas KPR.',
-          berlaku: 'kpr',
-          fields: [
-            { id: 'f-009', key: 'harga_nett', label: 'Harga Nett', tipe: 'angka' },
-            { id: 'f-010', key: 'uang_muka', label: 'Uang Muka', tipe: 'angka' },
-            { id: 'f-011', key: 'sisa_kpr', label: 'Sisa KPR', tipe: 'angka' },
-            { id: 'f-012', key: 'tanggal_perjanjian', label: 'Tanggal Perjanjian', tipe: 'tanggal' },
-          ],
-          aktif: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'pasal-004',
-          judul: 'Pasal 3 — Harga dan Cara Pembayaran Tunai',
-          isi: 'Harga jual disepakati sebesar Rp {harga_nett} dibayar tunai seluruhnya pada {tanggal_perjanjian}.',
-          berlaku: 'cash',
-          fields: [
-            { id: 'f-013', key: 'harga_nett', label: 'Harga Nett', tipe: 'angka' },
-            { id: 'f-014', key: 'tanggal_perjanjian', label: 'Tanggal Perjanjian', tipe: 'tanggal' },
-          ],
-          aktif: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'pasal-005',
-          judul: 'Pasal 3 — Harga dan Cara Pembayaran In House',
-          isi: 'Harga jual disepakati sebesar Rp {harga_nett}. Cicilan sebesar Rp {cicilan_per_bulan} per bulan selama {tenor_bulan} bulan dimulai sejak {tanggal_mulai}.',
-          berlaku: 'in_house',
-          fields: [
-            { id: 'f-015', key: 'harga_nett', label: 'Harga Nett', tipe: 'angka' },
-            { id: 'f-016', key: 'cicilan_per_bulan', label: 'Cicilan per Bulan', tipe: 'angka' },
-            { id: 'f-017', key: 'tenor_bulan', label: 'Tenor (bulan)', tipe: 'angka' },
-            { id: 'f-018', key: 'tanggal_mulai', label: 'Tanggal Mulai', tipe: 'tanggal' },
-          ],
-          aktif: true,
-          createdAt: new Date().toISOString(),
-        },
-      ],
+export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
+  items: [],
 
-      add: (data) => {
-        const id = crypto.randomUUID();
+  fetch: async () => {
+    try {
+      const res = await fetchApi('/pasal');
+      if (res.ok) {
+        const json = await res.json();
+        set({ items: json.data || [] });
+      }
+    } catch (error) {
+      console.error('Failed to fetch pasal:', error);
+    }
+  },
+
+  add: async (data) => {
+    try {
+      const res = await fetchApi('/pasal', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const newItem = json.data;
+        set((state) => ({ items: [...state.items, newItem] }));
+        return newItem.id;
+      }
+    } catch (error) {
+      console.error('Failed to add pasal:', error);
+    }
+    return '';
+  },
+
+  update: async (id, data) => {
+    try {
+      const res = await fetchApi(`/pasal/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const updatedItem = json.data;
         set((state) => ({
-          items: [...state.items, { ...data, id, createdAt: new Date().toISOString() }],
+          items: state.items.map((item) => (item.id === id ? { ...item, ...updatedItem } : item)),
         }));
-        return id;
-      },
+      }
+    } catch (error) {
+      console.error('Failed to update pasal:', error);
+    }
+  },
 
-      update: (id, data) =>
-        set((state) => ({
-          items: state.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
-        })),
-
-      nonaktifkan: (id) =>
+  nonaktifkan: async (id) => {
+    try {
+      const res = await fetchApi(`/pasal/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ aktif: false }),
+      });
+      if (res.ok) {
         set((state) => ({
           items: state.items.map((item) => (item.id === id ? { ...item, aktif: false } : item)),
-        })),
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to nonaktifkan pasal:', error);
+    }
+  },
 
-      aktifkan: (id) =>
+  aktifkan: async (id) => {
+    try {
+      const res = await fetchApi(`/pasal/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ aktif: true }),
+      });
+      if (res.ok) {
         set((state) => ({
           items: state.items.map((item) => (item.id === id ? { ...item, aktif: true } : item)),
-        })),
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to aktifkan pasal:', error);
+    }
+  },
 
-      remove: (id) =>
-        set((state) => ({ items: state.items.filter((item) => item.id !== id) })),
+  remove: async (id) => {
+    try {
+      const res = await fetchApi(`/pasal/${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
+      }
+    } catch (error) {
+      console.error('Failed to remove pasal:', error);
+    }
+  },
 
-      hitungDipakai: (_id, dokumenIds) => dokumenIds.length, // dipanggil dengan filter dari dokumenLegalStore
-    }),
-    { name: 'si-pustaka-pasal-v1' }
-  )
-);
+  hitungDipakai: (_id, dokumenIds) => dokumenIds.length,
+}));

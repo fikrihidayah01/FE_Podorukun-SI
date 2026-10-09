@@ -24,6 +24,7 @@ export default function PiutangPage() {
 
   useEffect(() => {
     fetchItems();
+    useProyekStore.getState().fetch();
   }, [fetchItems]);
 
   const [selectedProyek, setSelectedProyek] = useState('');
@@ -70,8 +71,8 @@ export default function PiutangPage() {
         title="Tagihan user"
         description={`Kavling belum serah terima, ${periode}`}
         actions={
-          <Button icon={PiArrowsClockwise} loading={syncLoading} onClick={handleSinkron}>
-            Sinkron Podo Rukun Track
+          <Button variant="primary" icon={PiArrowsClockwise} loading={syncLoading} onClick={handleSinkron}>
+            Sinkron Podorukun Track
           </Button>
         }
       />

@@ -15,9 +15,14 @@ interface PageHeaderProps {
 }
 
 // Ikon modul diambil dari menu, supaya header dan sidebar selalu memakai simbol yang sama
-const ICONS: { path: string; icon: IconType }[] = Object.values(menuConfig)
-  .flatMap((groups) => groups.flatMap((g) => g.items.flatMap((i) => [i, ...(i.children ?? [])])))
-  .map((i) => ({ path: i.path, icon: i.icon }));
+const ICONS: { path: string; icon: IconType }[] = Object.values(menuConfig).flatMap((groups) =>
+  groups.flatMap((g) =>
+    g.items.flatMap((i) => [
+      { path: i.path, icon: i.icon },
+      ...(i.children ?? []).map((c) => ({ path: c.path, icon: c.icon ?? i.icon })),
+    ]),
+  ),
+);
 
 function iconFor(path: string) {
   return ICONS.filter((i) => path.startsWith(i.path)).sort((a, b) => b.path.length - a.path.length)[0]?.icon;

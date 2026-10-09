@@ -29,7 +29,7 @@ export default function CoaPage() {
           <TabBar
             tabs={TABS}
             activeTab={activeTab}
-            onTabChange={(tab) => setSearchParams({ tab }, { replace: true })}
+            onTabChange={(tab) => setSearchParams(tab === 'daftar' ? {} : { tab }, { replace: true })}
             idPrefix="coa"
             label="Bagian bagan akun"
           />

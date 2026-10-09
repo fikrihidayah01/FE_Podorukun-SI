@@ -125,7 +125,7 @@ export const useHutangStore = create<HutangState>((set, get) => ({
 
   removeKodePembantu: async (id) => {
     const res = await fetchApi(`/kode-pembantu/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error((await res.json()).message);
+    if (!res.ok) { const j = await res.json(); throw new Error(j.message + ' ' + JSON.stringify(j)); }
     await get().fetchKodePembantus();
   },
 
@@ -151,13 +151,13 @@ export const useHutangStore = create<HutangState>((set, get) => ({
 
   addMutasi: async (data) => {
     const res = await fetchApi('/hutang/mutasi', { method: 'POST', body: JSON.stringify(data) });
-    if (!res.ok) throw new Error((await res.json()).message);
+    if (!res.ok) { const j = await res.json(); throw new Error(j.message + ' ' + JSON.stringify(j)); }
     // UI can call fetchMutasi/fetchSaldo directly after adding
   },
 
   removeMutasi: async (id) => {
     const res = await fetchApi(`/hutang/mutasi/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error((await res.json()).message);
+    if (!res.ok) { const j = await res.json(); throw new Error(j.message + ' ' + JSON.stringify(j)); }
   },
 
   fetchSaldo: async (bulan) => {

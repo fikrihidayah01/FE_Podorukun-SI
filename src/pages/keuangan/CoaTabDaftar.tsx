@@ -85,7 +85,7 @@ export default function DaftarAkunTab() {
 
   const hasTransactions = (akunId: string) =>
     jurnals.some((j) => j.rows.some((r) => r.akunId === akunId)) ||
-    periodes.some((p) => p.saldo.some((s) => s.akunId === akunId && (s.debit > 0 || s.kredit > 0)));
+    Object.values(periodes).some((p) => p.saldo.some((s) => s.akunId === akunId && (s.debit > 0 || s.kredit > 0)));
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {

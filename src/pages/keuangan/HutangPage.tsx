@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PiPlus, PiLockSimple, PiLockSimpleOpen, PiArrowSquareOut, PiHandCoins, PiMapTrifold, PiBank, PiCalendarCheck } from 'react-icons/pi';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
@@ -16,6 +16,7 @@ import {
   type KategoriHutang,
   type SaldoKodePembantu,
 } from '../../store/hutangStore';
+import { useCoaStore } from '../../store/coaStore';
 import { useProyekStore } from '../../store/proyekStore';
 import { usePinjamanBankStore } from '../../store/pinjamanBankStore';
 import { buildFilename } from '../../utils/exportUtils';
@@ -47,6 +48,16 @@ export default function HutangPage() {
   const [selectedBulan, setSelectedBulan] = useState(bulanIni());
   // Simulasi status periode sampai backend menyediakan status tutup buku
   const [isPeriodeTerkunci, setIsPeriodeTerkunci] = useState(false);
+
+  useEffect(() => {
+    useProyekStore.getState().fetch();
+    useCoaStore.getState().fetch();
+    useHutangStore.getState().fetchKodePembantus();
+    useHutangStore.getState().fetchSaldo(selectedBulan);
+    useHutangStore.getState().fetchMutasiAntarProyek();
+    usePinjamanBankStore.getState().fetch();
+    usePinjamanBankStore.getState().fetchReminders(30);
+  }, [selectedBulan]);
 
   const [inputOpen, setInputOpen] = useState(false);
   const [selectedJurnalRow, setSelectedJurnalRow] = useState<SaldoKodePembantu | null>(null);

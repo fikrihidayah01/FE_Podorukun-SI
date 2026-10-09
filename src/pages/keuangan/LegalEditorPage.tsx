@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   PiArrowLeft, PiCheckCircle, PiPencilSimple, PiFileText, PiArrowsDownUp, PiTrash, PiPlus, PiLockKey, PiFilePdf, PiFileDoc, PiUploadSimple
@@ -49,11 +49,17 @@ export default function LegalEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { items, updateDataUtama, updateStatus, updatePasalUtama, updatePasalField, removePasal, addPasal, reorderPasal, updateJadwalPembayaran, updateBarisJadwal } = useDokumenLegalStore();
+  const { items, fetch: fetchDokumen, updateDataUtama, updateStatus, updatePasalUtama, updatePasalField, removePasal, addPasal, reorderPasal, updateJadwalPembayaran, updateBarisJadwal } = useDokumenLegalStore();
   const { addFromLegal } = usePiutangStore();
-  const { items: pts } = useMasterPtStore();
+  const { items: pts, fetch: fetchPts } = useMasterPtStore();
   const { items: proyeks } = useProyekStore();
-  const { items: pustakaPasal } = usePustakaPasalStore();
+  const { items: pustakaPasal, fetch: fetchPasals } = usePustakaPasalStore();
+
+  useEffect(() => {
+    fetchDokumen();
+    fetchPts();
+    fetchPasals();
+  }, [fetchDokumen, fetchPts, fetchPasals]);
 
   const dokumen = items.find((d) => d.id === id);
 
