@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { PiArrowsClockwise, PiReceipt, PiFileText, PiCheckCircle, PiHourglassMedium } from 'react-icons/pi';
 import { usePiutangStore, TIPE_TRANSAKSI_LABELS, type StatusBast, type TipeTransaksi, type KavlingTagihan } from '../../store/piutangStore';
+import { fetchApi } from '../../lib/api';
 import { useProyekStore } from '../../store/proyekStore';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
 import Panel, { TableScroll } from '../../components/ui/Panel';
@@ -12,7 +13,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import ExportButton from '../../components/ui/ExportButton';
 import { StatGrid, StatTile } from '../../components/ui/StatTile';
 import { buildFilename } from '../../utils/exportUtils';
-import { bulanIni, formatBulan, formatRupiahShort } from '../../utils/format';
+import { bulanIni, formatBulan, formatRupiah } from '../../utils/format';
 import JadwalRealisasiModal from './piutang/JadwalRealisasiModal';
 
 const dibayarOf = (kv: KavlingTagihan) => kv.periodeAngsuran.reduce((s, p) => s + p.dibayar, 0);
@@ -56,13 +57,20 @@ export default function PiutangPage() {
     { nilai: 0, dibayar: 0, sisa: 0 },
   );
 
-  const handleSinkron = () => {
+  const handleSinkron = async () => {
     setSyncLoading(true);
     setApiError(false);
-    setTimeout(() => {
-      setSyncLoading(false);
+    try {
+      const res = await fetchApi('/sinkron/jalankan', { method: 'POST' });
+      if (!res.ok) throw new Error('Gagal sinkronisasi');
+
+      await fetchItems();
       setSyncedAt(new Date());
-    }, 800);
+    } catch {
+      setApiError(true);
+    } finally {
+      setSyncLoading(false);
+    }
   };
 
   return (
@@ -127,9 +135,9 @@ export default function PiutangPage() {
         </div>
 
         <StatGrid columns={3}>
-          <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak (SPPR)" value={formatRupiahShort(totals.nilai)} hint={`${filteredItems.length} kavling`} />
-          <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar" value={formatRupiahShort(totals.dibayar)} />
-          <StatTile emphasis color="#047857" icon={PiHourglassMedium} label="Sisa tagihan" value={formatRupiahShort(totals.sisa)} />
+          <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak (SPPR)" value={formatRupiah(totals.nilai)} hint={`${filteredItems.length} kavling`} />
+          <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar" value={formatRupiah(totals.dibayar)} />
+          <StatTile emphasis color="#047857" icon={PiHourglassMedium} label="Sisa tagihan" value={formatRupiah(totals.sisa)} />
         </StatGrid>
 
         <Notice>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { fetchApi, setTokens, clearTokens } from '../lib/api';
+import { fetchApi, setTokens, clearTokens, tryRefresh } from '../lib/api';
 
 export type UserRole = 'admin' | 'keuangan' | 'teknisi' | 'marketing' | 'kontraktor';
 
@@ -29,6 +29,19 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
+async function fetchMe(): Promise<AuthUser | null> {
+  try {
+    const res = await fetchApi('/auth/me');
+    if (res.ok) {
+      const json = await res.json();
+      return json.data as AuthUser;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
@@ -36,17 +49,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
 
   initAuth: async () => {
-    // If no token exists, we can still attempt /auth/me for cookies, but if it fails, reset cleanly
-    try {
-      const res = await fetchApi('/auth/me');
-      if (res.ok) {
-        const json = await res.json();
-        set({ user: json.data, isAuthenticated: true, isInitializing: false });
-      } else {
-        clearTokens();
-        set({ user: null, isAuthenticated: false, isInitializing: false });
+    // Try to get current user from existing token/cookie
+    let user = await fetchMe();
+
+    if (!user) {
+      // Token may have expired — attempt one silent refresh before giving up
+      const newToken = await tryRefresh();
+      if (newToken) {
+        user = await fetchMe();
       }
-    } catch {
+    }
+
+    if (user) {
+      set({ user, isAuthenticated: true, isInitializing: false });
+    } else {
       clearTokens();
       set({ user: null, isAuthenticated: false, isInitializing: false });
     }
@@ -59,24 +75,26 @@ export const useAuthStore = create<AuthState>((set) => ({
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      
+
       const json = await res.json();
-      
+
       if (res.ok && json.data) {
         const user = json.data.user || json.data;
         const accessToken = json.data.accessToken;
         const refreshToken = json.data.refreshToken;
 
+        // Backend always returns tokens in body AND sets HttpOnly cookies.
+        // Store the Bearer token so it survives page reloads (cookie is HttpOnly, unreadable by JS).
         if (accessToken) {
           setTokens(accessToken, refreshToken);
         }
 
         set({ user, isAuthenticated: true });
       } else {
-        set({ error: json.message || 'Login gagal' });
+        set({ error: json.message || 'Login gagal. Periksa email dan password.' });
       }
     } catch {
-      set({ error: 'Terjadi kesalahan jaringan' });
+      set({ error: 'Terjadi kesalahan jaringan. Coba lagi.' });
     }
   },
 

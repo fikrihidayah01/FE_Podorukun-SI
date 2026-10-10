@@ -58,7 +58,7 @@ const ATURAN = [
 ] as const;
 
 export default function DaftarAkunTab() {
-  const { items, riwayat, add, update, remove, isLoading, error } = useCoaStore();
+  const { items, riwayat, add, update, remove, isLoading, error, fetchRiwayat } = useCoaStore();
   const jurnals = useJurnalStore((s) => s.items);
   const periodes = useSaldoAwalStore((s) => s.periodes);
   const userName = useAuthStore((s) => s.user?.name ?? 'Sistem');
@@ -78,10 +78,17 @@ export default function DaftarAkunTab() {
   const [statusConfirm, setStatusConfirm] = useState<{ id: string; payload: Omit<Akun, 'id'> } | null>(null);
 
   useEffect(() => {
+    if (riwayatId) {
+      fetchRiwayat(riwayatId);
+    }
+  }, [riwayatId, fetchRiwayat]);
+
+  useEffect(() => {
     if (items.length > 0 && expandedIds.size === 0) {
       setExpandedIds(new Set(items.map((i) => i.id)));
     }
   }, [items]);
+
 
   const hasTransactions = (akunId: string) =>
     jurnals.some((j) => j.rows.some((r) => r.akunId === akunId)) ||

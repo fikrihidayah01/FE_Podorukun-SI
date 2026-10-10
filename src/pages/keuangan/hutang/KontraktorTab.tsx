@@ -9,7 +9,7 @@ import Money from '../../../components/ui/Money';
 import EmptyState from '../../../components/ui/EmptyState';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import { StatGrid, StatTile } from '../../../components/ui/StatTile';
-import { formatRupiahShort, formatTanggalPanjang } from '../../../utils/format';
+import { formatRupiah, formatTanggalPanjang } from '../../../utils/format';
 import KontrakFormModal from './KontrakFormModal';
 import AdendumFormModal from './AdendumFormModal';
 import CatatPembayaranKontrakModal from './CatatPembayaranKontrakModal';
@@ -53,9 +53,9 @@ export default function KontraktorTab() {
   return (
     <>
       <StatGrid columns={3}>
-        <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak" value={formatRupiahShort(total.nilai)} hint={`${rows.length} kontrak`} />
-        <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar (kas bon)" value={formatRupiahShort(total.terbayar)} />
-        <StatTile emphasis color="#c2410c" icon={PiHandCoins} label="Sisa yang harus dibayar" value={formatRupiahShort(total.sisa)} />
+        <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak" value={formatRupiah(total.nilai)} hint={`${rows.length} kontrak`} />
+        <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar (kas bon)" value={formatRupiah(total.terbayar)} />
+        <StatTile emphasis color="#c2410c" icon={PiHandCoins} label="Sisa yang harus dibayar" value={formatRupiah(total.sisa)} />
       </StatGrid>
 
       <Panel

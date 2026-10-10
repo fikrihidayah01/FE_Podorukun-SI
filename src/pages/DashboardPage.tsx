@@ -25,7 +25,7 @@ import Money from '../components/ui/Money';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
 import { StatGrid, StatTile } from '../components/ui/StatTile';
-import { bulanIni, formatBulan, formatRupiahShort } from '../utils/format';
+import { bulanIni, formatBulan, formatRupiah, formatRupiahShort } from '../utils/format';
 
 const HUTANG = MODULE_ACCENT['/keuangan/hutang'];
 const PIUTANG = MODULE_ACCENT['/keuangan/piutang'];
@@ -136,22 +136,22 @@ function KeuanganDashboard() {
           color={HUTANG}
           icon={PiHandCoins}
           label="Total hutang"
-          value={formatRupiahShort(totalHutang)}
-          hint={mutasiBulan === 0 ? 'Belum ada mutasi bulan ini' : `${mutasiBulan > 0 ? 'Naik' : 'Turun'} ${formatRupiahShort(Math.abs(mutasiBulan))} bulan ini`}
+          value={formatRupiah(totalHutang)}
+          hint={mutasiBulan === 0 ? 'Belum ada mutasi bulan ini' : `${mutasiBulan > 0 ? 'Naik' : 'Turun'} ${formatRupiah(Math.abs(mutasiBulan))} bulan ini`}
         />
         <StatTile
           color={KATEGORI_HUTANG_HEX.bank}
           icon={PiBank}
           label="Sisa pokok bank"
-          value={formatRupiahShort(sisaPokokBank)}
+          value={formatRupiah(sisaPokokBank)}
           hint={`${pinjamanAktif.length} pinjaman, ${totalPencairan ? Math.round((1 - sisaPokokBank / totalPencairan) * 100) : 0}% pokok terbayar`}
         />
-        <StatTile color={PIUTANG} icon={PiReceipt} label="Sisa tagihan user" value={formatRupiahShort(totalSppr - totalDibayar)} hint={`${pctTertagih}% dari SPPR sudah tertagih`} />
+        <StatTile color={PIUTANG} icon={PiReceipt} label="Sisa tagihan user" value={formatRupiah(totalSppr - totalDibayar)} hint={`${pctTertagih}% dari SPPR sudah tertagih`} />
         <StatTile
           color={totalTunggakan > 0 ? '#b42318' : PIUTANG}
           icon={PiHourglassMedium}
           label="Tunggakan lewat jatuh tempo"
-          value={formatRupiahShort(totalTunggakan)}
+          value={formatRupiah(totalTunggakan)}
           tone={totalTunggakan > 0 ? 'danger' : 'default'}
           hint={`${tagihan.filter((t) => t.tunggakan > 0).length} kavling menunggak`}
         />

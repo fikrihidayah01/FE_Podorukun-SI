@@ -9,7 +9,9 @@ export function formatAngka(n: number) {
 }
 
 export function formatRupiah(n: number) {
-  return 'Rp ' + n.toLocaleString('id-ID');
+  if (typeof n !== 'number' || Number.isNaN(n)) return 'Rp 0';
+  const sign = n < 0 ? '-' : '';
+  return `${sign}Rp ${Math.abs(n).toLocaleString('id-ID')}`;
 }
 
 /** Ringkas untuk kartu ringkasan: Rp 2,5 M / Rp 340,0 Jt. */

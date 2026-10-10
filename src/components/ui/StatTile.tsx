@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { IconType } from 'react-icons';
 import { shade } from '../../config/theme';
 
@@ -12,6 +13,8 @@ interface StatTileProps {
   /** Angka utama di halaman: dipertahankan untuk kompatibilitas props. */
   emphasis?: boolean;
   tone?: 'default' | 'warning' | 'danger' | 'positive';
+  /** Nilai lengkap untuk tooltip hover (opsional, default memakai string value) */
+  fullValue?: string;
 }
 
 export function StatTile({
@@ -21,10 +24,44 @@ export function StatTile({
   icon: Icon,
   color = '#1e293b',
   tone = 'default',
+  fullValue,
 }: StatTileProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [pos, setPos] = useState<{ top: number; bottom: number; left: number } | null>(null);
+  const valRef = useRef<HTMLParagraphElement>(null);
+
+  const tooltipText =
+    fullValue ??
+    (typeof value === 'string' || typeof value === 'number'
+      ? String(value)
+      : undefined);
+
+  useEffect(() => {
+    if (!isHovered) return;
+    const updatePos = () => {
+      if (valRef.current) {
+        const rect = valRef.current.getBoundingClientRect();
+        setPos({
+          top: rect.top,
+          bottom: rect.bottom,
+          left: rect.left + rect.width / 2,
+        });
+      }
+    };
+    updatePos();
+    window.addEventListener('scroll', updatePos, { passive: true });
+    window.addEventListener('resize', updatePos, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', updatePos);
+      window.removeEventListener('resize', updatePos);
+    };
+  }, [isHovered]);
+
   return (
     <div
-      className="group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden p-4 text-white sm:p-5 min-h-[114px] sm:min-h-[122px] transition-all duration-200"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden p-4 text-white sm:p-5 min-h-[114px] sm:min-h-[122px] transition-all duration-200 select-none cursor-default"
       style={{
         backgroundImage: `
           linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.05) 32%, rgba(0, 0, 0, 0.02) 65%, rgba(0, 0, 0, 0.24) 100%),
@@ -59,8 +96,12 @@ export function StatTile({
       <p className="relative text-[13px] font-semibold text-white/95 tracking-wide [text-shadow:_0_1px_2px_rgb(0_0_0_/_35%)]">
         {label}
       </p>
-      <div className="relative">
-        <p className="truncate text-xl font-bold tabular-nums tracking-[-0.01em] text-white sm:text-[1.75rem] [text-shadow:_0_1.5px_3px_rgb(0_0_0_/_40%)]">
+      <div className="relative min-w-0">
+        <p
+          ref={valRef}
+          aria-label={tooltipText ? `${label}: ${tooltipText}` : undefined}
+          className="truncate text-xl font-bold tabular-nums tracking-[-0.01em] text-white sm:text-[1.75rem] [text-shadow:_0_1.5px_3px_rgb(0_0_0_/_40%)]"
+        >
           {value}
         </p>
         {hint && (
@@ -77,6 +118,31 @@ export function StatTile({
           </p>
         )}
       </div>
+
+      {isHovered && pos && tooltipText && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: pos.top < 70 ? pos.bottom + 8 : pos.top - 8,
+            left: Math.max(100, Math.min(window.innerWidth - 100, pos.left)),
+            transform: pos.top < 70 ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+            zIndex: 99999,
+          }}
+          className="pointer-events-none animate-fade-in"
+        >
+          <div className="relative flex flex-col items-center rounded-xl bg-[#0f172a]/95 px-3.5 py-2 text-white shadow-2xl backdrop-blur-md border border-white/20 whitespace-nowrap">
+            <span className="text-[11px] font-medium text-white/70 tracking-wide">{label}</span>
+            <span className="text-sm font-bold tabular-nums text-white tracking-tight mt-0.5">{tooltipText}</span>
+            {/* Arrow indicator */}
+            {pos.top < 70 ? (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#0f172a]/95" />
+            ) : (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0f172a]/95" />
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

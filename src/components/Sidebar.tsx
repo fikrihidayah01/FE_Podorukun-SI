@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { PiSignOut, PiX, PiCaretDown } from 'react-icons/pi';
 import { useAuthStore, ROLE_LABELS } from '../store/authStore';
@@ -187,7 +187,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const panelRef = useRef<HTMLElement>(null);
   const role = user?.role;
-  const groups = role ? menuConfig[role] : [];
+  const groups = useMemo(() => (role ? menuConfig[role] : []), [role]);
 
   const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
 

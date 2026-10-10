@@ -44,7 +44,7 @@ interface JurnalState {
   remove: (id: string) => Promise<void>;
 }
 
-export const useJurnalStore = create<JurnalState>((set) => ({
+export const useJurnalStore = create<JurnalState>((set, get) => ({
   items: [],
   isLoading: false,
   error: null,
@@ -61,53 +61,68 @@ export const useJurnalStore = create<JurnalState>((set) => ({
     }
   },
 
-  add: async (data) => {
+    add: async (data) => {
     set({ isLoading: true, error: null });
     try {
+      const { lampiran, ...jurnalData } = data;
       const res = await fetchApi('/jurnal', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(jurnalData),
       });
-      if (!res.ok) throw new Error('Gagal menyimpan jurnal');
+      if (!res.ok) {
+        const j = await res.json().catch(()=>({}));
+        throw new Error(j.message || 'Gagal menyimpan jurnal');
+      }
       
       const resData = await res.json();
       const newItem = resData.data || resData;
 
-      set((state) => ({
-        items: [newItem, ...state.items],
-        isLoading: false,
-      }));
+      if (lampiran && lampiran.length > 0) {
+        for (const l of lampiran) {
+          if (l.dataUrl) {
+            const blobRes = await fetch(l.dataUrl);
+            const blob = await blobRes.blob();
+            const formData = new FormData();
+            formData.append('file', blob, l.nama);
+            
+            await fetchApi(`/lampiran?entityType=jurnal&entityId=${newItem.id}`, {
+              method: 'POST',
+              body: formData,
+            });
+          }
+        }
+      }
+
+      await get().fetch();
     } catch (err: any) {
       set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
       throw err;
     }
   },
 
-  updateStatus: async (id, status) => {
+    updateStatus: async (id, status) => {
     set({ isLoading: true, error: null });
     try {
-      // Endpoint depends on actual API spec. Assuming PATCH /jurnal/:id/status
-      const res = await fetchApi(`/jurnal/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        // Fallback to full update if status endpoint doesn't exist
-        if (res.status === 404) {
-          const updateRes = await fetchApi(`/jurnal/${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status }),
-          });
-          if (!updateRes.ok) throw new Error('Gagal mengubah status jurnal');
-        } else {
-          throw new Error('Gagal mengubah status jurnal');
+      let endpoint = '';
+      if (status === 'diposting') endpoint = `/jurnal/${id}/posting`;
+      else if (status === 'dikoreksi') endpoint = `/jurnal/${id}/balik`;
+      
+      if (endpoint) {
+        const res = await fetchApi(endpoint, { method: 'POST' });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.message || 'Gagal mengubah status jurnal');
         }
+      } else {
+        const res = await fetchApi(`/jurnal/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status }),
+        });
+        if (!res.ok) throw new Error('Gagal mengubah status jurnal');
       }
       
-      set((state) => ({
-        items: state.items.map((item) => (item.id === id ? { ...item, status } : item)),
-        isLoading: false,
-      }));
+      // refetch to get updated data
+      await get().fetch();
     } catch (err: any) {
       set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
       throw err;

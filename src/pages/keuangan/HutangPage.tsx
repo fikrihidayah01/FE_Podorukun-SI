@@ -20,7 +20,7 @@ import { useCoaStore } from '../../store/coaStore';
 import { useProyekStore } from '../../store/proyekStore';
 import { usePinjamanBankStore } from '../../store/pinjamanBankStore';
 import { buildFilename } from '../../utils/exportUtils';
-import { bulanIni, formatBulan, formatRupiahShort, opsiBulan } from '../../utils/format';
+import { bulanIni, formatBulan, formatRupiah, opsiBulan } from '../../utils/format';
 import { KATEGORI_HUTANG_HEX, MODULE_ACCENT } from '../../config/theme';
 import InputMutasiModal from './hutang/InputMutasiModal';
 import AntarProyekTab from './hutang/AntarProyekTab';
@@ -157,11 +157,11 @@ export default function HutangPage() {
             color={MODULE_ACCENT['/keuangan/hutang']}
             icon={PiHandCoins}
             label="Total hutang"
-            value={formatRupiahShort(totalOf(semuaSaldo))}
+            value={formatRupiah(totalOf(semuaSaldo))}
             hint={selectedProyek ? proyekNama(selectedProyek) : 'Semua proyek'}
           />
-          <StatTile color={KATEGORI_HUTANG_HEX.lahan} icon={PiMapTrifold} label="Hutang lahan" value={formatRupiahShort(totalOf(semuaSaldo, 'lahan'))} />
-          <StatTile color={KATEGORI_HUTANG_HEX.bank} icon={PiBank} label="Hutang bank" value={formatRupiahShort(totalOf(semuaSaldo, 'bank'))} />
+          <StatTile color={KATEGORI_HUTANG_HEX.lahan} icon={PiMapTrifold} label="Hutang lahan" value={formatRupiah(totalOf(semuaSaldo, 'lahan'))} />
+          <StatTile color={KATEGORI_HUTANG_HEX.bank} icon={PiBank} label="Hutang bank" value={formatRupiah(totalOf(semuaSaldo, 'bank'))} />
           <StatTile
             color="#b45309"
             icon={PiCalendarCheck}
@@ -315,8 +315,8 @@ export default function HutangPage() {
                               <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: KATEGORI_HUTANG_HEX[kat] }} aria-hidden />
                               {KATEGORI_HUTANG_LABELS[kat]}
                             </dt>
-                            <dd className={`mt-1 text-base font-bold tabular-nums ${total === 0 ? 'text-ink-3' : 'text-ink'}`}>
-                              {formatRupiahShort(total)}
+                            <dd className={`mt-1 text-base font-bold tabular-nums truncate ${total === 0 ? 'text-ink-3' : 'text-ink'}`} title={formatRupiah(total)}>
+                              {formatRupiah(total)}
                               {sum > 0 && total > 0 && (
                                 <span className="ml-1.5 text-xs font-semibold text-ink-3">{Math.round((total / sum) * 100)}%</span>
                               )}

@@ -66,9 +66,16 @@ export const useCoaStore = create<CoaState>()((set) => ({
     }
   },
 
-  fetchRiwayat: async (_id: string) => {
-    // dummy implementation or call backend
-    set({ riwayat: [] });
+    fetchRiwayat: async (id: string) => {
+    try {
+      const res = await fetchApi(`/akun/${id}/riwayat`);
+      if (res.ok) {
+        const json = await res.json();
+        set({ riwayat: json.data || json });
+      }
+    } catch {
+      set({ riwayat: [] });
+    }
   },
 
   add: async (data, _oleh = 'System') => {
@@ -88,7 +95,7 @@ export const useCoaStore = create<CoaState>()((set) => ({
   update: async (id, data, _oleh = 'System') => {
     try {
       const res = await fetchApi(/akun/ + id, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error('Gagal mengubah akun');
