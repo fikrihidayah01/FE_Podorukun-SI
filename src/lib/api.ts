@@ -21,16 +21,26 @@ export function clearTokens() {
 }
 
 /**
- * Attempt a token refresh.
- * Backend uses HttpOnly cookies (si_refresh_token) — no body or Content-Type needed.
- * Returns the new access token string, or null if refresh failed.
+ * Attempt a silent token refresh.
+ * Backend accepts refreshToken in JSON body OR via HttpOnly cookie.
+ * We send both: body (for localhost dev where Secure cookies don't work over HTTP)
+ * and credentials:include (for production where cookies are available).
  */
 export async function tryRefresh(): Promise<string | null> {
+  const storedRefreshToken = getRefreshToken();
+
   try {
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
-      // No Content-Type, no body — backend reads si_refresh_token cookie only
+      // Send refreshToken in body so localhost dev works (Secure cookies are blocked on HTTP).
+      // Backend also accepts cookie, so production still works correctly.
+      ...(storedRefreshToken
+        ? {
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: storedRefreshToken }),
+          }
+        : {}),
     });
 
     if (!res.ok) return null;
@@ -67,12 +77,14 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
 
   const headers = new Headers(options.headers || {});
 
-  // Only set Content-Type for JSON requests (not FormData, not the refresh endpoint)
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+  // Only set Content-Type: application/json when there is actually a body to send.
+  // Sending Content-Type without a body causes a 400 on the backend.
+  const hasBody = options.body !== undefined && options.body !== null;
+  if (!headers.has('Content-Type') && hasBody && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 
-  // Always inject Bearer token from localStorage if we have one
+  // Always inject Bearer token from localStorage if available
   const token = getAccessToken();
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -86,8 +98,10 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
 
   let response = await fetch(url, config);
 
-  // If 401 (expired token), attempt a single refresh cycle
-  const isAuthEndpoint = cleanEndpoint.includes('/auth/refresh') || cleanEndpoint.includes('/auth/login');
+  // On 401, attempt a single silent refresh then replay the request
+  const isAuthEndpoint =
+    cleanEndpoint.includes('/auth/refresh') || cleanEndpoint.includes('/auth/login');
+
   if (response.status === 401 && !isAuthEndpoint) {
     if (!isRefreshing) {
       isRefreshing = true;
@@ -102,11 +116,11 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
         return await fetch(url, { ...config, headers });
       }
 
-      // Refresh failed — clear tokens so user is prompted to log in
+      // Refresh failed — clear tokens, user will be redirected to login by RoleGuard
       clearTokens();
       return response;
     } else {
-      // Another request is already refreshing — wait for it
+      // Another request already triggered a refresh — wait for it to complete
       const newAccessToken = await new Promise<string | null>((resolve) => {
         addRefreshSubscriber(resolve);
       });
