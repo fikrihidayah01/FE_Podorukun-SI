@@ -15,7 +15,8 @@ export interface JurnalRow {
 export interface Lampiran {
   id: string;
   nama: string;
-  dataUrl: string;
+  dataUrl?: string;
+  url?: string;
   tipe: 'pdf' | 'gambar';
   ukuranBytes: number;
 }
@@ -85,10 +86,14 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
             const formData = new FormData();
             formData.append('file', blob, l.nama);
             
-            await fetchApi(`/lampiran?entityType=jurnal&entityId=${newItem.id}`, {
+            const upRes = await fetchApi(`/lampiran?entityType=jurnal&entityId=${newItem.id}`, {
               method: 'POST',
               body: formData,
             });
+            if (!upRes.ok) {
+              const err = await upRes.json().catch(() => ({}));
+              throw new Error(err.message || 'Gagal mengunggah berkas lampiran jurnal');
+            }
           }
         }
       }
@@ -140,10 +145,14 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
             const formData = new FormData();
             formData.append('file', blob, l.nama);
 
-            await fetchApi(`/lampiran?entityType=jurnal&entityId=${id}`, {
+            const upRes = await fetchApi(`/lampiran?entityType=jurnal&entityId=${id}`, {
               method: 'POST',
               body: formData,
             });
+            if (!upRes.ok) {
+              const err = await upRes.json().catch(() => ({}));
+              throw new Error(err.message || 'Gagal memperbarui berkas lampiran jurnal');
+            }
           }
         }
       }

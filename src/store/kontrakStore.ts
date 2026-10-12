@@ -51,6 +51,7 @@ interface KontrakState {
   error: string | null;
 
   fetch: () => Promise<void>;
+  fetchDetail: (id: string) => Promise<void>;
   addKontrak: (data: Omit<Kontrak, 'id' | 'status' | 'createdAt'>) => Promise<string>;
   addAdendum: (data: Omit<Adendum, 'id' | 'createdAt'>) => Promise<string>;
   addPembayaran: (data: Omit<PembayaranKontrak, 'id' | 'createdAt'>) => Promise<string>;
@@ -73,23 +74,8 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
       const json = await res.json();
       const list: Kontrak[] = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
 
-      // Extract all adendums and pembayarans if returned nested in items
-      const allAdendums: Adendum[] = [];
-      const allPembayarans: PembayaranKontrak[] = [];
-
-      list.forEach((k: any) => {
-        if (Array.isArray(k.adendum)) {
-          k.adendum.forEach((a: any) => allAdendums.push({ ...a, kontrakId: k.id }));
-        }
-        if (Array.isArray(k.pembayaran)) {
-          k.pembayaran.forEach((p: any) => allPembayarans.push({ ...p, kontrakId: k.id }));
-        }
-      });
-
       set({
         kontraks: list,
-        adendums: allAdendums.length > 0 ? allAdendums : get().adendums,
-        pembayarans: allPembayarans.length > 0 ? allPembayarans : get().pembayarans,
         isLoading: false,
       });
     } catch (err: any) {
@@ -97,127 +83,133 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
     }
   },
 
-  addKontrak: async (data) => {
+  fetchDetail: async (id: string) => {
     try {
-      const payload = {
-        noSpk: data.noSpk,
-        proyekId: data.proyekId,
-        unitId: data.unitId || crypto.randomUUID(),
-        tipe: data.tipe || undefined,
-        tanggalSpk: data.tanggalSpk,
-        kontraktorId: data.kontraktorId || undefined,
-        namaKontraktor: data.namaKontraktor || undefined,
-        rab: data.rab,
-        nilaiKontrak: data.nilaiKontrak,
-        keterangan: data.keterangan || undefined,
-        akunPersediaanId: data.akunPersediaanId,
-        akunHutangId: data.akunHutangId || undefined,
-      };
+      const res = await fetchApi(`/kontrak/${id}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      const detail = json.data;
+      if (!detail) return;
 
-      const res = await fetchApi('/kontrak', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      const newAdendums = Array.isArray(detail.adendum)
+        ? detail.adendum.map((a: any) => ({ ...a, kontrakId: id }))
+        : [];
+      const newPembayarans = Array.isArray(detail.pembayaran)
+        ? detail.pembayaran.map((p: any) => ({ ...p, kontrakId: id }))
+        : [];
 
-      if (res.ok) {
-        const json = await res.json();
-        const created = json.data;
-        await get().fetch();
-        return created?.id || '';
-      }
-    } catch {
-      // fallback
+      set((state) => ({
+        kontraks: state.kontraks.map((k) => (k.id === id ? { ...k, ...detail } : k)),
+        adendums: [
+          ...state.adendums.filter((a) => a.kontrakId !== id),
+          ...newAdendums,
+        ],
+        pembayarans: [
+          ...state.pembayarans.filter((p) => p.kontrakId !== id),
+          ...newPembayarans,
+        ],
+      }));
+    } catch (err) {
+      console.error('Failed to fetch detail kontrak:', id, err);
+    }
+  },
+
+  addKontrak: async (data) => {
+    const payload = {
+      noSpk: data.noSpk,
+      proyekId: data.proyekId,
+      unitId: data.unitId,
+      tipe: data.tipe || undefined,
+      tanggalSpk: data.tanggalSpk,
+      kontraktorId: data.kontraktorId || undefined,
+      namaKontraktor: data.namaKontraktor || undefined,
+      rab: data.rab,
+      nilaiKontrak: data.nilaiKontrak,
+      keterangan: data.keterangan || undefined,
+      akunPersediaanId: data.akunPersediaanId,
+      akunHutangId: data.akunHutangId || undefined,
+    };
+
+    const res = await fetchApi('/kontrak', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal menyimpan kontrak ke server');
     }
 
-    const id = crypto.randomUUID();
-    const newK: Kontrak = { ...data, id, status: 'aktif', createdAt: new Date().toISOString() };
-    set((state) => ({ kontraks: [...state.kontraks, newK] }));
-    return id;
+    const json = await res.json();
+    const created = json.data;
+    await get().fetch();
+    return created?.id || '';
   },
 
   addAdendum: async (data) => {
-    try {
-      const res = await fetchApi(`/kontrak/${data.kontrakId}/adendum`, {
-        method: 'POST',
-        body: JSON.stringify({
-          noAdendum: data.noAdendum,
-          tanggal: data.tanggal,
-          nilaiBaru: data.nilaiBaru,
-          alasan: data.alasan || undefined,
-        }),
-      });
+    const res = await fetchApi(`/kontrak/${data.kontrakId}/adendum`, {
+      method: 'POST',
+      body: JSON.stringify({
+        noAdendum: data.noAdendum,
+        tanggal: data.tanggal,
+        nilaiBaru: data.nilaiBaru,
+        alasan: data.alasan || undefined,
+      }),
+    });
 
-      if (res.ok) {
-        const json = await res.json();
-        const created = json.data;
-        await get().fetch();
-        return created?.id || '';
-      }
-    } catch {
-      // fallback
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal menyimpan adendum ke server');
     }
 
-    const id = crypto.randomUUID();
-    set((state) => ({
-      adendums: [...state.adendums, { ...data, id, createdAt: new Date().toISOString() }],
-    }));
-    return id;
+    const json = await res.json();
+    const created = json.data;
+    await get().fetchDetail(data.kontrakId);
+    return created?.id || '';
   },
 
   addPembayaran: async (data) => {
-    try {
-      const res = await fetchApi(`/kontrak/${data.kontrakId}/pembayaran`, {
-        method: 'POST',
-        body: JSON.stringify({
-          tanggal: data.tanggal,
-          nominal: data.nominal,
-          akunKasId: data.akunKasId,
-          noBukti: data.noBukti || undefined,
-          keterangan: data.keterangan || undefined,
-        }),
-      });
+    const res = await fetchApi(`/kontrak/${data.kontrakId}/pembayaran`, {
+      method: 'POST',
+      body: JSON.stringify({
+        tanggal: data.tanggal,
+        nominal: data.nominal,
+        akunKasId: data.akunKasId,
+        noBukti: data.noBukti || undefined,
+        keterangan: data.keterangan || undefined,
+      }),
+    });
 
-      if (res.ok) {
-        const json = await res.json();
-        const created = json.data;
-        await get().fetch();
-        return created?.id || '';
-      }
-    } catch {
-      // fallback
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal mencatat pembayaran kontrak ke server');
     }
 
-    const id = crypto.randomUUID();
-    set((state) => ({
-      pembayarans: [...state.pembayarans, { ...data, id, createdAt: new Date().toISOString() }],
-    }));
-    return id;
+    const json = await res.json();
+    const created = json.data;
+    await get().fetchDetail(data.kontrakId);
+    return created?.id || '';
   },
 
   cancelKontrak: async (id, alasan) => {
-    try {
-      const res = await fetchApi(`/kontrak/${id}/batal`, {
-        method: 'POST',
-        body: JSON.stringify({ alasan: alasan || 'Dibatalkan oleh pengguna' }),
-      });
-      if (res.ok) {
-        await get().fetch();
-        return;
-      }
-    } catch {
-      // fallback
+    const res = await fetchApi(`/kontrak/${id}/batal`, {
+      method: 'POST',
+      body: JSON.stringify({ alasan: alasan || 'Dibatalkan oleh pengguna' }),
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal membatalkan kontrak di server');
     }
 
-    set((state) => ({
-      kontraks: state.kontraks.map((k) => (k.id === id ? { ...k, status: 'batal' } : k)),
-    }));
+    await get().fetch();
   },
 
   removePembayaran: async (id) => {
-    try {
-      await fetchApi(`/kontrak/pembayaran/${id}`, { method: 'DELETE' });
-    } catch {
-      // fallback
+    const res = await fetchApi(`/kontrak/pembayaran/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal menghapus pembayaran di server');
     }
     set((state) => ({
       pembayarans: state.pembayarans.filter((p) => p.id !== id),

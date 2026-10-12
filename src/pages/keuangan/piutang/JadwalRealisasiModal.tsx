@@ -1,20 +1,18 @@
 import { useState } from 'react';
 import {
-  PiCheck,
-  PiPencilSimple,
-  PiX,
   PiFilePdf,
   PiImage,
   PiDownloadSimple,
-  PiUploadSimple,
   PiCheckCircle,
   PiReceipt,
   PiEye,
+  PiArrowsClockwise,
 } from 'react-icons/pi';
 import Modal from '../../../components/ui/Modal';
-import Button, { IconButton } from '../../../components/ui/Button';
+import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Money from '../../../components/ui/Money';
+import Notice from '../../../components/ui/Notice';
 import {
   usePiutangStore,
   STATUS_PERIODE_LABELS,
@@ -23,7 +21,7 @@ import {
   type PeriodeAngsuran,
   type BuktiTransaksi,
 } from '../../../store/piutangStore';
-import { formatBulanPendek, formatTanggal, formatTanggalPanjang } from '../../../utils/format';
+import { formatBulanPendek, formatTanggal, formatTanggalPanjang, formatRupiah } from '../../../utils/format';
 
 interface Props {
   kavlingId: string | null;
@@ -67,42 +65,41 @@ function getEffectiveBukti(row: PeriodeAngsuran): BuktiTransaksi | null {
       tipe: 'pdf',
       ukuranBytes: 148500,
       tanggal: row.tanggalBayar || row.tanggalJatuhTempo,
-      keterangan: `Unggahan manual pengguna`,
+      keterangan: 'Tersinkronisasi dari Podo Rukun Track',
     };
   }
   return null;
 }
 
 export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Props) {
-  const { getById, updateJadwalAngsuran, updateBuktiTransaksi } = usePiutangStore();
+  const { getById, pindahAlokasi } = usePiutangStore();
   const kv = kavlingId ? getById(kavlingId) : undefined;
-
-  // Edit Jatuh Tempo & Tagihan
-  const [editingPeriode, setEditingPeriode] = useState<string | null>(null);
-  const [editJatuhTempo, setEditJatuhTempo] = useState('');
-  const [editTagihan, setEditTagihan] = useState('');
 
   // Modal Bukti Transaksi
   const [selectedBukti, setSelectedBukti] = useState<{
     bukti: BuktiTransaksi | null;
     row: PeriodeAngsuran;
   } | null>(null);
-  const [uploadLoading, setUploadLoading] = useState(false);
 
   // Full Preview Modal Lightbox
   const [fullPreviewOpen, setFullPreviewOpen] = useState(false);
 
+  // Koreksi / Pindah Alokasi Modal
+  const [pindahModalOpen, setPindahModalOpen] = useState(false);
+  const [dariJadwal, setDariJadwal] = useState('');
+  const [keJadwal, setKeJadwal] = useState('');
+  const [nominalPindah, setNominalPindah] = useState('');
+  const [pindahLoading, setPindahLoading] = useState(false);
+  const [pindahError, setPindahError] = useState<string | null>(null);
+
   const rows = kv ? [...kv.periodeAngsuran].sort((a, b) => a.periode.localeCompare(b.periode)) : [];
 
   const totals = rows.reduce(
-    (acc, r) => {
-      const tagihanVal = editingPeriode === r.periode ? Math.max(0, Number(editTagihan) || 0) : r.tagihan;
-      return {
-        tagihan: acc.tagihan + tagihanVal,
-        dibayar: acc.dibayar + r.dibayar,
-        sisa: acc.sisa + Math.max(0, tagihanVal - r.dibayar),
-      };
-    },
+    (acc, r) => ({
+      tagihan: acc.tagihan + r.tagihan,
+      dibayar: acc.dibayar + r.dibayar,
+      sisa: acc.sisa + Math.max(0, r.tagihan - r.dibayar),
+    }),
     { tagihan: 0, dibayar: 0, sisa: 0 },
   );
 
@@ -113,44 +110,21 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
 
   if (!kv) return null;
 
-  const startEdit = (row: PeriodeAngsuran) => {
-    setEditingPeriode(row.periode);
-    setEditJatuhTempo(row.tanggalJatuhTempo);
-    setEditTagihan(String(row.tagihan));
-  };
-
-  const saveEdit = (periode: string) => {
-    if (!kavlingId) return;
-    const tagihanNum = Math.max(0, Number(editTagihan) || 0);
-    updateJadwalAngsuran(kavlingId, periode, tagihanNum, editJatuhTempo);
-    setEditingPeriode(null);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedBukti || !kavlingId) return;
-
-    setUploadLoading(true);
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      const dataUrl = uploadEvent.target?.result as string;
-      const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
-      const newBukti: BuktiTransaksi = {
-        id: `bkt-${Date.now()}`,
-        nomorBukti: selectedBukti.bukti?.nomorBukti || `TRX/PRT/${selectedBukti.row.periode.replace('-', '')}`,
-        namaBerkas: file.name,
-        dataUrl,
-        tipe: isPdf ? 'pdf' : 'image',
-        ukuranBytes: file.size,
-        tanggal: new Date().toISOString().split('T')[0],
-        keterangan: 'Unggahan manual pengguna',
-      };
-
-      updateBuktiTransaksi(kavlingId, selectedBukti.row.periode, newBukti);
-      setSelectedBukti({ bukti: newBukti, row: { ...selectedBukti.row, buktiTransaksi: newBukti } });
-      setUploadLoading(false);
-    };
-    reader.readAsDataURL(file);
+  const handlePindahAlokasi = async () => {
+    if (!dariJadwal || !keJadwal || !nominalPindah || Number(nominalPindah) <= 0) return;
+    setPindahLoading(true);
+    setPindahError(null);
+    try {
+      await pindahAlokasi(kv.id, dariJadwal, keJadwal, Number(nominalPindah));
+      setPindahModalOpen(false);
+      setDariJadwal('');
+      setKeJadwal('');
+      setNominalPindah('');
+    } catch (err: any) {
+      setPindahError(err.message || 'Gagal memindahkan alokasi pembayaran');
+    } finally {
+      setPindahLoading(false);
+    }
   };
 
   return (
@@ -161,9 +135,33 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
         title="Jadwal vs realisasi"
         description={`${kv.namaUser}, ${kv.nomorKavling}. Angsuran tiap tanggal ${kv.tanggalAcuanAngsuran}.`}
         size="2xl"
-        footer={<Button onClick={onClose}>Tutup</Button>}
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <Button
+              variant="secondary"
+              icon={PiArrowsClockwise}
+              disabled={rows.filter((r) => r.dibayar > 0).length === 0}
+              onClick={() => {
+                setPindahModalOpen(true);
+                setPindahError(null);
+                const firstPaid = rows.find((r) => r.dibayar > 0);
+                if (firstPaid) {
+                  setDariJadwal(firstPaid.id || firstPaid.periode);
+                  setNominalPindah(String(firstPaid.dibayar));
+                }
+              }}
+            >
+              Koreksi / Pindah Alokasi
+            </Button>
+            <Button onClick={onClose}>Tutup</Button>
+          </div>
+        }
       >
         <div className="space-y-6">
+          <Notice tone="info">
+            Jadwal dan nominal tagihan angsuran dibentuk resmi dari Dokumen Legal SPPR. Realisasi pembayaran disinkronkan otomatis dari Podo Rukun Track.
+          </Notice>
+
           <dl
             className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/50 bg-line sm:grid-cols-4"
             style={{
@@ -205,41 +203,24 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                   <th scope="col" className="text-left">Sisa</th>
                   <th scope="col" className="text-left">Status</th>
                   <th scope="col" className="text-left">Bukti transaksi</th>
-                  <th scope="col" className="text-left"><span className="sr-only">Aksi</span></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const editing = editingPeriode === row.periode;
-                  const tagihanVal = editing ? Math.max(0, Number(editTagihan) || 0) : row.tagihan;
-                  const sisa = Math.max(0, tagihanVal - row.dibayar);
-                  const status = computeStatus({
-                    ...row,
-                    tagihan: tagihanVal,
-                    tanggalJatuhTempo: editing && editJatuhTempo ? editJatuhTempo : row.tanggalJatuhTempo,
-                  });
+                  const sisa = Math.max(0, row.tagihan - row.dibayar);
+                  const status = computeStatus(row);
                   const effectiveBukti = getEffectiveBukti(row);
 
                   return (
-                    <tr key={row.periode} className={editing ? '[&>td]:bg-brand-50' : ''}>
+                    <tr key={row.periode}>
                       <td className="whitespace-nowrap font-semibold text-ink text-left">{formatBulanPendek(row.periode)}</td>
 
-                      {/* Jatuh tempo: BISA DIEDIT (RATA KIRI) */}
+                      {/* Jatuh tempo: Resmi dari SPPR (Read-only) */}
                       <td className="whitespace-nowrap tabular-nums text-left">
-                        {editing ? (
-                          <input
-                            type="date"
-                            aria-label={`Jatuh tempo ${formatBulanPendek(row.periode)}`}
-                            className="control control-sm w-36 text-left"
-                            value={editJatuhTempo}
-                            onChange={(e) => setEditJatuhTempo(e.target.value)}
-                          />
-                        ) : (
-                          formatTanggal(row.tanggalJatuhTempo)
-                        )}
+                        {formatTanggal(row.tanggalJatuhTempo)}
                       </td>
 
-                      {/* Tgl bayar: DARI SINKRON PR TRACK (READ-ONLY, RATA KIRI) */}
+                      {/* Tgl bayar: Dari sinkron PR Track (Read-only) */}
                       <td className="whitespace-nowrap tabular-nums text-left">
                         {row.tanggalBayar ? (
                           formatTanggal(row.tanggalBayar)
@@ -248,23 +229,12 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                         )}
                       </td>
 
-                      {/* Tagihan: BISA DIEDIT (RATA KIRI) */}
+                      {/* Tagihan: Resmi dari SPPR (Read-only) */}
                       <td className="whitespace-nowrap tabular-nums text-left font-semibold text-ink">
-                        {editing ? (
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            aria-label={`Nominal tagihan ${formatBulanPendek(row.periode)}`}
-                            className="control control-sm w-36 text-left"
-                            value={editTagihan}
-                            onChange={(e) => setEditTagihan(e.target.value)}
-                          />
-                        ) : (
-                          <Money value={row.tagihan} />
-                        )}
+                        <Money value={row.tagihan} />
                       </td>
 
-                      {/* Dibayar: DARI SINKRON PR TRACK (READ-ONLY, RATA KIRI) */}
+                      {/* Dibayar: Dari sinkron PR Track (Read-only) */}
                       <td className="whitespace-nowrap tabular-nums text-left font-semibold text-ink">
                         {row.dibayar > 0 ? (
                           <Money value={row.dibayar} />
@@ -273,17 +243,17 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                         )}
                       </td>
 
-                      {/* Sisa: RATA KIRI */}
+                      {/* Sisa */}
                       <td className="whitespace-nowrap tabular-nums text-left font-semibold text-ink">
                         {sisa === 0 ? <span className="text-ink-3">-</span> : <Money value={sisa} />}
                       </td>
 
-                      {/* Status: RATA KIRI */}
+                      {/* Status */}
                       <td className="text-left">
                         <Badge tone={STATUS_PERIODE_TONE[status]}>{STATUS_PERIODE_LABELS[status]}</Badge>
                       </td>
 
-                      {/* Bukti transaksi: RATA KIRI */}
+                      {/* Bukti transaksi */}
                       <td className="whitespace-nowrap text-left">
                         {effectiveBukti ? (
                           <button
@@ -301,34 +271,8 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                               {effectiveBukti.nomorBukti || effectiveBukti.namaBerkas}
                             </span>
                           </button>
-                        ) : row.dibayar > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedBukti({ bukti: null, row })}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
-                          >
-                            <PiUploadSimple className="h-3.5 w-3.5" aria-hidden /> Unggah
-                          </button>
                         ) : (
                           <span className="text-ink-3">-</span>
-                        )}
-                      </td>
-
-                      {/* Aksi Koreksi */}
-                      <td className="!pr-2 text-left">
-                        {editing ? (
-                          <div className="flex items-center gap-0.5">
-                            <IconButton icon={PiCheck} label="Simpan perubahan" onClick={() => saveEdit(row.periode)} />
-                            <IconButton icon={PiX} label="Batal perubahan" onClick={() => setEditingPeriode(null)} />
-                          </div>
-                        ) : (
-                          <div className="flex items-center">
-                            <IconButton
-                              icon={PiPencilSimple}
-                              label={`Edit jadwal ${formatBulanPendek(row.periode)}`}
-                              onClick={() => startEdit(row)}
-                            />
-                          </div>
                         )}
                       </td>
                     </tr>
@@ -341,7 +285,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                   <td className="text-left font-bold"><Money value={totals.tagihan} /></td>
                   <td className="text-left font-bold"><Money value={totals.dibayar} /></td>
                   <td className="text-left font-bold"><Money value={totals.sisa} /></td>
-                  <td colSpan={3} />
+                  <td colSpan={2} />
                 </tr>
               </tfoot>
             </table>
@@ -376,6 +320,103 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
           )}
         </div>
       </Modal>
+
+      {/* Modal Koreksi / Pindah Alokasi Pembayaran */}
+      {pindahModalOpen && (
+        <Modal
+          isOpen={true}
+          onClose={() => setPindahModalOpen(false)}
+          title="Koreksi / Pindah Alokasi Pembayaran"
+          description={`Pindahkan alokasi penerimaan pembayaran antar periode tagihan untuk kavling ${kv.nomorKavling}`}
+          size="md"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="secondary" onClick={() => setPindahModalOpen(false)}>
+                Batal
+              </Button>
+              <Button
+                variant="primary"
+                loading={pindahLoading}
+                disabled={!dariJadwal || !keJadwal || !nominalPindah || Number(nominalPindah) <= 0}
+                onClick={handlePindahAlokasi}
+              >
+                Simpan Alokasi
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4 text-left">
+            {pindahError && (
+              <Notice tone="danger" title="Gagal Memindahkan Alokasi">
+                {pindahError}
+              </Notice>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-ink-2 mb-1">
+                Periode Asal Pembayaran <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="control w-full text-sm"
+                value={dariJadwal}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDariJadwal(val);
+                  const selectedRow = rows.find((r) => (r.id || r.periode) === val);
+                  if (selectedRow) setNominalPindah(String(selectedRow.dibayar));
+                }}
+              >
+                <option value="">-- Pilih Periode Asal --</option>
+                {rows
+                  .filter((r) => r.dibayar > 0)
+                  .map((r) => (
+                    <option key={r.id || r.periode} value={r.id || r.periode}>
+                      {formatBulanPendek(r.periode)} (Dibayar: {formatRupiah(r.dibayar)})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-ink-2 mb-1">
+                Periode Tujuan Pembayaran <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="control w-full text-sm"
+                value={keJadwal}
+                onChange={(e) => setKeJadwal(e.target.value)}
+              >
+                <option value="">-- Pilih Periode Tujuan --</option>
+                {rows
+                  .filter((r) => (r.id || r.periode) !== dariJadwal)
+                  .map((r) => (
+                    <option key={r.id || r.periode} value={r.id || r.periode}>
+                      {formatBulanPendek(r.periode)} (Tagihan: {formatRupiah(r.tagihan)}, Sisa: {formatRupiah(Math.max(0, r.tagihan - r.dibayar))})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-ink-2 mb-1">
+                Nominal Dipindahkan (Rp) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                className="control w-full text-sm"
+                value={nominalPindah}
+                onChange={(e) => setNominalPindah(e.target.value)}
+                placeholder="Contoh: 1500000"
+              />
+            </div>
+
+            <p className="text-xs text-ink-3">
+              Perpindahan alokasi akan dikirim langsung ke backend API dan dicatat secara akuntabel dalam riwayat alokasi piutang.
+            </p>
+          </div>
+        </Modal>
+      )}
 
       {/* Modal Detail Bukti Transaksi dengan Neumorphism Style */}
       {selectedBukti && (
@@ -429,18 +470,18 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                 <div className="col-span-2">
                   <span className="text-ink-3 font-medium">Keterangan:</span>
                   <p className="mt-0.5 font-medium text-ink-2">
-                    {selectedBukti.bukti?.keterangan || 'Unggahan manual pengguna'}
+                    {selectedBukti.bukti?.keterangan || 'Tersinkronisasi dari Podo Rukun Track'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Box Bawah: Preview & 3 Tombol Berkas (Cembung / Raised Emboss Shadow, Warna #f0eff4) */}
+            {/* Box Bawah: Preview & Tombol Berkas */}
             <div className="rounded-2xl border border-white/60 bg-[#f0eff4] p-5 text-center shadow-[6px_6px_14px_rgba(0,0,0,0.18),-6px_-6px_14px_rgba(255,255,255,0.85)]">
               <div className="flex flex-col items-center justify-center gap-4">
-                {selectedBukti.bukti?.dataUrl && selectedBukti.bukti.tipe === 'image' ? (
+                {(selectedBukti.bukti?.url || selectedBukti.bukti?.dataUrl) && selectedBukti.bukti.tipe === 'image' ? (
                   <img
-                    src={selectedBukti.bukti.dataUrl}
+                    src={selectedBukti.bukti.url || selectedBukti.bukti.dataUrl}
                     alt={selectedBukti.bukti.namaBerkas}
                     className="max-h-56 w-auto rounded-xl object-contain shadow-sm border border-line"
                   />
@@ -458,9 +499,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                   </div>
                 )}
 
-                {/* 3 Tombol Berkas (Semua Cembung / Raised Emboss) */}
                 <div className="flex flex-wrap items-center justify-center gap-3 mt-1">
-                  {/* Tombol 1: Lihat berkas */}
                   <button
                     type="button"
                     onClick={() => setFullPreviewOpen(true)}
@@ -469,10 +508,9 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                     <PiEye className="h-4 w-4 shrink-0 text-brand-600" aria-hidden /> Lihat berkas
                   </button>
 
-                  {/* Tombol 2: Unduh berkas */}
-                  {selectedBukti.bukti && (
+                  {selectedBukti.bukti && (selectedBukti.bukti.url || selectedBukti.bukti.dataUrl) && (
                     <a
-                      href={selectedBukti.bukti.dataUrl || selectedBukti.bukti.url || '#'}
+                      href={selectedBukti.bukti.url || selectedBukti.bukti.dataUrl}
                       download={selectedBukti.bukti.namaBerkas}
                       target="_blank"
                       rel="noreferrer"
@@ -481,18 +519,6 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                       <PiDownloadSimple className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden /> Unduh berkas
                     </a>
                   )}
-
-                  {/* Tombol 3: Ganti berkas */}
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/60 bg-[#f0eff4] px-3.5 py-2 text-xs font-bold text-ink shadow-[4px_4px_8px_rgba(0,0,0,0.16),-4px_-4px_8px_rgba(255,255,255,0.9)] transition-all hover:bg-[#e6e5ea] active:scale-95 active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]">
-                    <PiUploadSimple className="h-4 w-4 shrink-0 text-amber-600" aria-hidden /> Ganti berkas
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      className="sr-only"
-                      onChange={handleFileUpload}
-                      disabled={uploadLoading}
-                    />
-                  </label>
                 </div>
               </div>
             </div>
@@ -500,7 +526,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
         </Modal>
       )}
 
-      {/* Modal Full Preview (Lightbox saat 'Lihat berkas' diklik) */}
+      {/* Modal Full Preview */}
       {fullPreviewOpen && selectedBukti && (
         <Modal
           isOpen={true}
@@ -515,15 +541,15 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
           }
         >
           <div className="flex flex-col items-center justify-center p-4">
-            {selectedBukti.bukti?.dataUrl && selectedBukti.bukti.tipe === 'image' ? (
+            {(selectedBukti.bukti?.url || selectedBukti.bukti?.dataUrl) && selectedBukti.bukti.tipe === 'image' ? (
               <img
-                src={selectedBukti.bukti.dataUrl}
+                src={selectedBukti.bukti.url || selectedBukti.bukti.dataUrl}
                 alt={selectedBukti.bukti.namaBerkas}
                 className="max-h-[70vh] w-auto rounded-xl object-contain shadow-lg"
               />
-            ) : selectedBukti.bukti?.dataUrl && selectedBukti.bukti.tipe === 'pdf' ? (
+            ) : (selectedBukti.bukti?.url || selectedBukti.bukti?.dataUrl) && selectedBukti.bukti.tipe === 'pdf' ? (
               <iframe
-                src={selectedBukti.bukti.dataUrl}
+                src={selectedBukti.bukti.url || selectedBukti.bukti.dataUrl}
                 title={selectedBukti.bukti.namaBerkas}
                 className="h-[65vh] w-full rounded-xl border border-line shadow-sm"
               />

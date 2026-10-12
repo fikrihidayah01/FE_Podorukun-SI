@@ -694,7 +694,7 @@ export default function JurnalPage() {
                       <span className="flex-1 truncate text-sm text-ink">{l.nama}</span>
                       <span className="shrink-0 text-xs text-ink-3">{formatUkuran(l.ukuranBytes)}</span>
                       <a
-                        href={l.dataUrl}
+                        href={l.url || l.dataUrl}
                         target="_blank"
                         rel="noreferrer"
                         download={l.nama}
@@ -704,7 +704,7 @@ export default function JurnalPage() {
                         <PiArrowSquareOut className="h-4 w-4" aria-hidden />
                       </a>
                       <a
-                        href={l.dataUrl}
+                        href={l.url || l.dataUrl}
                         download={l.nama}
                         className="shrink-0 rounded p-0.5 text-ink-3 hover:text-brand-600"
                         aria-label={`Unduh ${l.nama}`}

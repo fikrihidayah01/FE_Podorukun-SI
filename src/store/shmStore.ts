@@ -120,137 +120,75 @@ export const useShmStore = create<ShmState>((set, get) => ({
   },
 
   addShm: async (data) => {
-    try {
-      const payload = {
-        nomorShm: data.nomorShm,
-        unitId: data.unitId || crypto.randomUUID(),
-        status: data.status,
-        statusKustom: data.statusKustom || undefined,
-        lokasi: data.lokasi,
-        pinjamanBankId: data.pinjamanBankId || undefined,
-        noPbg: data.noPbg || undefined,
-        statusPbg: data.statusPbg,
-        statusPbgKustom: data.statusPbgKustom || undefined,
-      };
+    const payload = {
+      nomorShm: data.nomorShm,
+      unitId: data.unitId,
+      status: data.status,
+      statusKustom: data.statusKustom || undefined,
+      lokasi: data.lokasi,
+      pinjamanBankId: data.pinjamanBankId || undefined,
+      noPbg: data.noPbg || undefined,
+      statusPbg: data.statusPbg,
+      statusPbgKustom: data.statusPbgKustom || undefined,
+    };
 
-      const res = await fetchApi('/shm', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+    const res = await fetchApi('/shm', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
 
-      if (!res.ok) {
-        // Fallback local update
-        const newItem: Shm = {
-          ...data,
-          id: crypto.randomUUID(),
-          riwayat: [],
-          createdAt: new Date().toISOString(),
-        };
-        set((state) => ({ shms: [newItem, ...state.shms] }));
-        return true;
-      }
-
-      await get().fetch();
-      return true;
-    } catch {
-      const newItem: Shm = {
-        ...data,
-        id: crypto.randomUUID(),
-        riwayat: [],
-        createdAt: new Date().toISOString(),
-      };
-      set((state) => ({ shms: [newItem, ...state.shms] }));
-      return true;
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal menyimpan SHM ke server');
     }
+
+    await get().fetch();
+    return true;
   },
 
   removeShm: async (id) => {
-    try {
-      await fetchApi(`/shm/${id}`, { method: 'DELETE' });
-    } catch {
-      // ignore
+    const res = await fetchApi(`/shm/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal menghapus SHM di server');
     }
-    set((state) => ({ shms: state.shms.filter((s) => s.id !== id) }));
+    await get().fetch();
   },
 
-  updateStatus: async (id, keStatus, lokasi, keterangan, pinjamanBankId, namaBank, statusKustom) => {
-    try {
-      const payload = {
-        keStatus,
-        lokasi,
-        keterangan: keterangan || undefined,
-        pinjamanBankId: keStatus === 'dijaminkan' ? (pinjamanBankId || undefined) : undefined,
-        statusKustom: keStatus === 'lainnya' ? (statusKustom || undefined) : undefined,
-      };
-      const res = await fetchApi(`/shm/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        await get().fetch();
-        return;
-      }
-    } catch {
-      // fallback
+  updateStatus: async (id, keStatus, lokasi, keterangan, pinjamanBankId, _namaBank, statusKustom) => {
+    const payload = {
+      keStatus,
+      lokasi,
+      keterangan: keterangan || undefined,
+      pinjamanBankId: keStatus === 'dijaminkan' ? (pinjamanBankId || undefined) : undefined,
+      statusKustom: keStatus === 'lainnya' ? (statusKustom || undefined) : undefined,
+    };
+    const res = await fetchApi(`/shm/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal mengubah status SHM di server');
     }
-
-    set((state) => ({
-      shms: state.shms.map((shm) => {
-        if (shm.id !== id) return shm;
-
-        const newRiwayat: ShmRiwayat = {
-          id: crypto.randomUUID(),
-          shmId: id,
-          tanggal: new Date().toISOString().split('T')[0],
-          dariStatus: shm.status,
-          keStatus,
-          keterangan,
-        };
-
-        return {
-          ...shm,
-          status: keStatus,
-          statusKustom: keStatus === 'lainnya' ? statusKustom : undefined,
-          lokasi,
-          pinjamanBankId: keStatus === 'dijaminkan' ? pinjamanBankId : undefined,
-          namaBank: keStatus === 'dijaminkan' ? namaBank : undefined,
-          riwayat: [...(shm.riwayat || []), newRiwayat],
-        };
-      }),
-    }));
+    await get().fetch();
   },
 
   updateNoPbg: async (id, noPbg, statusPbg, statusPbgKustom) => {
-    try {
-      const payload = {
-        noPbg: noPbg || undefined,
-        statusPbg,
-        statusPbgKustom: statusPbg === 'lainnya' ? (statusPbgKustom || undefined) : undefined,
-      };
-      const res = await fetchApi(`/shm/${id}/pbg`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        await get().fetch();
-        return;
-      }
-    } catch {
-      // fallback
+    const payload = {
+      noPbg: noPbg || undefined,
+      statusPbg,
+      statusPbgKustom: statusPbg === 'lainnya' ? (statusPbgKustom || undefined) : undefined,
+    };
+    const res = await fetchApi(`/shm/${id}/pbg`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal memperbarui PBG di server');
     }
-
-    set((state) => ({
-      shms: state.shms.map((shm) =>
-        shm.id !== id
-          ? shm
-          : {
-              ...shm,
-              noPbg,
-              statusPbg,
-              statusPbgKustom: statusPbg === 'lainnya' ? statusPbgKustom : undefined,
-            }
-      ),
-    }));
+    await get().fetch();
   },
 
   getRiwayat: (shmId) => get().shms.find((s) => s.id === shmId)?.riwayat ?? [],

@@ -35,6 +35,7 @@ export default function PiutangPage() {
 
   // Simulasi integrasi Podo Rukun Track sampai API tersedia
   const [apiError, setApiError] = useState(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState('');
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);
 
@@ -60,14 +61,19 @@ export default function PiutangPage() {
   const handleSinkron = async () => {
     setSyncLoading(true);
     setApiError(false);
+    setSyncErrorMessage('');
     try {
       const res = await fetchApi('/sinkron/jalankan', { method: 'POST' });
-      if (!res.ok) throw new Error('Gagal sinkronisasi');
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || 'Gagal sinkronisasi');
+      }
 
       await fetchItems();
       setSyncedAt(new Date());
-    } catch {
+    } catch (err: any) {
       setApiError(true);
+      setSyncErrorMessage(err.message || 'API tidak merespons atau sinkronisasi gagal.');
     } finally {
       setSyncLoading(false);
     }
@@ -89,14 +95,14 @@ export default function PiutangPage() {
         {apiError && (
           <Notice
             tone="danger"
-            title="Data Podo Rukun Track gagal dimuat"
+            title="Sinkronisasi Podo Rukun Track Gagal"
             action={
               <Button size="sm" onClick={handleSinkron}>
                 Coba lagi
               </Button>
             }
           >
-            API tidak merespons. Angka di bawah adalah data terakhir yang tersimpan, jangan dibaca sebagai lunas.
+            {syncErrorMessage || 'API tidak merespons. Angka di bawah adalah data terakhir yang tersimpan, jangan dibaca sebagai lunas.'}
           </Notice>
         )}
         {syncedAt && !apiError && (

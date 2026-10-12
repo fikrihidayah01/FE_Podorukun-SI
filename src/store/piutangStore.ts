@@ -60,6 +60,7 @@ export interface BuktiTransaksi {
 }
 
 export interface PeriodeAngsuran {
+  id?: string;
   periode: string; // 'YYYY-MM'
   tanggalJatuhTempo: string; // ISO date
   tagihan: number;
@@ -114,9 +115,7 @@ interface TagihanState {
   getTotalNilaiKontrak: (proyekId?: string) => number;
   getTotalDibayar: (proyekId?: string) => number;
   getTotalSisa: (proyekId?: string) => number;
-  updateAlokasi: (kavlingId: string, periode: string, dibayar: number, tanggalBayar: string | null) => Promise<void>;
-  updateJadwalAngsuran: (kavlingId: string, periode: string, tagihan: number, tanggalJatuhTempo: string) => Promise<void>;
-  updateBuktiTransaksi: (kavlingId: string, periode: string, bukti: BuktiTransaksi | null) => Promise<void>;
+  pindahAlokasi: (piutangId: string, dariJadwalId: string, keJadwalId: string, nominal: number) => Promise<void>;
   addFromLegal: (legalData: any) => Promise<void>;
 }
 
@@ -160,85 +159,16 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
     }, 0);
   },
 
-  updateAlokasi: async (kavlingId, periode, dibayar, tanggalBayar) => {
-    try {
-      const response = await fetchApi(`/piutang/${kavlingId}/alokasi`, {
-        method: 'PUT',
-        body: JSON.stringify({ periode, dibayar, tanggalBayar }),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        set((state) => ({
-          items: state.items.map((k) => (k.id === kavlingId ? (updated.data || k) : k)),
-        }));
-        return;
-      }
-    } catch {}
-    set((state) => ({
-      items: state.items.map((k) => {
-        if (k.id !== kavlingId) return k;
-        return {
-          ...k,
-          periodeAngsuran: k.periodeAngsuran.map((p) =>
-            p.periode === periode ? { ...p, dibayar, tanggalBayar } : p
-          ),
-        };
-      }),
-    }));
-  },
-
-  updateJadwalAngsuran: async (kavlingId, periode, tagihan, tanggalJatuhTempo) => {
-    try {
-      const response = await fetchApi(`/piutang/${kavlingId}/jadwal`, {
-        method: 'PUT',
-        body: JSON.stringify({ periode, tagihan, tanggalJatuhTempo }),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        set((state) => ({
-          items: state.items.map((k) => (k.id === kavlingId ? (updated.data || k) : k)),
-        }));
-        return;
-      }
-    } catch {}
-    set((state) => ({
-      items: state.items.map((k) => {
-        if (k.id !== kavlingId) return k;
-        return {
-          ...k,
-          periodeAngsuran: k.periodeAngsuran.map((p) =>
-            p.periode === periode ? { ...p, tagihan, tanggalJatuhTempo } : p
-          ),
-        };
-      }),
-    }));
-  },
-
-  updateBuktiTransaksi: async (kavlingId, periode, bukti) => {
-    try {
-      const response = await fetchApi(`/piutang/${kavlingId}/bukti`, {
-        method: 'PUT',
-        body: JSON.stringify({ periode, buktiTransaksi: bukti }),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        set((state) => ({
-          items: state.items.map((k) => (k.id === kavlingId ? (updated.data || k) : k)),
-        }));
-        return;
-      }
-    } catch {}
-    set((state) => ({
-      items: state.items.map((k) => {
-        if (k.id !== kavlingId) return k;
-        return {
-          ...k,
-          periodeAngsuran: k.periodeAngsuran.map((p) =>
-            p.periode === periode ? { ...p, buktiTransaksi: bukti } : p
-          ),
-        };
-      }),
-    }));
+  pindahAlokasi: async (piutangId, dariJadwalId, keJadwalId, nominal) => {
+    const response = await fetchApi(`/piutang/${piutangId}/alokasi/pindah`, {
+      method: 'POST',
+      body: JSON.stringify({ dariJadwalId, keJadwalId, nominal }),
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => null);
+      throw new Error(errData?.message || 'Gagal memindahkan alokasi pembayaran');
+    }
+    await get().fetchItems();
   },
   
   addFromLegal: async (_legalData: any) => {

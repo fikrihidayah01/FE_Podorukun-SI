@@ -5,7 +5,7 @@ import {
 } from 'react-icons/pi';
 import { useDokumenLegalStore, type DokumenLegal, type StatusDokumen, type DataPembeli } from '../../store/dokumenLegalStore';
 import { useMasterPtStore } from '../../store/masterPtStore';
-import { useProyekStore } from '../../store/proyekStore';
+import { useProyekStore, type KavlingUnit } from '../../store/proyekStore';
 import { useTemplateDokumenStore, type TipeTransaksi } from '../../store/templateDokumenStore';
 import { usePustakaPasalStore } from '../../store/pustakaPasalStore';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
@@ -15,16 +15,9 @@ import DataTable, { type Column } from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
 import Money from '../../components/ui/Money';
 import Field from '../../components/ui/Field';
+import Notice from '../../components/ui/Notice';
 import EmptyState from '../../components/ui/EmptyState';
 import { formatTanggal } from '../../utils/format';
-
-// Dummy kavling data — akan diganti dengan kavlingStore jika tersedia
-const DUMMY_KAVLING = [
-  { id: 'kav-001', nomor: 'A-01', luas: 120, perumahanId: '' },
-  { id: 'kav-002', nomor: 'A-02', luas: 135, perumahanId: '' },
-  { id: 'kav-003', nomor: 'B-05', luas: 90, perumahanId: '' },
-  { id: 'kav-004', nomor: 'C-12', luas: 200, perumahanId: '' },
-];
 
 const STATUS: Record<StatusDokumen, { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -52,9 +45,9 @@ function TipeBadge({ tipe }: { tipe: TipeTransaksi }) {
 }
 
 export default function LegalPage() {
-  const { items, add, fetch: fetchDokumen } = useDokumenLegalStore();
+  const { items, add, fetch: fetchDokumen, fetchPenjualanTersedia } = useDokumenLegalStore();
   const { items: pts, fetch: fetchPts } = useMasterPtStore();
-  const { items: proyeks } = useProyekStore();
+  const { items: proyeks, fetch: fetchProyeks, fetchKavling } = useProyekStore();
   const { items: templates, fetch: fetchTemplates } = useTemplateDokumenStore();
   const { fetch: fetchPasals } = usePustakaPasalStore();
   const navigate = useNavigate();
@@ -62,13 +55,15 @@ export default function LegalPage() {
   useEffect(() => {
     fetchDokumen();
     fetchPts();
+    fetchProyeks();
     fetchTemplates();
     fetchPasals();
-  }, [fetchDokumen, fetchPts, fetchTemplates, fetchPasals]);
+  }, [fetchDokumen, fetchPts, fetchProyeks, fetchTemplates, fetchPasals]);
 
   const [page, setPage] = useState(1);
   const [buatOpen, setBuatOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
+  const [formError, setFormError] = useState('');
 
   const [search, setSearch] = useState('');
   const [filterPerumahan, setFilterPerumahan] = useState('all');
@@ -77,9 +72,14 @@ export default function LegalPage() {
 
   // Langkah 1 form
   const [formPtId, setFormPtId] = useState('');
-  const [formKavlingId, setFormKavlingId] = useState('');
-  const [formTipe, setFormTipe] = useState<TipeTransaksi>('Cash');
   const [formPerumahanId, setFormPerumahanId] = useState('');
+  const [formKavlingId, setFormKavlingId] = useState('');
+  const [formAssignmentId, setFormAssignmentId] = useState('');
+  const [formTipe, setFormTipe] = useState<TipeTransaksi>('Cash');
+
+  // Penjualan & Kavling list for selected project
+  const [penjualanList, setPenjualanList] = useState<any[]>([]);
+  const [kavlingList, setKavlingList] = useState<KavlingUnit[]>([]);
 
   // Langkah 2 form (data pembeli + harga)
   const [pembeli, setPembeli] = useState<DataPembeli>(EMPTY_PEMBELI());
@@ -88,6 +88,20 @@ export default function LegalPage() {
   const [ajbBbn, setAjbBbn] = useState('');
   const [uangMuka, setUangMuka] = useState('');
   const [tanggalPerjanjian, setTanggalPerjanjian] = useState(new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    if (formPerumahanId) {
+      fetchPenjualanTersedia(formPerumahanId).then((list) => {
+        setPenjualanList(list);
+      });
+      fetchKavling(formPerumahanId).then((units) => {
+        setKavlingList(units);
+      });
+    } else {
+      setPenjualanList([]);
+      setKavlingList([]);
+    }
+  }, [formPerumahanId, fetchPenjualanTersedia, fetchKavling]);
 
   const hargaNett = (Number(hargaAwal) || 0) + (Number(bphtb) || 0) + (Number(ajbBbn) || 0);
   const sisaKpr = hargaNett - (Number(uangMuka) || 0);
@@ -109,10 +123,12 @@ export default function LegalPage() {
 
   const openBuat = () => {
     setStep(1);
+    setFormError('');
     setFormPtId(pts[0]?.id ?? '');
-    setFormKavlingId(DUMMY_KAVLING[0]?.id ?? '');
-    setFormTipe('Cash');
     setFormPerumahanId(proyeks[0]?.id ?? '');
+    setFormKavlingId('');
+    setFormAssignmentId('');
+    setFormTipe('Cash');
     setPembeli(EMPTY_PEMBELI());
     setHargaAwal('');
     setBphtb('');
@@ -122,10 +138,43 @@ export default function LegalPage() {
     setBuatOpen(true);
   };
 
-  const handleNext = () => setStep(2);
+  const handlePenjualanSelect = (assignmentIdVal: string) => {
+    setFormAssignmentId(assignmentIdVal);
+    const item = penjualanList.find((p) => p.assignmentId === assignmentIdVal || p.id === assignmentIdVal);
+    if (item) {
+      if (item.kavlingId || item.unitId) setFormKavlingId(item.kavlingId || item.unitId);
+      if (item.tipeTransaksi && ['Cash', 'KPR', 'In House'].includes(item.tipeTransaksi)) {
+        setFormTipe(item.tipeTransaksi as TipeTransaksi);
+      }
+      if (item.pembeli) {
+        setPembeli({
+          nama: item.pembeli.nama || item.namaPembeli || '',
+          ttl: item.pembeli.ttl || '',
+          pekerjaan: item.pembeli.pekerjaan || '',
+          alamat: item.pembeli.alamat || '',
+          noKtp: item.pembeli.noKtp || '',
+          noHp: item.pembeli.noHp || '',
+        });
+      } else if (item.namaPembeli) {
+        setPembeli((prev) => ({ ...prev, nama: item.namaPembeli }));
+      }
+      if (item.hargaAwal || item.hargaJual) setHargaAwal(String(item.hargaAwal || item.hargaJual));
+      if (item.uangMuka) setUangMuka(String(item.uangMuka));
+    }
+  };
+
+  const handleNext = () => {
+    if (!formPtId || !formKavlingId) {
+      setFormError('Pilih PT dan Kavling terlebih dahulu.');
+      return;
+    }
+    setFormError('');
+    setStep(2);
+  };
 
   const handleSimpan = async (statusFinal: StatusDokumen) => {
     if (!formPtId || !formKavlingId) return;
+    setFormError('');
     const pt = pts.find((p) => p.id === formPtId);
     const ptSingkatan = pt?.namaPt.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 4) ?? 'DOK';
 
@@ -142,33 +191,46 @@ export default function LegalPage() {
       };
     }).filter(Boolean) as any;
 
-    const id = await add({
-      ptId: formPtId,
-      kavlingId: formKavlingId,
-      perumahanId: formPerumahanId,
-      pembeli,
-      tipeTransaksi: formTipe,
-      hargaAwal: Number(hargaAwal) || 0,
-      bphtb: Number(bphtb) || 0,
-      ajbBbn: Number(ajbBbn) || 0,
-      uangMuka: Number(uangMuka) || 0,
-      tanggalPerjanjian,
-      status: statusFinal,
-      pasalDokumen,
-      ptSingkatan,
-    });
+    try {
+      const id = await add({
+        ptId: formPtId,
+        kavlingId: formKavlingId,
+        assignmentId: formAssignmentId || undefined,
+        perumahanId: formPerumahanId,
+        templateId: templateAktif?.id,
+        pembeli,
+        tipeTransaksi: formTipe,
+        hargaAwal: Number(hargaAwal) || 0,
+        bphtb: Number(bphtb) || 0,
+        ajbBbn: Number(ajbBbn) || 0,
+        uangMuka: Number(uangMuka) || 0,
+        tanggalPerjanjian,
+        status: statusFinal,
+        pasalDokumen,
+        ptSingkatan,
+      });
 
-    setBuatOpen(false);
-    if (id) {
-      navigate(`/keuangan/legal/${id}`);
+      if (id) {
+        setBuatOpen(false);
+        navigate(`/keuangan/legal/${id}`);
+      }
+    } catch (err: any) {
+      setFormError(err.message || 'Gagal menyimpan dokumen legal');
     }
   };
 
-
   const columns: Column<DokumenLegal>[] = [
-    { key: 'noDokumen', label: 'No. dokumen', render: (r) => <span className="font-mono text-sm font-semibold text-ink">{r.noDokumen}</span> },
+    { key: 'noDokumen', label: 'No. Dokumen', render: (r) => <span className="font-semibold text-ink">{r.noDokumen}</span> },
     { key: 'pt', label: 'PT', render: (r) => <span className="text-sm text-ink-2">{pts.find((p) => p.id === r.ptId)?.namaPt ?? '-'}</span> },
-    { key: 'kavling', label: 'Kavling', render: (r) => <span className="tabular-nums">{DUMMY_KAVLING.find((k) => k.id === r.kavlingId)?.nomor ?? r.kavlingId}</span> },
+    {
+      key: 'kavling',
+      label: 'Kavling',
+      render: (r) => (
+        <span className="tabular-nums font-medium text-ink">
+          {r.kavlingNomor || r.kavlingId}
+        </span>
+      ),
+    },
     {
       key: 'pembeli',
       label: 'Pembeli',
@@ -286,6 +348,8 @@ export default function LegalPage() {
           )
         }
       >
+        {formError && <div className="mb-4"><Notice tone="danger">{formError}</Notice></div>}
+
         {step === 1 && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -296,18 +360,62 @@ export default function LegalPage() {
                 </select>
               </Field>
               <Field label="Perumahan / Proyek" required>
-                <select className="control" value={formPerumahanId} onChange={(e) => setFormPerumahanId(e.target.value)}>
+                <select
+                  className="control"
+                  value={formPerumahanId}
+                  onChange={(e) => {
+                    setFormPerumahanId(e.target.value);
+                    setFormKavlingId('');
+                    setFormAssignmentId('');
+                  }}
+                >
                   <option value="">Pilih perumahan</option>
                   {proyeks.map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}
                 </select>
               </Field>
-              <Field label="Kavling" required>
-                <select className="control" value={formKavlingId} onChange={(e) => setFormKavlingId(e.target.value)}>
-                  <option value="">Pilih kavling</option>
-                  {DUMMY_KAVLING.map((k) => <option key={k.id} value={k.id}>{k.nomor} ({k.luas} m²)</option>)}
-                </select>
+
+              {penjualanList.length > 0 && (
+                <Field label="Pilih dari Penjualan PR Track" optional hint="Otomatis mengisi kavling, pembeli & harga" className="sm:col-span-2">
+                  <select
+                    className="control"
+                    value={formAssignmentId}
+                    onChange={(e) => handlePenjualanSelect(e.target.value)}
+                  >
+                    <option value="">Pilih data penjualan PR Track...</option>
+                    {penjualanList.map((p) => (
+                      <option key={p.assignmentId || p.id} value={p.assignmentId || p.id}>
+                        {p.kavlingNomor ? `Kavling ${p.kavlingNomor}` : 'Unit'} &middot; {p.namaPembeli || p.pembeli?.nama || 'Pembeli'} &middot; {p.tipeTransaksi || ''}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+
+              <Field label="Kavling (Unit PR Track)" required className="sm:col-span-2">
+                {kavlingList.length > 0 ? (
+                  <select
+                    className="control"
+                    value={formKavlingId}
+                    onChange={(e) => setFormKavlingId(e.target.value)}
+                  >
+                    <option value="">Pilih unit kavling</option>
+                    {kavlingList.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.nomor} {k.tipe ? `(Tipe ${k.tipe})` : ''} {k.status ? ` - ${k.status}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className="control"
+                    value={formKavlingId}
+                    onChange={(e) => setFormKavlingId(e.target.value)}
+                    placeholder="UUID kavling atau pilih perumahan"
+                  />
+                )}
               </Field>
-              <Field label="Tipe transaksi" required>
+
+              <Field label="Tipe transaksi" required className="sm:col-span-2">
                 <select className="control" value={formTipe} onChange={(e) => setFormTipe(e.target.value as TipeTransaksi)}>
                   <option value="Cash">Cash</option>
                   <option value="KPR">KPR</option>
@@ -379,7 +487,6 @@ export default function LegalPage() {
                 <p className="mt-0.5 text-xs text-brand-600">= Harga awal + BPHTB + AJB/BBN</p>
               </div>
             )}
-
           </div>
         )}
       </Modal>

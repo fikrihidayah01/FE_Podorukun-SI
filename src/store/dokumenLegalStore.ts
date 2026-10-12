@@ -55,6 +55,9 @@ export interface DokumenLegal {
   noDokumen: string;
   ptId: string;
   kavlingId: string;
+  kavlingNomor?: string;
+  assignmentId?: string;
+  templateId?: string;
   perumahanId: string;
   pembeli: DataPembeli;
   tipeTransaksi: TipeTransaksi;
@@ -79,6 +82,7 @@ interface DokumenLegalState {
   counter: number;
   
   fetch: () => Promise<void>;
+  fetchPenjualanTersedia: (proyekId?: string) => Promise<any[]>;
   // Dokumen CRUD
   add: (data: Omit<DokumenLegal, 'id' | 'noDokumen' | 'createdAt' | 'riwayatStatus'> & { ptSingkatan: string }) => Promise<string>;
   updateDataUtama: (id: string, data: Partial<Pick<DokumenLegal, 'pembeli' | 'hargaAwal' | 'bphtb' | 'ajbBbn' | 'uangMuka' | 'tanggalPerjanjian' | 'fasilitasTambahan' | 'lampiranScan'>>) => Promise<void>;
@@ -115,11 +119,37 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
     }
   },
 
+  fetchPenjualanTersedia: async (proyekId?: string) => {
+    try {
+      const url = proyekId ? `/dokumen/penjualan-tersedia?proyekId=${proyekId}` : '/dokumen/penjualan-tersedia';
+      const res = await fetchApi(url);
+      if (res.ok) {
+        const json = await res.json();
+        return json.data || [];
+      }
+    } catch (error) {
+      console.error('Failed to fetch penjualan tersedia:', error);
+    }
+    return [];
+  },
+
   add: async ({ ptSingkatan, ...data }) => {
     try {
-      // In a real scenario, the backend would generate the noDokumen, id, etc.
-      // We pass the data and await the created item.
-      const payload = { ...data, ptSingkatan }; // Backend might need ptSingkatan to generate noDokumen
+      const payload = {
+        ptId: data.ptId,
+        kavlingId: data.kavlingId,
+        assignmentId: data.assignmentId || undefined,
+        templateId: data.templateId || undefined,
+        tipeTransaksi: data.tipeTransaksi,
+        pembeli: data.pembeli,
+        hargaAwal: data.hargaAwal,
+        bphtb: data.bphtb,
+        ajbBbn: data.ajbBbn,
+        uangMuka: data.uangMuka,
+        tanggalPerjanjian: data.tanggalPerjanjian,
+        fasilitasTambahan: data.fasilitasTambahan || undefined,
+        status: data.status || 'draft',
+      };
       const res = await fetchApi('/dokumen', {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -129,11 +159,14 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
         const newDoc = json.data;
         set((state) => ({ items: [...state.items, newDoc] }));
         return newDoc.id;
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || 'Gagal menambahkan dokumen legal');
       }
     } catch (error) {
       console.error('Failed to add dokumen legal:', error);
+      throw error;
     }
-    return '';
   },
 
   updateDataUtama: async (id, data) => {

@@ -21,6 +21,17 @@ export default function CoaTabSaldoAwal() {
   const [filterKategori, setFilterKategori] = useState('all');
   const [confirmTutup, setConfirmTutup] = useState(false);
 
+  useEffect(() => {
+    useProyekStore.getState().fetch();
+    useCoaStore.getState().fetch();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProyekId && proyeks.length > 0) {
+      setSelectedProyekId(proyeks[0].id);
+    }
+  }, [proyeks, selectedProyekId]);
+
   const periode = periodes[selectedProyekId] ?? null;
 
   // Periode saldo awal dibuat saat proyek pertama kali dibuka, di luar render

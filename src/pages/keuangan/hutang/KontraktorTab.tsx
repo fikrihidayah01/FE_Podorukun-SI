@@ -15,16 +15,28 @@ import AdendumFormModal from './AdendumFormModal';
 import CatatPembayaranKontrakModal from './CatatPembayaranKontrakModal';
 
 export default function KontraktorTab() {
-  const { kontraks, adendums, pembayarans, fetch: fetchKontrak, cancelKontrak } = useKontrakStore();
+  const { kontraks, adendums, pembayarans, fetch: fetchKontrak, fetchDetail, cancelKontrak } = useKontrakStore();
   const proyeks = useProyekStore((s) => s.items);
 
   useEffect(() => {
     fetchKontrak();
   }, [fetchKontrak]);
 
+  useEffect(() => {
+    if (kontraks.length > 0) {
+      kontraks.forEach((k) => fetchDetail(k.id));
+    }
+  }, [kontraks, fetchDetail]);
+
   const [selectedProyek, setSelectedProyek] = useState('');
   const [selectedKontraktor, setSelectedKontraktor] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (expandedRow) {
+      fetchDetail(expandedRow);
+    }
+  }, [expandedRow, fetchDetail]);
 
   const [isKontrakModalOpen, setIsKontrakModalOpen] = useState(false);
   const [adendumKontrak, setAdendumKontrak] = useState<Kontrak | null>(null);
