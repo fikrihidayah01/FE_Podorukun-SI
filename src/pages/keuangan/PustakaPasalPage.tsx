@@ -53,6 +53,9 @@ export default function PustakaPasalPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'aktif' | 'nonaktif'>('all');
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const runAction = async (action: () => Promise<unknown>) => { setSaving(true); setActionError(''); try { await action(); } catch (err) { setActionError(err instanceof Error ? err.message : 'Gagal menyimpan'); } finally { setSaving(false); } };
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_PASAL());
   const [formErrors, setFormErrors] = useState<{ judul?: string; isi?: string }>({});
@@ -91,9 +94,11 @@ export default function PustakaPasalPage() {
     if (!form.isi.trim()) errs.isi = 'Isi pasal wajib diisi.';
     if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
 
-    if (editingId) await update(editingId, form);
-    else await add(form);
-    setModalOpen(false);
+    await runAction(async () => {
+      if (editingId) await update(editingId, form);
+      else await add(form);
+      setModalOpen(false);
+    });
   };
 
   const addField = () => setForm((p) => ({ ...p, fields: [...p.fields, EMPTY_FIELD()] }));
@@ -128,6 +133,7 @@ export default function PustakaPasalPage() {
       />
 
       <PageBody>
+        {actionError && <p role="alert" className="mb-4 text-red-600">{actionError}</p>}
         <Panel
           title="Daftar pasal"
           description={`${items.length} pasal tersimpan`}
@@ -211,7 +217,7 @@ export default function PustakaPasalPage() {
                               onClick={() => handleNonaktifkan(pasal.id)}
                             />
                           ) : (
-                            <Button size="sm" variant="ghost" onClick={() => aktifkan(pasal.id)}>
+                            <Button size="sm" variant="ghost" onClick={() => void runAction(() => aktifkan(pasal.id))}>
                               Aktifkan
                             </Button>
                           )}
@@ -235,11 +241,12 @@ export default function PustakaPasalPage() {
         footer={
           <>
             <Button onClick={() => setModalOpen(false)}>Batal</Button>
-            <Button variant="primary" onClick={saveForm}>{editingId ? 'Simpan perubahan' : 'Simpan pasal'}</Button>
+            <Button variant="primary" disabled={saving} onClick={saveForm}>{editingId ? 'Simpan perubahan' : 'Simpan pasal'}</Button>
           </>
         }
       >
         <div className="space-y-4">
+            {actionError && <p role="alert" className="text-red-600">{actionError}</p>}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_180px]">
             <Field label="Judul pasal" required error={formErrors.judul}>
               <input
@@ -332,7 +339,7 @@ export default function PustakaPasalPage() {
       <ConfirmDialog
         isOpen={confirmId !== null}
         onClose={() => setConfirmId(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!confirmId) return;
           if (confirmMode === 'nonaktifkan') nonaktifkan(confirmId);
           else remove(confirmId);

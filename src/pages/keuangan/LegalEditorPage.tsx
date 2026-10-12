@@ -8,6 +8,7 @@ import { useMasterPtStore } from '../../store/masterPtStore';
 import { useProyekStore } from '../../store/proyekStore';
 import { usePustakaPasalStore } from '../../store/pustakaPasalStore';
 import { usePiutangStore } from '../../store/piutangStore';
+import LegalHistoryPanel from './LegalHistoryPanel';
 import Button, { IconButton } from '../../components/ui/Button';
 import Field from '../../components/ui/Field';
 import Notice from '../../components/ui/Notice';
@@ -38,6 +39,11 @@ function getDaysInMonth(year: number, month: number) {
 }
 
 export default function LegalEditorPage() {
+  const { id } = useParams();
+  return <LegalEditorBody key={id} />;
+}
+
+function LegalEditorBody() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -67,9 +73,18 @@ export default function LegalEditorPage() {
   const [finalisasiOpen, setFinalisasiOpen] = useState(false);
   const [finalisasiLoading, setFinalisasiLoading] = useState(false);
   const [finalisasiError, setFinalisasiError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const runAction = async (action: () => Promise<void>) => {
+    setSaving(true);
+    setActionError(null);
+    try { await action(); }
+    catch (error) { setActionError(error instanceof Error ? error.message : 'Gagal menyimpan perubahan'); }
+    finally { setSaving(false); }
+  };
   const [sisipPasalOpen, setSisipPasalOpen] = useState(false);
   const [editPasalId, setEditPasalId] = useState<string | null>(null);
-  
+
   // State for adding pasal
   const [pasalBaru, setPasalBaru] = useState({ judul: '', isi: '' });
 
@@ -88,6 +103,26 @@ export default function LegalEditorPage() {
     tanggalPerjanjian: dokumen.tanggalPerjanjian,
     fasilitasTambahan: dokumen.fasilitasTambahan ?? '',
   } : null);
+
+  useEffect(() => {
+    if (dokumen && !dataForm) {
+      setJadwalForm({ tanggalAcuan: dokumen.jadwalPembayaran?.tanggalAcuan ?? '4', nominalPerBulan: String(dokumen.jadwalPembayaran?.nominalPerBulan ?? ''), tanggalMulai: dokumen.jadwalPembayaran?.tanggalMulai ?? '', jatuhTempoTerakhir: dokumen.jadwalPembayaran?.jatuhTempoTerakhir ?? '' });
+      setDataForm({
+      nama: dokumen.pembeli.nama,
+      ttl: dokumen.pembeli.ttl,
+      pekerjaan: dokumen.pembeli.pekerjaan,
+      alamat: dokumen.pembeli.alamat,
+      noKtp: dokumen.pembeli.noKtp,
+      noHp: dokumen.pembeli.noHp,
+      hargaAwal: String(dokumen.hargaAwal),
+      bphtb: String(dokumen.bphtb),
+      ajbBbn: String(dokumen.ajbBbn),
+      uangMuka: String(dokumen.uangMuka),
+      tanggalPerjanjian: dokumen.tanggalPerjanjian,
+      fasilitasTambahan: dokumen.fasilitasTambahan ?? '',
+      });
+    }
+  }, [dokumen, dataForm]);
 
   // State for Jadwal
   const [jadwalForm, setJadwalForm] = useState({
@@ -168,8 +203,8 @@ export default function LegalEditorPage() {
     });
   };
 
-  const simpanPanelData = () => {
-    updateDataUtama(dokumen.id, {
+  const simpanPanelData = () => runAction(async () => {
+    await updateDataUtama(dokumen.id, {
       pembeli: {
         nama: dataForm.nama,
         ttl: dataForm.ttl,
@@ -186,19 +221,19 @@ export default function LegalEditorPage() {
       fasilitasTambahan: dataForm.fasilitasTambahan,
     });
     setPanelDataOpen(false);
-  };
+  });
 
   const movePasal = (index: number, direction: 'up' | 'down') => {
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= dokumen.pasalDokumen.length) return;
-    reorderPasal(dokumen.id, index, newIndex);
+    void runAction(() => reorderPasal(dokumen.id, index, newIndex));
   };
 
-  const handleSimpanSisipPasal = (pustakaId?: string) => {
+  const handleSimpanSisipPasal = (pustakaId?: string) => runAction(async () => {
     if (pustakaId) {
       const p = pustakaPasal.find(x => x.id === pustakaId);
       if (p) {
-        addPasal(dokumen.id, {
+        await addPasal(dokumen.id, {
           pustakaId: p.id,
           judul: p.judul,
           isi: p.isi,
@@ -207,7 +242,7 @@ export default function LegalEditorPage() {
       }
     } else {
       if (!pasalBaru.judul || !pasalBaru.isi) return;
-      addPasal(dokumen.id, {
+      await addPasal(dokumen.id, {
         judul: pasalBaru.judul,
         isi: pasalBaru.isi,
         fields: [],
@@ -215,14 +250,14 @@ export default function LegalEditorPage() {
     }
     setPasalBaru({ judul: '', isi: '' });
     setSisipPasalOpen(false);
-  };
+  });
 
   const hitungJadwal = () => {
     const start = new Date(jadwalForm.tanggalMulai);
     const end = new Date(jadwalForm.jatuhTempoTerakhir);
     const nominal = Number(jadwalForm.nominalPerBulan) || 0;
     const acuan = Number(jadwalForm.tanggalAcuan) || 1;
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || nominal <= 0) return [];
 
     let current = new Date(start);
@@ -236,9 +271,9 @@ export default function LegalEditorPage() {
       const targetMonth = current.getMonth();
       const maxDays = getDaysInMonth(targetYear, targetMonth);
       const targetDate = Math.min(acuan, maxDays);
-      
+
       const jadwalDate = new Date(targetYear, targetMonth, targetDate);
-      
+
       baris.push({
         id: crypto.randomUUID(),
         tanggal: jadwalDate.toISOString().split('T')[0],
@@ -252,9 +287,9 @@ export default function LegalEditorPage() {
     return baris;
   };
 
-  const simpanJadwal = () => {
+  const simpanJadwal = () => runAction(async () => {
     const baris = hitungJadwal();
-    updateJadwalPembayaran(dokumen.id, {
+    await updateJadwalPembayaran(dokumen.id, {
       tanggalAcuan: jadwalForm.tanggalAcuan,
       nominalPerBulan: Number(jadwalForm.nominalPerBulan) || 0,
       tanggalMulai: jadwalForm.tanggalMulai,
@@ -262,7 +297,7 @@ export default function LegalEditorPage() {
       baris,
     });
     setJadwalOpen(false);
-  };
+  });
 
   const totalJadwal = dokumen.jadwalPembayaran?.baris.reduce((s, b) => s + b.jumlah, 0) || 0;
   const isJadwalMatch = totalJadwal === dokumen.uangMuka;
@@ -284,6 +319,7 @@ export default function LegalEditorPage() {
 
   return (
     <div className="min-h-screen bg-canvas">
+      <LegalHistoryPanel key={dokumen.id} id={dokumen.id} isFinal={isFinal} proyekId={dokumen.perumahanId} unitId={dokumen.kavlingId} assignmentId={dokumen.assignmentId} reload={fetchDokumen} />
       {/* Header bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-surface px-4 py-3 shadow-sm sm:px-6">
         <div className="absolute inset-x-0 top-0 h-1 bg-[#0e7490]" aria-hidden />
@@ -332,45 +368,47 @@ export default function LegalEditorPage() {
           </div>
 
           <p className="leading-loose text-ink">
-            Pada hari ini {renderTeks('{hari_perjanjian}', [])} tanggal {renderTeks('{tanggal_perjanjian}', [])}, 
-            telah disepakati pemesanan tanah dan bangunan dengan luas tanah {renderTeks('{luas_kavling}', [])} m² 
+            Pada hari ini {renderTeks('{hari_perjanjian}', [])} tanggal {renderTeks('{tanggal_perjanjian}', [])},
+            telah disepakati pemesanan tanah dan bangunan dengan luas tanah {renderTeks('{luas_kavling}', [])} m²
             oleh {renderTeks('{nama_pembeli}', [])}.
           </p>
         </div>
 
+        {actionError && <Notice tone="danger">{actionError}</Notice>}
+        {saving && <p role="status" className="text-sm text-ink-3">Menyimpan perubahan...</p>}
         {/* Daftar Pasal */}
         <div className="space-y-4">
           {dokumen.pasalDokumen.map((pasal, idx) => (
             <div key={pasal.id} className="group relative rounded-2xl bg-white p-6 shadow-sm border border-transparent hover:border-gray-200">
-              
+
               {/* Header Pasal */}
               <div className="mb-4 flex items-start justify-between">
                 {editPasalId === pasal.id ? (
-                  <input 
-                    className="control font-semibold" 
-                    value={pasal.judul} 
-                    onChange={e => updatePasalUtama(dokumen.id, pasal.id, { judul: e.target.value })} 
+                  <input
+                    className="control font-semibold"
+                    defaultValue={pasal.judul}
+                    onBlur={e => { const value = e.currentTarget.value; void runAction(() => updatePasalUtama(dokumen.id, pasal.id, { judul: value })); }}
                   />
                 ) : (
                   <h2 className="text-base font-semibold text-ink">Pasal {idx + 1} — {pasal.judul}</h2>
                 )}
-                
+
                 {/* Actions (hover) */}
                 <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <IconButton icon={PiPencilSimple} label="Edit teks" onClick={() => setEditPasalId(editPasalId === pasal.id ? null : pasal.id)} disabled={isFinal} />
                   <div className="flex flex-col gap-0.5 px-1">
                     <button type="button" onClick={() => movePasal(idx, 'up')} disabled={idx === 0 || isFinal} className="text-ink-3 hover:text-ink disabled:opacity-30"><PiArrowsDownUp className="h-3 w-3" /></button>
                   </div>
-                  <IconButton icon={PiTrash} label="Hapus pasal" tone="danger" onClick={() => removePasal(dokumen.id, pasal.id)} disabled={isFinal} />
+                  <IconButton icon={PiTrash} label="Hapus pasal" tone="danger" onClick={() => runAction(() => removePasal(dokumen.id, pasal.id))} disabled={isFinal} />
                 </div>
               </div>
 
               {/* Isi Pasal */}
               {editPasalId === pasal.id ? (
-                <textarea 
-                  className="control w-full min-h-[100px]" 
-                  value={pasal.isi} 
-                  onChange={e => updatePasalUtama(dokumen.id, pasal.id, { isi: e.target.value })}
+                <textarea
+                  className="control w-full min-h-[100px]"
+                  defaultValue={pasal.isi}
+                  onBlur={e => { const value = e.currentTarget.value; void runAction(() => updatePasalUtama(dokumen.id, pasal.id, { isi: value })); }}
                 />
               ) : (
                 <div className="leading-relaxed text-ink-2">
@@ -387,8 +425,8 @@ export default function LegalEditorPage() {
                         <input
                           type={f.tipe === 'angka' ? 'number' : 'text'}
                           className="control"
-                          value={f.nilai}
-                          onChange={e => updatePasalField(dokumen.id, pasal.id, f.key, e.target.value)}
+                          defaultValue={f.nilai}
+                          onBlur={e => { const value = e.currentTarget.value; void runAction(() => updatePasalField(dokumen.id, pasal.id, f.key, value)); }}
                         />
                       </div>
                     </Field>
@@ -405,13 +443,13 @@ export default function LegalEditorPage() {
             <h2 className="text-base font-semibold text-ink">Jadwal angsuran uang muka</h2>
             {!isFinal && <Button variant="secondary" size="sm" onClick={() => setJadwalOpen(true)}>Atur jadwal</Button>}
           </div>
-          
+
           {dokumen.jadwalPembayaran ? (
             <div>
               <p className="mb-3 text-sm text-ink-2">
                 Angsuran dibayarkan setiap tanggal <span className="font-semibold text-ink">{dokumen.jadwalPembayaran.tanggalAcuan}</span> setiap bulannya.
               </p>
-              
+
               {!isJadwalMatch && !isFinal && (
                 <Notice tone="danger" className="mb-4">
                   Total jadwal (Rp {totalJadwal.toLocaleString('id-ID')}) tidak sesuai dengan Uang Muka (Rp {dokumen.uangMuka.toLocaleString('id-ID')}).
@@ -441,11 +479,11 @@ export default function LegalEditorPage() {
                         {isFinal ? (
                           b.jumlah.toLocaleString('id-ID')
                         ) : (
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="w-28 rounded border-line px-2 py-1 text-right text-sm focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-100"
-                            value={b.jumlah}
-                            onChange={(e) => updateBarisJadwal(dokumen.id, b.id, Number(e.target.value) || 0)}
+                            defaultValue={b.jumlah}
+                            onBlur={(e) => { const value = Number(e.currentTarget.value) || 0; void runAction(() => updateBarisJadwal(dokumen.id, b.id, value)); }}
                           />
                         )}
                       </td>
@@ -466,8 +504,8 @@ export default function LegalEditorPage() {
         </div>
 
         {!isFinal && (
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setSisipPasalOpen(true)}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line p-4 text-sm font-medium text-ink-2 hover:bg-subtle transition-colors"
           >
@@ -482,6 +520,7 @@ export default function LegalEditorPage() {
           <section>
             <h3 className="mb-3 text-sm font-semibold text-ink">Data Pembeli</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {actionError && <Notice tone="danger">{actionError}</Notice>}
               <Field label="Nama lengkap"><input className="control" value={dataForm.nama} onChange={e => setDataForm({...dataForm, nama: e.target.value})} disabled={isFinal}/></Field>
               <Field label="Tempat, Tanggal Lahir"><input className="control" value={dataForm.ttl} onChange={e => setDataForm({...dataForm, ttl: e.target.value})} disabled={isFinal}/></Field>
               <Field label="Pekerjaan"><input className="control" value={dataForm.pekerjaan} onChange={e => setDataForm({...dataForm, pekerjaan: e.target.value})} disabled={isFinal}/></Field>
@@ -510,7 +549,7 @@ export default function LegalEditorPage() {
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <Button onClick={() => setPanelDataOpen(false)}>Tutup</Button>
-          {!isFinal && <Button variant="primary" onClick={simpanPanelData}>Simpan data</Button>}
+          {!isFinal && <Button disabled={saving} variant="primary" onClick={simpanPanelData}>Simpan data</Button>}
         </div>
       </Modal>
 
@@ -540,12 +579,14 @@ export default function LegalEditorPage() {
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <Button onClick={() => setJadwalOpen(false)}>Batal</Button>
-          <Button variant="primary" onClick={simpanJadwal}>Simpan jadwal</Button>
+          {actionError && <Notice tone="danger">{actionError}</Notice>}
+          <Button disabled={saving} variant="primary" onClick={simpanJadwal}>Simpan jadwal</Button>
         </div>
       </Modal>
 
       {/* MODAL: Sisip Pasal */}
       <Modal isOpen={sisipPasalOpen} onClose={() => setSisipPasalOpen(false)} title="Sisipkan pasal">
+        {actionError && <Notice tone="danger">{actionError}</Notice>}
         <div className="space-y-6">
           <section>
             <h3 className="mb-2 text-sm font-semibold text-ink">Dari Pustaka</h3>
@@ -584,7 +625,7 @@ export default function LegalEditorPage() {
             </section>
             <Notice tone="info">
               <strong className="block text-brand-800">Setelah difinalkan</strong>
-              Kartu tagihan {dokumen.pembeli.nama || 'pembeli'} terbentuk di Piutang dengan nilai SPPR Rp {hargaNett.toLocaleString('id-ID')}. 
+              Kartu tagihan {dokumen.pembeli.nama || 'pembeli'} terbentuk di Piutang dengan nilai SPPR Rp {hargaNett.toLocaleString('id-ID')}.
               Jadwal {dokumen.jadwalPembayaran?.baris.length || 0} angsuran menjadi acuan rekonsiliasi. Angka terkunci, perubahan berikutnya lewat adendum.
             </Notice>
             {finalisasiError && (
@@ -614,11 +655,11 @@ export default function LegalEditorPage() {
                 <Button icon={PiUploadSimple} variant="secondary">Unggah scan bertanda tangan</Button>
               </div>
             </section>
-            
+
             <section className="pt-4 border-t border-line">
               <h3 className="mb-3 text-sm font-semibold text-ink">Status Terkini</h3>
               <div className="flex items-center gap-3">
-                <select className="control w-auto" value={dokumen.status} onChange={(e) => updateStatus(dokumen.id, e.target.value as StatusDokumen)}>
+                <select className="control w-auto" value={dokumen.status} onChange={(e) => runAction(() => updateStatus(dokumen.id, e.target.value as StatusDokumen))}>
                   <option value="final">Final</option>
                   <option value="ditandatangani">Ditandatangani</option>
                 </select>

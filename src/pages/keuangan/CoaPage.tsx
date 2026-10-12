@@ -3,17 +3,19 @@ import { useEffect } from 'react';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
 import TabBar, { TabPanel } from '../../components/ui/TabBar';
 import DaftarAkunTab from './CoaTabDaftar';
+import CoaTabAkunSistem from './CoaTabAkunSistem';
 import CoaTabSaldoAwal from './CoaTabSaldoAwal';
 import { useCoaStore } from '../../store/coaStore';
 
 const TABS = [
   { key: 'daftar', label: 'Daftar akun' },
   { key: 'saldo_awal', label: 'Saldo awal' },
+  { key: 'akun_sistem', label: 'Akun sistem' },
 ];
 
 export default function CoaPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') === 'saldo_awal' ? 'saldo_awal' : 'daftar';
+  const activeTab = TABS.some((t) => t.key === searchParams.get('tab')) ? searchParams.get('tab')! : 'daftar';
   
   const { fetch } = useCoaStore();
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function CoaPage() {
       />
       <PageBody>
         <TabPanel idPrefix="coa" activeTab={activeTab}>
-          {activeTab === 'daftar' ? <DaftarAkunTab /> : <CoaTabSaldoAwal />}
+          {activeTab === 'daftar' ? <DaftarAkunTab /> : activeTab === 'akun_sistem' ? <CoaTabAkunSistem /> : <CoaTabSaldoAwal />}
         </TabPanel>
       </PageBody>
     </>

@@ -61,6 +61,7 @@ export interface BuktiTransaksi {
 
 export interface PeriodeAngsuran {
   id?: string;
+  jadwalId?: string;
   periode: string; // 'YYYY-MM'
   tanggalJatuhTempo: string; // ISO date
   tagihan: number;
@@ -96,6 +97,9 @@ export interface KavlingTagihan {
   tipeTransaksi: TipeTransaksi;
   statusBast: StatusBast;
   nilaiSppr: number;
+  totalDibayar: number;
+  sisa: number;
+  status?: string;
   tanggalAcuanAngsuran: number; // day of month 1-31
   periodeAwal: string; // 'YYYY-MM'
   totalBulanAngsuran: number;
@@ -130,7 +134,7 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
       const response = await fetchApi('/piutang');
       if (!response.ok) throw new Error('Gagal mengambil data piutang');
       const data = await response.json();
-      set({ items: data?.data || [], isLoading: false });
+      set({ items: (data?.data || []).map((item: KavlingTagihan) => ({ ...item, periodeAngsuran: item.periodeAngsuran.map((row) => ({ ...row, id: row.jadwalId || row.id })) })), isLoading: false });
     } catch (err: any) {
       set({ error: err.message, isLoading: false });
     }
@@ -139,23 +143,21 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
   getById: (id) => get().items.find((k) => k.id === id),
 
   getTotalNilaiKontrak: (proyekId) => {
-    const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
+    const filtered = get().items.filter((k) => k.status !== 'batal' && (!proyekId || k.proyekId === proyekId));
     return filtered.reduce((s, k) => s + k.nilaiSppr, 0);
   },
 
   getTotalDibayar: (proyekId) => {
-    const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
+    const filtered = get().items.filter((k) => k.status !== 'batal' && (!proyekId || k.proyekId === proyekId));
     return filtered.reduce((s, k) => {
-      const dibayarAngsuran = k.periodeAngsuran.reduce((sum, p) => sum + p.dibayar, 0);
-      return s + dibayarAngsuran;
+      return s + k.totalDibayar;
     }, 0);
   },
 
   getTotalSisa: (proyekId) => {
-    const filtered = proyekId ? get().items.filter((k) => k.proyekId === proyekId) : get().items;
+    const filtered = get().items.filter((k) => k.status !== 'batal' && (!proyekId || k.proyekId === proyekId));
     return filtered.reduce((s, k) => {
-      const dibayarAngsuran = k.periodeAngsuran.reduce((sum, p) => sum + p.dibayar, 0);
-      return s + (k.nilaiSppr - dibayarAngsuran);
+      return s + k.sisa;
     }, 0);
   },
 

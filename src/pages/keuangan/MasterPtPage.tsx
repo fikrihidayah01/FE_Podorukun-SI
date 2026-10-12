@@ -1,3 +1,5 @@
+import { fetchApi } from '../../lib/api';
+import { useProyekStore } from '../../store/proyekStore';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -62,7 +64,17 @@ export default function MasterPtPage() {
   const [editingPtId, setEditingPtId] = useState<string | null>(null);
   const [ptForm, setPtForm] = useState(EMPTY_PT());
   const [ptErrors, setPtErrors] = useState<Partial<Record<keyof Omit<MasterPt, 'id' | 'perumahanId'>, string>>>({});
+  const { items: proyeks, fetch: fetchProyeks } = useProyekStore();
+  const [companies, setCompanies] = useState<{ id: string; nama: string }[]>([]);
   const [deletePtId, setDeletePtId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const runAction = async (action: () => Promise<unknown>) => { setSaving(true); setActionError(''); try { await action(); } catch (err) { setActionError(err instanceof Error ? err.message : 'Gagal menyimpan'); } finally { setSaving(false); } };
+
+  useEffect(() => {
+    void fetchProyeks();
+    void (async () => { const res = await fetchApi('/master-pt/companies'); if (res.status === 404) return; const body = await res.json(); if (!res.ok) throw new Error(body.message); setCompanies(body.data); })().catch((err) => setActionError(err.message));
+  }, [fetchProyeks]);
 
   // State modal Template
   const [tmplModalOpen, setTmplModalOpen] = useState(false);
@@ -85,6 +97,8 @@ export default function MasterPtPage() {
     setEditingPtId(pt.id);
     setPtForm({
       namaPt: pt.namaPt,
+      singkatan: pt.singkatan,
+      trackCompanyId: pt.trackCompanyId,
       namaDirektur: pt.namaDirektur,
       ttl: pt.ttl,
       pekerjaan: pt.pekerjaan,
@@ -96,7 +110,7 @@ export default function MasterPtPage() {
     setPtModalOpen(true);
   };
 
-  const savePt = () => {
+  const savePt = async () => {
     const errs: typeof ptErrors = {};
     if (!ptForm.namaPt.trim()) errs.namaPt = 'Nama PT wajib diisi.';
     if (!ptForm.namaDirektur.trim()) errs.namaDirektur = 'Nama direktur wajib diisi.';
@@ -104,9 +118,11 @@ export default function MasterPtPage() {
     if (!ptForm.alamat?.trim()) errs.alamat = 'Alamat wajib diisi.';
     if (Object.keys(errs).length > 0) { setPtErrors(errs); return; }
 
-    if (editingPtId) updatePt(editingPtId, ptForm);
-    else addPt(ptForm);
-    setPtModalOpen(false);
+    await runAction(async () => {
+      if (editingPtId) await updatePt(editingPtId, ptForm);
+      else await addPt(ptForm);
+      setPtModalOpen(false);
+    });
   };
 
   // ─── Template handlers ──────────────────────────────────
@@ -124,9 +140,11 @@ export default function MasterPtPage() {
 
   const saveTemplate = async () => {
     if (!tmplForm.ptId || !tmplForm.polaNomor.trim()) return;
-    if (editingTmplId) await updateTemplate(editingTmplId, tmplForm);
-    else await addTemplate(tmplForm);
-    setTmplModalOpen(false);
+    await runAction(async () => {
+      if (editingTmplId) await updateTemplate(editingTmplId, tmplForm);
+      else await addTemplate(tmplForm);
+      setTmplModalOpen(false);
+    });
   };
 
   const getPtNama = (id: string) => pts.find((p) => p.id === id)?.namaPt ?? '-';
@@ -161,6 +179,7 @@ export default function MasterPtPage() {
       />
 
       <PageBody>
+        {actionError && <p role="alert" className="mb-4 text-red-600">{actionError}</p>}
         <TabPanel idPrefix="masterpt" activeTab={activeTab}>
           {activeTab === 'master-pt' && (
           <Panel
@@ -253,7 +272,7 @@ export default function MasterPtPage() {
                         </td>
                         <td className="flex items-center gap-1">
                           <IconButton icon={PiPencilSimple} label="Edit template" onClick={() => openEditTemplate(t)} />
-                          <IconButton icon={PiCopy} label="Salin template" onClick={() => duplikat(t.id)} />
+                          <Button disabled={saving} onClick={() => void runAction(() => updateTemplate(t.id, { aktif: t.aktif === false }))}>{t.aktif === false ? 'Aktifkan' : 'Nonaktifkan'}</Button><IconButton icon={PiCopy} label="Salin template" onClick={() => void runAction(() => duplikat(t.id))} />
                           <IconButton icon={PiTrash} tone="danger" label="Hapus template" onClick={() => setDeleteTmplId(t.id)} />
                         </td>
                       </tr>
@@ -276,11 +295,12 @@ export default function MasterPtPage() {
         footer={
           <>
             <Button onClick={() => setPtModalOpen(false)}>Batal</Button>
-            <Button variant="primary" onClick={savePt}>{editingPtId ? 'Simpan perubahan' : 'Simpan PT'}</Button>
+            <Button variant="primary" disabled={saving} onClick={savePt}>{editingPtId ? 'Simpan perubahan' : 'Simpan PT'}</Button>
           </>
         }
       >
         <div className="space-y-4">
+          {actionError && <p role="alert" className="text-red-600">{actionError}</p>}
           <Field label="Nama PT" required error={ptErrors.namaPt}>
             <input className="control" value={ptForm.namaPt || ''} onChange={(e) => setPtForm((p) => ({ ...p, namaPt: e.target.value }))} placeholder="PT Contoh Sejahtera" />
           </Field>
@@ -298,6 +318,9 @@ export default function MasterPtPage() {
               <input className="control tabular-nums" value={ptForm.noKtp || ''} onChange={(e) => setPtForm((p) => ({ ...p, noKtp: e.target.value }))} maxLength={16} />
             </Field>
           </div>
+          <Field label="Singkatan PT"><input className="control" value={ptForm.singkatan || ''} onChange={(e) => setPtForm((p) => ({ ...p, singkatan: e.target.value }))} /></Field>
+          <Field label="Company PR Track" hint={companies.length === 0 ? 'Pilihan company tersedia setelah pembaruan backend diaktifkan dan data Track tersinkron.' : undefined}><select className="control" value={ptForm.trackCompanyId || ''} onChange={(e) => setPtForm((p) => ({ ...p, trackCompanyId: e.target.value || null }))}><option value="">Belum dihubungkan</option>{companies.map((c) => <option key={c.id} value={c.id}>{c.nama}</option>)}</select></Field>
+          <Field label="Perumahan"><select className="control" value={ptForm.perumahanId || ''} onChange={(e) => setPtForm((p) => ({ ...p, perumahanId: e.target.value || null }))}><option value="">Tanpa perumahan</option>{proyeks.map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}</select></Field>
           <Field label="Alamat" required error={ptErrors.alamat}>
             <textarea className="control" rows={2} value={ptForm.alamat || ''} onChange={(e) => setPtForm((p) => ({ ...p, alamat: e.target.value }))} />
           </Field>
@@ -313,11 +336,12 @@ export default function MasterPtPage() {
         footer={
           <>
             <Button onClick={() => setTmplModalOpen(false)}>Batal</Button>
-            <Button variant="primary" onClick={saveTemplate}>{editingTmplId ? 'Simpan perubahan' : 'Simpan template'}</Button>
+            <Button variant="primary" disabled={saving} onClick={saveTemplate}>{editingTmplId ? 'Simpan perubahan' : 'Simpan template'}</Button>
           </>
         }
       >
         <div className="space-y-4">
+          {actionError && <p role="alert" className="text-red-600">{actionError}</p>}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="PT" required>
               <select className="control" value={tmplForm.ptId} onChange={(e) => setTmplForm((p) => ({ ...p, ptId: e.target.value }))}>

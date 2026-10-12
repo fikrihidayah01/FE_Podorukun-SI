@@ -106,7 +106,7 @@ export default function LegalPage() {
   const hargaNett = (Number(hargaAwal) || 0) + (Number(bphtb) || 0) + (Number(ajbBbn) || 0);
   const sisaKpr = hargaNett - (Number(uangMuka) || 0);
 
-  const templateAktif = templates.find((t) => t.ptId === formPtId && t.tipeTransaksi === formTipe);
+  const templateAktif = templates.find((t) => t.aktif !== false && t.ptId === formPtId && t.tipeTransaksi === formTipe);
   const ptAktif = pts.find((p) => p.id === formPtId);
 
   const filteredItems = useMemo(() => {

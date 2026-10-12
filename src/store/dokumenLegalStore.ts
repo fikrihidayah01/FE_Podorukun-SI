@@ -85,7 +85,7 @@ interface DokumenLegalState {
   fetchPenjualanTersedia: (proyekId?: string) => Promise<any[]>;
   // Dokumen CRUD
   add: (data: Omit<DokumenLegal, 'id' | 'noDokumen' | 'createdAt' | 'riwayatStatus'> & { ptSingkatan: string }) => Promise<string>;
-  updateDataUtama: (id: string, data: Partial<Pick<DokumenLegal, 'pembeli' | 'hargaAwal' | 'bphtb' | 'ajbBbn' | 'uangMuka' | 'tanggalPerjanjian' | 'fasilitasTambahan' | 'lampiranScan'>>) => Promise<void>;
+  updateDataUtama: (id: string, data: Partial<Pick<DokumenLegal, 'assignmentId' | 'pembeli' | 'hargaAwal' | 'bphtb' | 'ajbBbn' | 'uangMuka' | 'tanggalPerjanjian' | 'fasilitasTambahan' | 'lampiranScan'>>) => Promise<void>;
   updateStatus: (id: string, status: StatusDokumen, oleh?: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
   
@@ -110,12 +110,16 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
   fetch: async () => {
     try {
       const res = await fetchApi('/dokumen');
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
+      }
       if (res.ok) {
         const json = await res.json();
         set({ items: json.data || [] });
       }
     } catch (error) {
-      console.error('Failed to fetch dokumen legal:', error);
+      console.error('Gagal memuat dokumen:', error);
     }
   },
 
@@ -123,68 +127,73 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
     try {
       const url = proyekId ? `/dokumen/penjualan-tersedia?proyekId=${proyekId}` : '/dokumen/penjualan-tersedia';
       const res = await fetchApi(url);
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
+      }
       if (res.ok) {
         const json = await res.json();
         return json.data || [];
       }
     } catch (error) {
-      console.error('Failed to fetch penjualan tersedia:', error);
+      console.error('Gagal memuat dokumen:', error);
     }
     return [];
   },
 
-  add: async ({ ptSingkatan, ...data }) => {
-    try {
-      const payload = {
-        ptId: data.ptId,
-        kavlingId: data.kavlingId,
-        assignmentId: data.assignmentId || undefined,
-        templateId: data.templateId || undefined,
-        tipeTransaksi: data.tipeTransaksi,
-        pembeli: data.pembeli,
-        hargaAwal: data.hargaAwal,
-        bphtb: data.bphtb,
-        ajbBbn: data.ajbBbn,
-        uangMuka: data.uangMuka,
-        tanggalPerjanjian: data.tanggalPerjanjian,
-        fasilitasTambahan: data.fasilitasTambahan || undefined,
-        status: data.status || 'draft',
-      };
-      const res = await fetchApi('/dokumen', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const newDoc = json.data;
-        set((state) => ({ items: [...state.items, newDoc] }));
-        return newDoc.id;
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.message || 'Gagal menambahkan dokumen legal');
-      }
-    } catch (error) {
-      console.error('Failed to add dokumen legal:', error);
-      throw error;
+  add: async ({ ptSingkatan: _ptSingkatan, ...data }) => {
+    const payload = {
+      ptId: data.ptId,
+      kavlingId: data.kavlingId,
+      assignmentId: data.assignmentId || undefined,
+      templateId: data.templateId || undefined,
+      tipeTransaksi: data.tipeTransaksi,
+      pembeli: data.pembeli,
+      hargaAwal: data.hargaAwal,
+      bphtb: data.bphtb,
+      ajbBbn: data.ajbBbn,
+      uangMuka: data.uangMuka,
+      tanggalPerjanjian: data.tanggalPerjanjian,
+      fasilitasTambahan: data.fasilitasTambahan || undefined,
+      status: data.status || 'draft',
+    };
+    const res = await fetchApi('/dokumen', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const newDoc = json.data;
+      set((state) => ({ items: [...state.items, newDoc] }));
+      return newDoc.id;
+    } else {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal menambahkan dokumen legal');
+    }
+
   },
 
   updateDataUtama: async (id, data) => {
-    try {
-      const res = await fetchApi(`/dokumen/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const updatedItem = json.data;
-        set((state) => ({
-          items: state.items.map((doc) => (doc.id === id ? { ...doc, ...updatedItem } : doc)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to update data utama:', error);
+    const res = await fetchApi(`/dokumen/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const updatedItem = json.data;
+      set((state) => ({
+        items: state.items.map((doc) => (doc.id === id ? { ...doc, ...updatedItem } : doc)),
+      }));
+    }
+
   },
 
   updateStatus: async (id, status, oleh = 'User') => {
@@ -213,157 +222,165 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
   },
 
   remove: async (id) => {
-    try {
-      const res = await fetchApi(`/dokumen/${id}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        set((state) => ({ items: state.items.filter((doc) => doc.id !== id) }));
-      }
-    } catch (error) {
-      console.error('Failed to remove dokumen:', error);
+    const res = await fetchApi(`/dokumen/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      set((state) => ({ items: state.items.filter((doc) => doc.id !== id) }));
+    }
+
   },
 
   // -- Pasal Actions
   addPasal: async (docId, pasal, index) => {
-    try {
-      const payload = {
-        pustakaId: pasal.pustakaId,
-        judul: pasal.judul,
-        isi: pasal.isi,
-        fields: pasal.fields,
-        index,
-      };
-      const res = await fetchApi(`/dokumen/${docId}/pasal`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const updatedDoc = json.data;
-        set((state) => ({
-          items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to add pasal:', error);
+    const payload = {
+      pustakaId: pasal.pustakaId,
+      judul: pasal.judul,
+      isi: pasal.isi,
+      fields: pasal.fields,
+      index,
+    };
+    const res = await fetchApi(`/dokumen/${docId}/pasal`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const updatedDoc = json.data;
+      set((state) => ({
+        items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
+      }));
+    }
+
   },
 
   updatePasalUtama: async (docId, pasalId, data) => {
-    try {
-      const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const updatedDoc = json.data;
-        set((state) => ({
-          items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to update pasal utama:', error);
+    const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const updatedDoc = json.data;
+      set((state) => ({
+        items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
+      }));
+    }
+
   },
 
   updatePasalField: async (docId, pasalId, fieldKey, nilai) => {
-    try {
-      const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ fieldValues: { [fieldKey]: nilai } }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const updatedDoc = json.data;
-        set((state) => ({
-          items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to update pasal field:', error);
+    const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ fieldValues: { [fieldKey]: nilai } }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const updatedDoc = json.data;
+      set((state) => ({
+        items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
+      }));
+    }
+
   },
 
   removePasal: async (docId, pasalId) => {
-    try {
-      const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const updatedDoc = json.data;
-        set((state) => ({
-          items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to remove pasal:', error);
+    const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const updatedDoc = json.data;
+      set((state) => ({
+        items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
+      }));
+    }
+
   },
 
   reorderPasal: async (docId, startIndex, endIndex) => {
-    try {
-      const doc = get().items.find((d) => d.id === docId);
-      if (!doc) return;
-      const list = [...doc.pasalDokumen];
-      const [moved] = list.splice(startIndex, 1);
-      list.splice(endIndex, 0, moved);
-      const pasalIds = list.map((p) => p.id);
+    const doc = get().items.find((d) => d.id === docId);
+    if (!doc) return;
+    const list = [...doc.pasalDokumen];
+    const [moved] = list.splice(startIndex, 1);
+    list.splice(endIndex, 0, moved);
+    const pasalIds = list.map((p) => p.id);
 
-      const res = await fetchApi(`/dokumen/${docId}/pasal-urutan`, {
-        method: 'PUT',
-        body: JSON.stringify({ pasalIds }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const updatedDoc = json.data;
-        set((state) => ({
-          items: state.items.map((d) => (d.id === docId ? (updatedDoc || { ...d, pasalDokumen: list }) : d)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to reorder pasal:', error);
+    const res = await fetchApi(`/dokumen/${docId}/pasal-urutan`, {
+      method: 'PUT',
+      body: JSON.stringify({ pasalIds }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const updatedDoc = json.data;
+      set((state) => ({
+        items: state.items.map((d) => (d.id === docId ? (updatedDoc || { ...d, pasalDokumen: list }) : d)),
+      }));
+    }
+
   },
 
   // -- Jadwal Actions
   updateJadwalPembayaran: async (docId, jadwal) => {
-    try {
-      const res = await fetchApi(`/dokumen/${docId}/jadwal`, {
-        method: 'PUT',
-        body: JSON.stringify(jadwal),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const updatedDoc = json.data;
-        set((state) => ({
-          items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to update jadwal pembayaran:', error);
+    const res = await fetchApi(`/dokumen/${docId}/jadwal`, {
+      method: 'PUT',
+      body: JSON.stringify(jadwal),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const updatedDoc = json.data;
+      set((state) => ({
+        items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
+      }));
+    }
+
   },
 
   updateBarisJadwal: async (docId, barisId, jumlah) => {
-    try {
-      const res = await fetchApi(`/dokumen/${docId}/jadwal/baris/${barisId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ jumlah }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const updatedDoc = json.data;
-        set((state) => ({
-          items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to update baris jadwal:', error);
+    const res = await fetchApi(`/dokumen/${docId}/jadwal/baris/${barisId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ jumlah }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
     }
+    if (res.ok) {
+      const json = await res.json();
+      const updatedDoc = json.data;
+      set((state) => ({
+        items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
+      }));
+    }
+
   },
 
   getDokumenByPasalPustaka: (pustakaId) => get().items.filter((d) => d.pasalDokumen.some((p) => p.pustakaId === pustakaId)),

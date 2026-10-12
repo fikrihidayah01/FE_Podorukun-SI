@@ -37,6 +37,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
   fetch: async () => {
     try {
       const res = await fetchApi('/pasal');
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
       if (res.ok) {
         const json = await res.json();
         set({ items: json.data || [] });
@@ -52,6 +53,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         method: 'POST',
         body: JSON.stringify(data),
       });
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
       if (res.ok) {
         const json = await res.json();
         const newItem = json.data;
@@ -59,7 +61,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         return newItem.id;
       }
     } catch (error) {
-      console.error('Failed to add pasal:', error);
+      throw error;
     }
     return '';
   },
@@ -70,6 +72,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         method: 'PATCH',
         body: JSON.stringify(data),
       });
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
       if (res.ok) {
         const json = await res.json();
         const updatedItem = json.data;
@@ -78,7 +81,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         }));
       }
     } catch (error) {
-      console.error('Failed to update pasal:', error);
+      throw error;
     }
   },
 
@@ -88,13 +91,14 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         method: 'PATCH',
         body: JSON.stringify({ aktif: false }),
       });
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
       if (res.ok) {
         set((state) => ({
           items: state.items.map((item) => (item.id === id ? { ...item, aktif: false } : item)),
         }));
       }
     } catch (error) {
-      console.error('Failed to nonaktifkan pasal:', error);
+      throw error;
     }
   },
 
@@ -104,13 +108,14 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         method: 'PATCH',
         body: JSON.stringify({ aktif: true }),
       });
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
       if (res.ok) {
         set((state) => ({
           items: state.items.map((item) => (item.id === id ? { ...item, aktif: true } : item)),
         }));
       }
     } catch (error) {
-      console.error('Failed to aktifkan pasal:', error);
+      throw error;
     }
   },
 
@@ -119,11 +124,12 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
       const res = await fetchApi(`/pasal/${id}`, {
         method: 'DELETE',
       });
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
       if (res.ok) {
         set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
       }
     } catch (error) {
-      console.error('Failed to remove pasal:', error);
+      throw error;
     }
   },
 

@@ -53,10 +53,16 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
   fetch: async () => {
     set({ isLoading: true, error: null });
     try {
-      const res = await fetchApi('/jurnal');
-      if (!res.ok) throw new Error('Gagal memuat jurnal');
-      const data = await res.json();
-      set({ items: Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [], isLoading: false });
+      const items: Jurnal[] = [];
+      for (let page = 1; ; page++) {
+        const res = await fetchApi(`/jurnal?page=${page}&limit=200`);
+        if (!res.ok) throw new Error('Gagal memuat jurnal');
+        const data = await res.json();
+        const rows = Array.isArray(data.data) ? data.data : [];
+        items.push(...rows);
+        if (rows.length < 200) break;
+      }
+      set({ items, isLoading: false });
     } catch (err: any) {
       set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
     }
@@ -64,11 +70,12 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
 
     add: async (data) => {
     set({ isLoading: true, error: null });
+    let createdId: string | undefined;
     try {
       const { lampiran, ...jurnalData } = data;
       const res = await fetchApi('/jurnal', {
         method: 'POST',
-        body: JSON.stringify(jurnalData),
+        body: JSON.stringify({ ...jurnalData, status: 'draft' }),
       });
       if (!res.ok) {
         const j = await res.json().catch(()=>({}));
@@ -77,6 +84,7 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
       
       const resData = await res.json();
       const newItem = resData.data || resData;
+      createdId = newItem.id;
 
       if (lampiran && lampiran.length > 0) {
         for (const l of lampiran) {
@@ -98,10 +106,21 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
         }
       }
 
+      if (data.status === 'diposting') {
+        try {
+          await get().updateStatus(newItem.id, 'diposting');
+        } catch (error) {
+          throw new Error(`Draft ${newItem.nomorJurnal || newItem.id} tersimpan, tetapi belum diposting: ${error instanceof Error ? error.message : 'Posting gagal'}. Buka draft untuk melanjutkan.`);
+        }
+      }
       await get().fetch();
     } catch (err: any) {
-      set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
-      throw err;
+      if (createdId) await get().fetch();
+      const message = createdId
+        ? `Jurnal ${createdId} sudah tersimpan. ${err.message || 'Proses belum selesai'}. Buka jurnal tersebut untuk melanjutkan, jangan membuat ulang.`
+        : err.message || 'Terjadi kesalahan';
+      set({ error: message, isLoading: false });
+      throw new Error(message);
     }
   },
 

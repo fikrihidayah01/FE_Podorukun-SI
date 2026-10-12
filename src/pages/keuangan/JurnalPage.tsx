@@ -19,7 +19,7 @@ import Field from '../../components/ui/Field';
 import EmptyState from '../../components/ui/EmptyState';
 import { bulanIni, formatBulan, formatTanggal } from '../../utils/format';
 import { useHutangStore } from '../../store/hutangStore';
-import { fetchApi, API_BASE_URL } from '../../lib/api';
+import { fetchApi } from '../../lib/api';
 
 const STATUS: Record<JurnalStatus, { label: string; tone: Tone }> = {
   draft: { label: 'Draft', tone: 'warning' },
@@ -80,6 +80,7 @@ export default function JurnalPage() {
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [lampiranForm, setLampiranForm] = useState<Lampiran[]>([]);
   const [uploadError, setUploadError] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -92,16 +93,13 @@ export default function JurnalPage() {
     if (!l.url) return;
     setDownloadingId(l.id);
     try {
-      const res = await fetchApi(l.url);
-      if (!res.ok) throw new Error('Gagal membuka berkas');
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-    } catch {
-      const fullUrl = l.url.startsWith('http')
-        ? l.url
-        : `${API_BASE_URL}${l.url.startsWith('/') ? '' : '/'}${l.url}`;
-      window.open(fullUrl, '_blank');
+        const res = await fetchApi(l.url);
+        if (!res.ok) throw new Error('Gagal membuka berkas');
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Gagal membuka berkas');
     } finally {
       setDownloadingId(null);
     }
@@ -118,22 +116,19 @@ export default function JurnalPage() {
     if (!l.url) return;
     setDownloadingId(l.id);
     try {
-      const res = await fetchApi(l.url);
-      if (!res.ok) throw new Error('Gagal mengunduh berkas');
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = l.nama;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-    } catch {
-      const fullUrl = l.url.startsWith('http')
-        ? l.url
-        : `${API_BASE_URL}${l.url.startsWith('/') ? '' : '/'}${l.url}`;
-      window.open(fullUrl, '_blank');
+        const res = await fetchApi(l.url);
+        if (!res.ok) throw new Error('Gagal mengunduh berkas');
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = l.nama;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Gagal mengunduh berkas');
     } finally {
       setDownloadingId(null);
     }
@@ -259,19 +254,23 @@ export default function JurnalPage() {
     return errs.length === 0;
   };
 
-  const handleSubmit = (status: 'draft' | 'diposting') => {
+  const handleSubmit = async (status: 'draft' | 'diposting') => {
     if (!validate(status === 'diposting')) return;
-    add({
-      tanggal,
-      keterangan: keterangan.trim(),
-      proyekId: formProyekId || undefined,
-      sumber: 'manual',
-      status,
-      rows: rows.map((r) => ({ ...r, debit: Number(r.debit), kredit: Number(r.kredit) })),
-      lampiran: lampiranForm,
-    });
-    setFormOpen(false);
-    setPage(1);
+    try {
+      await add({
+        tanggal,
+        keterangan: keterangan.trim(),
+        proyekId: formProyekId || undefined,
+        sumber: 'manual',
+        status,
+        rows: rows.map((r) => ({ ...r, debit: Number(r.debit), kredit: Number(r.kredit) })),
+        lampiran: lampiranForm,
+      });
+      setFormOpen(false);
+      setPage(1);
+    } catch (error) {
+      setFormErrors([error instanceof Error ? error.message : 'Gagal menyimpan jurnal']);
+    }
   };
 
   const impactRow = rows.find((r) => r.akunId && r.kodePembantuId && r.debit + r.kredit > 0);
@@ -439,8 +438,8 @@ export default function JurnalPage() {
         footer={
           <>
             <Button onClick={() => setFormOpen(false)}>Batal</Button>
-            <Button onClick={() => handleSubmit('draft')}>Simpan draft</Button>
-            <Button variant="primary" onClick={() => handleSubmit('diposting')} disabled={!siapPosting}>
+            <Button disabled={isLoading} onClick={() => handleSubmit('draft')}>Simpan draft</Button>
+            <Button variant="primary" onClick={() => handleSubmit('diposting')} disabled={!siapPosting || isLoading}>
               Simpan dan posting
             </Button>
           </>
@@ -676,10 +675,37 @@ export default function JurnalPage() {
                 Hapus draft
               </Button>
             )}
+            {detailJurnal?.status === 'draft' && <Button variant="primary" disabled={isLoading || uploading} onClick={async () => {
+              try {
+                await useJurnalStore.getState().updateStatus(detailJurnal.id, 'diposting');
+                setDetailJurnal(useJurnalStore.getState().items.find((j) => j.id === detailJurnal.id) || null);
+              } catch (error) { setUploadError(error instanceof Error ? error.message : 'Gagal memposting jurnal'); }
+            }}>Posting draft</Button>}
             <Button onClick={() => setDetailJurnal(null)}>Tutup</Button>
           </>
         }
       >
+        {uploadError && <Notice tone="danger">{uploadError}</Notice>}
+        {detailJurnal?.status === 'draft' && <Field label="Tambah bukti ke draft">
+          <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={isLoading || uploading} onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const body = new FormData();
+            body.append('file', file);
+            setUploading(true); setUploadError('');
+            try {
+              const response = await fetchApi(`/lampiran?entityType=jurnal&entityId=${detailJurnal.id}`, { method: 'POST', body });
+              if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Gagal mengunggah bukti');
+              }
+              await fetch();
+              setDetailJurnal(useJurnalStore.getState().items.find((j) => j.id === detailJurnal.id) || null);
+              setUploadError('');
+            } catch (error) { setUploadError(error instanceof Error ? error.message : 'Gagal mengunggah bukti'); }
+            finally { setUploading(false); }
+          }} />
+        </Field>}
         {detailJurnal && (
           <div className="space-y-5">
             <dl

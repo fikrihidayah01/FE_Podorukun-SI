@@ -16,6 +16,7 @@ export interface Kontrak {
   nilaiTerkini?: number;
   totalDibayar?: number;
   sisaHutang?: number;
+  sisaDapatDibayar?: number;
   keterangan?: string;
   akunPersediaanId: string;
   akunHutangId?: string;

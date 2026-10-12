@@ -14,10 +14,12 @@ import ExportButton from '../../components/ui/ExportButton';
 import { StatGrid, StatTile } from '../../components/ui/StatTile';
 import { buildFilename } from '../../utils/exportUtils';
 import { bulanIni, formatBulan, formatRupiah } from '../../utils/format';
+import PiutangActions from './piutang/PiutangActions';
+import PembayaranTrackPanel from './piutang/PembayaranTrackPanel';
 import JadwalRealisasiModal from './piutang/JadwalRealisasiModal';
 
-const dibayarOf = (kv: KavlingTagihan) => kv.periodeAngsuran.reduce((s, p) => s + p.dibayar, 0);
-const sisaOf = (kv: KavlingTagihan) => Math.max(0, kv.nilaiSppr - dibayarOf(kv));
+const dibayarOf = (kv: KavlingTagihan) => kv.totalDibayar;
+const sisaOf = (kv: KavlingTagihan) => kv.sisa;
 
 export default function PiutangPage() {
   const { items, fetchItems } = usePiutangStore();
@@ -46,6 +48,7 @@ export default function PiutangPage() {
     () =>
       items.filter(
         (kv) =>
+          kv.status !== 'batal' &&
           (!selectedProyek || kv.proyekId === selectedProyek) &&
           (selectedBast === 'semua' || kv.statusBast === selectedBast) &&
           (!selectedTipe || kv.tipeTransaksi === selectedTipe),
@@ -205,7 +208,7 @@ export default function PiutangPage() {
                     <th scope="col">Tipe</th>
                     <th scope="col" className="num">Nilai SPPR</th>
                     <th scope="col" className="num">Dibayar</th>
-                    <th scope="col" className="num">Sisa</th>
+                    <th scope="col" className="num">Sisa</th><th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -239,6 +242,7 @@ export default function PiutangPage() {
                         <td className="num font-semibold">
                           {sisa === 0 ? <Badge tone="positive">Lunas</Badge> : <Money value={sisa} className="text-ink" />}
                         </td>
+                        <td><PiutangActions item={kv} /></td>
                       </tr>
                     );
                   })}
@@ -255,6 +259,7 @@ export default function PiutangPage() {
             </TableScroll>
           )}
         </Panel>
+        <PembayaranTrackPanel />
       </PageBody>
 
       <JadwalRealisasiModal kavlingId={selectedKavlingId} isOpen={selectedKavlingId !== null} onClose={() => setSelectedKavlingId(null)} />

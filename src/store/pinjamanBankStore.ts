@@ -191,7 +191,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
   },
 
   getEntriesByPinjaman: (pinjamanId) => get().entries.filter(e => e.pinjamanId === pinjamanId),
-  getDueReminders: () => get().reminders,
+  getDueReminders: (hari = 30) => get().reminders.filter((item) => item.hariLagi <= hari),
 
   getTotalSisaPokok: () => {
     return get()

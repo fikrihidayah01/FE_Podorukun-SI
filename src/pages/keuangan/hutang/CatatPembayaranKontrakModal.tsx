@@ -16,19 +16,17 @@ interface CatatPembayaranKontrakModalProps {
 }
 
 export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }: CatatPembayaranKontrakModalProps) {
-  const { pembayarans, adendums, addPembayaran } = useKontrakStore();
+  const { addPembayaran } = useKontrakStore();
   const akuns = useCoaStore((s) => s.items);
   const kasBankAkuns = useMemo(() => akuns.filter((a) => a.isKasBank), [akuns]);
 
   const [form, setForm] = useState({ tanggal: '', nominal: '', akunKasId: '', noBukti: '', keterangan: '' });
   const [error, setError] = useState('');
 
-  const riwayatAdendum = adendums
-    .filter((a) => a.kontrakId === kontrak.id)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const nilaiTerkini = riwayatAdendum.length > 0 ? riwayatAdendum[0].nilaiBaru : kontrak.nilaiKontrak;
-  const totalTerbayar = pembayarans.filter((p) => p.kontrakId === kontrak.id).reduce((sum, p) => sum + p.nominal, 0);
-  const sisaKontrak = nilaiTerkini - totalTerbayar;
+  const nilaiTerkini = kontrak.nilaiTerkini ?? kontrak.nilaiKontrak;
+  const totalTerbayar = kontrak.totalDibayar ?? 0;
+  const sisaKontrak = kontrak.sisaDapatDibayar ?? kontrak.sisaHutang ?? nilaiTerkini - totalTerbayar;
+  const [saving, setSaving] = useState(false);
   const pNominal = Number(form.nominal) || 0;
 
   const handleSubmit = async (e: FormEvent) => {
@@ -39,6 +37,8 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
     if (pNominal <= 0) return setError('Nominal pembayaran harus lebih dari 0.');
     if (pNominal > sisaKontrak) return setError(`Nominal melebihi sisa kontrak. Maksimal ${formatRupiah(sisaKontrak)}.`);
 
+    setSaving(true); setError('');
+    try {
     await addPembayaran({
       kontrakId: kontrak.id,
       tanggal: form.tanggal,
@@ -48,6 +48,8 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
       keterangan: form.keterangan.trim() || undefined,
     });
     onClose();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Gagal menyimpan pembayaran'); }
+    finally { setSaving(false); }
   };
 
   const kas = akuns.find((a) => a.id === form.akunKasId);
@@ -62,7 +64,7 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
       footer={
         <>
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" type="submit" form="bayar-kontrak-form">
+          <Button disabled={saving} variant="primary" type="submit" form="bayar-kontrak-form">
             Simpan pembayaran
           </Button>
         </>

@@ -117,13 +117,13 @@ function KeuanganDashboard() {
 
   const now = new Date();
   const tagihan = kavlings
-    .filter((k) => k.statusBast === 'belum_bast')
+    .filter((k) => k.statusBast === 'belum_bast' && k.status !== 'batal')
     .map((k) => {
-      const dibayar = k.periodeAngsuran.reduce((s, p) => s + p.dibayar, 0);
+      const dibayar = k.totalDibayar;
       const tunggakan = k.periodeAngsuran
         .filter((p) => new Date(p.tanggalJatuhTempo) < now)
         .reduce((s, p) => s + Math.max(0, p.tagihan - p.dibayar), 0);
-      return { k, dibayar, sisa: Math.max(0, k.nilaiSppr - dibayar), tunggakan, pct: k.nilaiSppr ? dibayar / k.nilaiSppr : 0 };
+      return { k, dibayar, sisa: k.sisa, tunggakan, pct: k.nilaiSppr ? dibayar / k.nilaiSppr : 0 };
     })
     .sort((a, b) => b.tunggakan - a.tunggakan);
   const totalSppr = tagihan.reduce((s, t) => s + t.k.nilaiSppr, 0);

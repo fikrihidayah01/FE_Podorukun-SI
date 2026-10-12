@@ -57,17 +57,6 @@ function computeStatus(row: PeriodeAngsuran): StatusPeriode {
 /** Fallback resolusi bukti transaksi untuk pembayaran yang sudah tersinkron */
 function getEffectiveBukti(row: PeriodeAngsuran): BuktiTransaksi | null {
   if (row.buktiTransaksi) return row.buktiTransaksi;
-  if (row.dibayar > 0) {
-    return {
-      id: `bkt-${row.periode}`,
-      nomorBukti: row.prTrackPaymentId || `TRX/PRT/${row.periode.replace('-', '')}`,
-      namaBerkas: `bukti_bayar_${row.periode}.pdf`,
-      tipe: 'pdf',
-      ukuranBytes: 148500,
-      tanggal: row.tanggalBayar || row.tanggalJatuhTempo,
-      keterangan: 'Tersinkronisasi dari Podo Rukun Track',
-    };
-  }
   return null;
 }
 

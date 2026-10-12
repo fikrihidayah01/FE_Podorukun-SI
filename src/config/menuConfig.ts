@@ -95,7 +95,14 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
           children: [
             { label: 'Daftar akun', path: '/keuangan/coa' },
             { label: 'Saldo awal', path: '/keuangan/coa?tab=saldo_awal' },
+            { label: 'Akun sistem', path: '/keuangan/coa?tab=akun_sistem' },
           ],
+        },
+        {
+          label: 'Laporan',
+          path: '/keuangan/laporan',
+          icon: PiChartBar,
+          allowedRoles: ['keuangan'],
         },
         {
           label: 'Jurnal Umum',

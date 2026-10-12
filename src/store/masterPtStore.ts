@@ -4,6 +4,7 @@ import { fetchApi } from '../lib/api';
 export interface MasterPt {
   id: string;
   namaPt: string;
+  trackCompanyId?: string | null;
   singkatan?: string | null;
   namaDirektur: string;
   ttl?: string | null;

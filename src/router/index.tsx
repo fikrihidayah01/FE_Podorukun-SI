@@ -9,13 +9,12 @@ import DashboardPage from '../pages/DashboardPage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
+import LaporanPage from '../pages/keuangan/LaporanPage';
 import HutangPage from '../pages/keuangan/HutangPage';
 import DetailKodePembantuPage from '../pages/keuangan/hutang/DetailKodePembantuPage';
 import PiutangPage from '../pages/keuangan/PiutangPage';
 import CoaPage from '../pages/keuangan/CoaPage';
 import JurnalPage from '../pages/keuangan/JurnalPage';
-import SrpPage from '../pages/keuangan/SrpPage';
-import SrpEditorPage from '../pages/keuangan/SrpEditorPage';
 import LegalPage from '../pages/keuangan/LegalPage';
 import LegalEditorPage from '../pages/keuangan/LegalEditorPage';
 import MasterPtPage from '../pages/keuangan/MasterPtPage';
@@ -49,13 +48,13 @@ export const router = createBrowserRouter([
               { path: '/keuangan/master-pt', element: <MasterPtPage /> },
               { path: '/keuangan/pustaka-pasal', element: <PustakaPasalPage /> },
               // Rute SRP lama — dipertahankan agar tidak 404
-              { path: '/keuangan/srp', element: <SrpPage /> },
-              { path: '/keuangan/srp/:id', element: <SrpEditorPage /> },
+              { path: '/keuangan/srp', element: <Navigate to="/keuangan/legal" replace /> },
+              { path: '/keuangan/srp/:id', element: <Navigate to="/keuangan/legal" replace /> },
 
               // Rute lama yang belum punya halaman sendiri
-              { path: '/keuangan/laporan', element: <PlaceholderPage title="Laporan Keuangan" /> },
-              { path: '/keuangan/tagihan', element: <PlaceholderPage title="Tagihan" /> },
-              { path: '/keuangan/pengeluaran', element: <PlaceholderPage title="Pengeluaran" /> },
+              { path: '/keuangan/laporan', element: <LaporanPage /> },
+              { path: '/keuangan/tagihan', element: <Navigate to="/keuangan/piutang" replace /> },
+              { path: '/keuangan/pengeluaran', element: <Navigate to="/keuangan/jurnal" replace /> },
             ],
           },
 

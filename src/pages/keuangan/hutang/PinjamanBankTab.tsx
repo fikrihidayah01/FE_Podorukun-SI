@@ -23,6 +23,7 @@ import { formatTanggal } from '../../../utils/format';
 import PinjamanBankDetailModal from './PinjamanBankDetailModal';
 
 interface FormState {
+  akunKasId: string;
   proyekId: string;
   namaBank: string;
   pola: PolaPembayaran;
@@ -36,6 +37,7 @@ interface FormState {
 }
 
 const INITIAL_FORM: FormState = {
+  akunKasId: '',
   proyekId: '',
   namaBank: '',
   pola: 'terpisah',
@@ -61,6 +63,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const [detailPinjaman, setDetailPinjaman] = useState<PinjamanBank | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PinjamanBank | null>(null);
@@ -81,11 +84,12 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
     setShowAdd(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const nominal = Number(form.nominalPencairanAwal);
     const acuanBunga = Number(form.tanggalAcuanBunga);
 
     if (
+      !form.akunKasId ||
       !form.proyekId ||
       !form.namaBank.trim() ||
       !form.tanggalPencairanAwal ||
@@ -100,20 +104,25 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
       return;
     }
 
-    addPinjaman({
-      proyekId: form.proyekId,
-      namaBank: form.namaBank.trim(),
-      pola: form.pola,
-      tanggalPencairanAwal: form.tanggalPencairanAwal,
-      nominalPencairanAwal: nominal,
-      tanggalAcuanBunga: acuanBunga,
-      tanggalJatuhTempoPokok: form.tanggalJatuhTempoPokok,
-      akunHutangId: form.akunHutangId || undefined,
-      akunBebanBungaId: form.akunBebanBungaId || undefined,
-      keterangan: form.keterangan.trim() || undefined,
-    });
+    setSaving(true);
+    try {
+      await addPinjaman({
+        akunKasId: form.akunKasId,
+        proyekId: form.proyekId,
+        namaBank: form.namaBank.trim(),
+        pola: form.pola,
+        tanggalPencairanAwal: form.tanggalPencairanAwal,
+        nominalPencairanAwal: nominal,
+        tanggalAcuanBunga: acuanBunga,
+        tanggalJatuhTempoPokok: form.tanggalJatuhTempoPokok,
+        akunHutangId: form.akunHutangId || undefined,
+        akunBebanBungaId: form.akunBebanBungaId || undefined,
+        keterangan: form.keterangan.trim() || undefined,
+      });
 
-    setShowAdd(false);
+      setShowAdd(false);
+    } catch (error) { setFormError(error instanceof Error ? error.message : 'Gagal menyimpan pinjaman'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -262,7 +271,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
         footer={
           <>
             <Button onClick={() => setShowAdd(false)}>Batal</Button>
-            <Button variant="primary" onClick={handleSubmit}>
+            <Button disabled={saving} variant="primary" onClick={handleSubmit}>
               Simpan pinjaman
             </Button>
           </>
@@ -278,6 +287,12 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
                 {proyeks.map((pr) => (
                   <option key={pr.id} value={pr.id}>{pr.nama}</option>
                 ))}
+              </select>
+            </Field>
+            <Field label="Rekening penerima pencairan" required>
+              <select className="control" value={form.akunKasId} onChange={(e) => set('akunKasId', e.target.value)}>
+                <option value="">Pilih kas / bank</option>
+                {akuns.filter((a) => a.isKasBank).map((a) => <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>)}
               </select>
             </Field>
             <Field label="Nama bank" required>
@@ -358,8 +373,8 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
       <ConfirmDialog
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) removePinjaman(deleteTarget.id);
+        onConfirm={async () => {
+          if (deleteTarget) await removePinjaman(deleteTarget.id);
         }}
         title="Hapus pinjaman"
         message={`Hapus pinjaman "${deleteTarget?.namaBank ?? ''}"? Semua riwayat pembayarannya ikut terhapus.`}

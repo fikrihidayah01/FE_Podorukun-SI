@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { fetchApi } from '../../../lib/api';
+import { useEffect, useMemo, useState } from 'react';
 import { PiPlus } from 'react-icons/pi';
 import { usePinjamanBankStore, type PinjamanBank, type JenisPembayaran } from '../../../store/pinjamanBankStore';
 import { useCoaStore, type Akun } from '../../../store/coaStore';
@@ -24,12 +25,13 @@ interface PaymentForm {
 }
 
 interface TopUpForm {
+  akunKasId: string;
   tanggal: string;
   nominal: string;
   keterangan: string;
 }
 
-const INITIAL_TOPUP: TopUpForm = { tanggal: '', nominal: '', keterangan: '' };
+const INITIAL_TOPUP: TopUpForm = { tanggal: '', nominal: '', keterangan: '', akunKasId: '' };
 
 const emptyPayment = (pola: PinjamanBank['pola']): PaymentForm => ({
   jenis: pola === 'bunga_rutin' ? 'bunga' : 'pokok',
@@ -62,15 +64,26 @@ interface PinjamanBankDetailModalProps {
 }
 
 export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: PinjamanBankDetailModalProps) {
-  const { pinjamans, getEntriesByPinjaman, addEntry, addTopUp } = usePinjamanBankStore();
+  const { pinjamans, getEntriesByPinjaman, fetchEntries, addEntry, addTopUp } = usePinjamanBankStore();
   const akuns = useCoaStore((s) => s.items);
   const kasBankAkuns = useMemo(() => akuns.filter((a) => a.isKasBank), [akuns]);
 
   const [payForm, setPayForm] = useState<PaymentForm>(() => emptyPayment(pinjaman?.pola ?? 'terpisah'));
   const [payError, setPayError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpForm, setTopUpForm] = useState<TopUpForm>(INITIAL_TOPUP);
   const [topUpError, setTopUpError] = useState('');
+  const [rincianId, setRincianId] = useState('');
+  const [rincianPokok, setRincianPokok] = useState('');
+  const [rincianBunga, setRincianBunga] = useState('');
+
+  useEffect(() => {
+    if (isOpen && pinjaman) {
+      setPayError('');
+      void fetchEntries(pinjaman.id).catch((err) => setPayError(err instanceof Error ? err.message : 'Gagal memuat transaksi'));
+    }
+  }, [isOpen, pinjaman?.id, fetchEntries]);
 
   if (!pinjaman) return null;
 
@@ -93,42 +106,61 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
   const pBunga = Number(payForm.nominalBunga) || 0;
   const rincianCocok = jenis === 'gabungan' && pNominal > 0 && pPokok + pBunga === pNominal;
 
-  const handlePayment = (statusRincian?: 'menunggu_rincian' | 'lengkap') => {
+  const saveRincian = async () => {
+    const entry = entries.find((e) => e.id === rincianId);
+    if (!entry || Number(rincianPokok) + Number(rincianBunga) !== entry.nominal) { setPayError('Jumlah pokok dan bunga harus sama dengan nominal transfer.'); return; }
+    setSaving(true); setPayError('');
+    try {
+      const res = await fetchApi(`/pinjaman/transaksi/${rincianId}/rincian`, { method: 'PATCH', body: JSON.stringify({ nominalPokok: Number(rincianPokok), nominalBunga: Number(rincianBunga) }) });
+      const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal menyimpan rincian');
+      await fetchEntries(fresh.id); await usePinjamanBankStore.getState().fetch(); setRincianId('');
+    } catch (err) { setPayError(err instanceof Error ? err.message : 'Gagal menyimpan rincian'); }
+    finally { setSaving(false); }
+  };
+
+  const handlePayment = async (statusRincian?: 'menunggu_rincian' | 'lengkap') => {
     if (!payForm.tanggal) return setPayError('Tanggal pembayaran wajib diisi.');
     if (!payForm.akunKasId) return setPayError('Pilih akun kas atau bank.');
     if (pNominal <= 0) return setPayError('Nominal pembayaran harus lebih dari 0.');
-    // Simulasi tutup buku: transaksi sebelum 1 September 2026 dianggap periode terkunci
-    if (new Date(payForm.tanggal) < new Date('2026-09-01')) {
-      return setPayError('Tanggal ini masuk periode yang sudah dikunci (sebelum September 2026).');
-    }
     if (jenis === 'gabungan' && statusRincian !== 'menunggu_rincian' && pPokok + pBunga !== pNominal) {
       return setPayError('Porsi pokok dan bunga belum sama dengan total transfer.');
     }
 
-    addEntry(fresh.id, {
-      tanggal: payForm.tanggal,
-      jenis,
-      nominal: pNominal,
-      nominalPokok: jenis === 'gabungan' ? pPokok : undefined,
-      nominalBunga: jenis === 'gabungan' ? pBunga : undefined,
-      periodeBunga: jenis === 'bunga' || jenis === 'gabungan' ? payForm.periodeBunga.trim() || undefined : undefined,
-      keterangan: payForm.keterangan.trim() || undefined,
-      noBukti: payForm.noBukti.trim() || undefined,
-      akunKasId: payForm.akunKasId,
-      statusRincian,
-    });
-    setPayForm(emptyPayment(fresh.pola));
-    setPayError('');
+    setSaving(true);
+    try {
+      await addEntry(fresh.id, {
+        tanggal: payForm.tanggal,
+        jenis,
+        nominal: pNominal,
+        nominalPokok: jenis === 'gabungan' ? pPokok : undefined,
+        nominalBunga: jenis === 'gabungan' ? pBunga : undefined,
+        periodeBunga: jenis === 'bunga' || jenis === 'gabungan' ? payForm.periodeBunga.trim() || undefined : undefined,
+        keterangan: payForm.keterangan.trim() || undefined,
+        noBukti: payForm.noBukti.trim() || undefined,
+        akunKasId: payForm.akunKasId,
+        statusRincian,
+      });
+      setPayForm(emptyPayment(fresh.pola));
+      setPayError('');
+    } catch (error) {
+      setPayError(error instanceof Error ? error.message : 'Gagal mencatat pembayaran');
+    } finally { setSaving(false); }
   };
 
-  const handleTopUpSubmit = () => {
+  const handleTopUpSubmit = async () => {
     const nominal = Number(topUpForm.nominal);
     if (!topUpForm.tanggal) return setTopUpError('Tanggal top-up wajib diisi.');
     if (!nominal || nominal <= 0) return setTopUpError('Nominal top-up harus lebih dari 0.');
-    addTopUp(fresh.id, { tanggal: topUpForm.tanggal, nominal, keterangan: topUpForm.keterangan.trim() || undefined });
-    setTopUpForm(INITIAL_TOPUP);
-    setTopUpError('');
-    setShowTopUp(false);
+    if (!topUpForm.akunKasId) return setTopUpError('Pilih rekening penerima top-up.');
+    setSaving(true);
+    try {
+      await addTopUp(fresh.id, { akunKasId: topUpForm.akunKasId, tanggal: topUpForm.tanggal, nominal, keterangan: topUpForm.keterangan.trim() || undefined });
+      setTopUpForm(INITIAL_TOPUP);
+      setTopUpError('');
+      setShowTopUp(false);
+    } catch (error) {
+      setTopUpError(error instanceof Error ? error.message : 'Gagal mencatat top-up');
+    } finally { setSaving(false); }
   };
 
   const ringkasan =
@@ -183,6 +215,7 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
           ))}
         </dl>
 
+        {rincianId && <div className="mb-4 space-y-3"><p>Rincian pembayaran satu transfer</p><label>Pokok<input className="control" type="number" min="0" step="0.01" value={rincianPokok} onChange={(e) => setRincianPokok(e.target.value)} /></label><label>Bunga<input className="control" type="number" min="0" step="0.01" value={rincianBunga} onChange={(e) => setRincianBunga(e.target.value)} /></label><Button disabled={saving} onClick={() => void saveRincian()}>Simpan rincian</Button><Button disabled={saving} onClick={() => setRincianId('')}>Batal</Button></div>}
         <section className="rounded-lg border border-line">
           <div className="flex items-center justify-between gap-3 px-4 py-2.5">
             <h3 className="text-sm font-semibold text-ink">
@@ -211,10 +244,16 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
                   />
                 </Field>
               </div>
+              <Field label="Rekening penerima" required>
+                <select className="control" value={topUpForm.akunKasId} onChange={(e) => setTopUpForm({ ...topUpForm, akunKasId: e.target.value })}>
+                  <option value="">Pilih kas / bank</option>
+                  {kasBankAkuns.map((a) => <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>)}
+                </select>
+              </Field>
               <Field label="Keterangan" optional>
                 <input className="control" value={topUpForm.keterangan} onChange={(e) => setTopUpForm({ ...topUpForm, keterangan: e.target.value })} />
               </Field>
-              <Button size="sm" variant="primary" onClick={handleTopUpSubmit}>
+              <Button size="sm" variant="primary" disabled={saving} onClick={handleTopUpSubmit}>
                 Simpan top-up
               </Button>
             </div>
@@ -259,7 +298,7 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
                       <td>
                         <span className="flex flex-wrap gap-1">
                           <Badge>{JENIS_LABEL[entry.jenis as keyof typeof JENIS_LABEL] ?? entry.jenis}</Badge>
-                          {entry.statusRincian === 'menunggu_rincian' && <Badge tone="warning">Menunggu rincian</Badge>}
+                          {entry.statusRincian === 'menunggu_rincian' && <Button onClick={() => { setRincianId(entry.id); setRincianPokok(''); setRincianBunga(''); }}>Isi rincian</Button>}
                         </span>
                       </td>
                       <td className="num">
@@ -369,8 +408,8 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
                 >
                   Kosongkan
                 </Button>
-                {jenis === 'gabungan' && <Button onClick={() => handlePayment('menunggu_rincian')}>Simpan tanpa rincian</Button>}
-                <Button variant="primary" onClick={() => handlePayment('lengkap')}>
+                {jenis === 'gabungan' && <Button disabled={saving} onClick={() => handlePayment('menunggu_rincian')}>Simpan tanpa rincian</Button>}
+                <Button variant="primary" disabled={saving} onClick={() => handlePayment('lengkap')}>
                   Simpan dan buat jurnal
                 </Button>
               </div>

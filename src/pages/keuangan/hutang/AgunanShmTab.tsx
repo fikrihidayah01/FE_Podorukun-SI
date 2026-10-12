@@ -88,9 +88,13 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
     (ubahStatus !== 'dijaminkan' || ubahPinjamanId !== '') &&
     (ubahStatus !== 'lainnya' || ubahStatusKustom.trim() !== '');
 
+  const [statusError, setStatusError] = useState('');
+  const [statusSaving, setStatusSaving] = useState(false);
   const handleUbahSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!ubahTarget || !ubahIsValid) return;
+    setStatusSaving(true); setStatusError('');
+    try {
     await updateStatus(
       ubahTarget.id,
       ubahStatus,
@@ -101,6 +105,8 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
       ubahStatus === 'lainnya' ? ubahStatusKustom.trim() : undefined,
     );
     closeUbahStatus();
+    } catch (err) { setStatusError(err instanceof Error ? err.message : 'Gagal mengubah status'); }
+    finally { setStatusSaving(false); }
   };
 
   return (
@@ -243,13 +249,14 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
         footer={
           <>
             <Button onClick={closeUbahStatus}>Batal</Button>
-            <Button variant="primary" type="submit" form="ubah-status-form" disabled={!ubahIsValid}>
+            <Button variant="primary" type="submit" form="ubah-status-form" disabled={!ubahIsValid || statusSaving}>
               Simpan status
             </Button>
           </>
         }
       >
         <form id="ubah-status-form" onSubmit={handleUbahSubmit} className="space-y-4">
+          {statusError && <p role="alert" className="text-red-600">{statusError}</p>}
           <Field label="Status baru" required>
             <select className="control" value={ubahStatus} onChange={(e) => setUbahStatus(e.target.value as StatusShm)}>
               {STATUS_SHM_OPTIONS.map((s) => (
@@ -313,8 +320,8 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
       <ConfirmDialog
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) removeShm(deleteTarget.id);
+        onConfirm={async () => {
+          if (deleteTarget) await removeShm(deleteTarget.id);
         }}
         title="Hapus dokumen legal"
         message={`Hapus SHM "${deleteTarget?.nomorShm ?? ''}"? Riwayat statusnya ikut terhapus.`}

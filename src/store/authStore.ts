@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { fetchApi, setTokens, clearTokens, tryRefresh } from '../lib/api';
+import { fetchApi, setTokens, clearTokens, tryRefresh, getRefreshToken } from '../lib/api';
 
 export type UserRole = 'admin' | 'keuangan' | 'teknisi' | 'marketing' | 'kontraktor';
 
@@ -113,7 +113,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
-      await fetchApi('/auth/logout', { method: 'POST' });
+      const refreshToken = getRefreshToken();
+      await fetchApi('/auth/logout', { method: 'POST', body: JSON.stringify(refreshToken ? { refreshToken } : {}) });
     } finally {
       clearTokens();
       set({ user: null, isAuthenticated: false });

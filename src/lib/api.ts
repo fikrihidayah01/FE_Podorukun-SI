@@ -1,5 +1,8 @@
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
 
+// API lintas origin memakai token eksplisit; kompatibel dengan mode CORS terbuka tanpa cookie.
+export const API_CREDENTIALS: RequestCredentials = new URL(API_BASE_URL, window.location.origin).origin === window.location.origin ? 'include' : 'omit';
+
 export function getAccessToken(): string | null {
   return localStorage.getItem('si_access_token');
 }
@@ -24,7 +27,7 @@ export function clearTokens() {
  * Attempt a silent token refresh.
  * Backend accepts refreshToken in JSON body OR via HttpOnly cookie.
  * We send both: body (for localhost dev where Secure cookies don't work over HTTP)
- * and credentials:include (for production where cookies are available).
+ * and same-origin cookies; cross-origin requests use the explicit tokens.
  */
 export async function tryRefresh(): Promise<string | null> {
   const storedRefreshToken = getRefreshToken();
@@ -32,7 +35,7 @@ export async function tryRefresh(): Promise<string | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
-      credentials: 'include',
+      credentials: API_CREDENTIALS,
       // Send refreshToken in body so localhost dev works (Secure cookies are blocked on HTTP).
       // Backend also accepts cookie, so production still works correctly.
       ...(storedRefreshToken
@@ -72,7 +75,9 @@ function addRefreshSubscriber(callback: (newToken: string | null) => void) {
 }
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const apiPath = new URL(API_BASE_URL, window.location.origin).pathname.replace(/\/$/, '');
+  const normalized = endpoint.startsWith(`${apiPath}/`) ? endpoint.slice(apiPath.length) : endpoint;
+  const cleanEndpoint = normalized.startsWith('/') ? normalized : `/${normalized}`;
   const url = `${API_BASE_URL}${cleanEndpoint}`;
 
   const headers = new Headers(options.headers || {});
@@ -93,7 +98,7 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
   const config: RequestInit = {
     ...options,
     headers,
-    credentials: 'include',
+    credentials: API_CREDENTIALS,
   };
 
   let response = await fetch(url, config);

@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react';
-import { PiUploadSimple } from 'react-icons/pi';
 import { useKontrakStore, type Kontrak } from '../../../store/kontrakStore';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
@@ -15,16 +14,13 @@ interface AdendumFormModalProps {
 }
 
 export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFormModalProps) {
-  const { addAdendum, adendums } = useKontrakStore();
+  const { addAdendum } = useKontrakStore();
 
   const [form, setForm] = useState({ noAdendum: '', tanggal: '', nilaiBaru: '', alasan: '' });
-  const [lampiran, setLampiran] = useState<File | null>(null);
   const [error, setError] = useState('');
 
-  const riwayat = adendums
-    .filter((a) => a.kontrakId === kontrak.id)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const nilaiLama = riwayat.length > 0 ? riwayat[0].nilaiBaru : kontrak.nilaiKontrak;
+  const nilaiLama = kontrak.nilaiTerkini ?? kontrak.nilaiKontrak;
+  const [saving, setSaving] = useState(false);
   const pNilaiBaru = Number(form.nilaiBaru) || 0;
   const selisih = pNilaiBaru - nilaiLama;
 
@@ -36,6 +32,8 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
     if (selisih === 0) return setError('Nilai baru sama dengan nilai lama, jadi tidak ada yang perlu diadendum.');
     if (!form.alasan.trim()) return setError('Tuliskan alasan perubahan kontrak.');
 
+    setSaving(true); setError('');
+    try {
     await addAdendum({
       kontrakId: kontrak.id,
       noAdendum: form.noAdendum.trim(),
@@ -43,9 +41,10 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
       nilaiLama,
       nilaiBaru: pNilaiBaru,
       alasan: form.alasan.trim(),
-      lampiran: lampiran?.name,
     });
     onClose();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Gagal menyimpan adendum'); }
+    finally { setSaving(false); }
   };
 
   const showPreview = selisih !== 0 && pNilaiBaru > 0;
@@ -61,7 +60,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
       footer={
         <>
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" type="submit" form="adendum-form">
+          <Button disabled={saving} variant="primary" type="submit" form="adendum-form">
             Simpan adendum
           </Button>
         </>
@@ -117,24 +116,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
           <textarea rows={3} className="control" value={form.alasan} onChange={(e) => setForm({ ...form, alasan: e.target.value })} />
         </Field>
 
-        <div>
-          <p className="field-label">
-            Lampiran dokumen <span className="font-normal text-ink-3">(opsional)</span>
-          </p>
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-line-strong px-4 py-3.5 hover:bg-subtle focus-within:outline-2 focus-within:outline-brand-600">
-            <PiUploadSimple className="h-5 w-5 shrink-0 text-ink-3" aria-hidden />
-            <span className="min-w-0 flex-1 truncate text-sm text-ink-2">
-              {lampiran ? lampiran.name : 'Pilih file PDF atau Word'}
-            </span>
-            <span className="text-sm font-semibold text-brand-700">{lampiran ? 'Ganti' : 'Pilih file'}</span>
-            <input
-              type="file"
-              className="sr-only"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => e.target.files && setLampiran(e.target.files[0])}
-            />
-          </label>
-        </div>
+
 
         {showPreview && (
           <JurnalPreview
