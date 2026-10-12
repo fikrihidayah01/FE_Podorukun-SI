@@ -26,7 +26,7 @@ export interface KodePembantu {
   id: string;
   nama: string;
   proyekId: string;
-  kategori: KategoriHutang;
+  kategori: KategoriHutang | 'kontraktor' | 'pembeli';
 }
 
 // ── Mutasi Hutang ────────────────────────────────────────────
@@ -51,7 +51,7 @@ export interface MutasiHutang {
 
 // ── Saldo computed view ──────────────────────────────────────
 export interface SaldoKodePembantu {
-  kodePembantu: KodePembantu;
+  kodePembantu: Omit<KodePembantu, 'kategori'> & { kategori: KategoriHutang };
   saldoAwal: number;
   totalDebit: number;
   totalKredit: number;
@@ -74,7 +74,7 @@ interface HutangState {
 
   fetchMutasiByKodePembantu: (kodePembantuId: string) => Promise<void>;
   fetchMutasiAntarProyek: (proyekId?: string) => Promise<void>;
-  addMutasi: (data: Omit<MutasiHutang, 'id' | 'createdAt' | 'mirrorMutasiId'>) => Promise<void>;
+  addMutasi: (data: Omit<MutasiHutang, 'id' | 'createdAt' | 'mirrorMutasiId' | 'kodePembantuId'> & { kodePembantuId?: string; kodePembantuBaru?: string }) => Promise<void>;
   removeMutasi: (id: string) => Promise<void>;
 
   fetchSaldo: (bulan: string) => Promise<void>;

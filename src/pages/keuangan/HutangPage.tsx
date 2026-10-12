@@ -374,7 +374,7 @@ const { periodes, tutupPeriode } = usePeriodeStore();
 
           {activeTab === 'antar_proyek' && <AntarProyekTab selectedProyekId={selectedProyek} selectedBulan={periodeLabel} />}
           {activeTab === 'pinjaman_bank' && <PinjamanBankTab selectedProyekId={selectedProyek} selectedBulan={periodeLabel} />}
-          {activeTab === 'agunan' && <AgunanShmTab selectedProyekId={proyekNama(selectedProyek)} selectedBulan={periodeLabel} />}
+          {activeTab === 'agunan' && <AgunanShmTab selectedProyekId={selectedProyek} selectedProyekName={proyekNama(selectedProyek)} selectedBulan={periodeLabel} />}
           {activeTab === 'kontraktor' && <KontraktorTab />}
         </TabPanel>
       </PageBody>

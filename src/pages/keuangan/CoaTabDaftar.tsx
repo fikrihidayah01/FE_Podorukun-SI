@@ -46,7 +46,7 @@ const EMPTY_FORM: Partial<Akun> = {
   wajibKodePembantu: false,
   wajibProyek: false,
   isKasBank: false,
-  kasBankInduk: undefined,
+  noRekening: undefined,
   kategoriHutangPiutang: undefined,
   akunIndukId: '',
 };
@@ -204,9 +204,6 @@ export default function DaftarAkunTab() {
     
     if (!form.namaAkun?.trim()) e.namaAkun = 'Nama akun wajib diisi.';
     
-    if (form.isKasBank && !form.kasBankInduk) {
-      e.kasBankInduk = 'Rekening penampung wajib dipilih jika akun adalah kas / bank.';
-    }
     
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -225,7 +222,7 @@ export default function DaftarAkunTab() {
       wajibKodePembantu: form.wajibKodePembantu || false,
       wajibProyek: form.wajibProyek || false,
       isKasBank: form.isKasBank || false,
-      kasBankInduk: form.isKasBank ? form.kasBankInduk : null,
+      noRekening: form.isKasBank ? form.noRekening?.trim() || null : null,
       kategoriHutangPiutang: ['hutang', 'aktiva'].includes(form.kategori as string) ? form.kategoriHutangPiutang : null,
     };
     try {
@@ -559,18 +556,8 @@ export default function DaftarAkunTab() {
                   </label>
                   {a.key === 'isKasBank' && form.isKasBank && (
                     <div className="border-t border-line bg-subtle px-4 py-3 pl-11">
-                      <Field label="Tersambung ke" hint="Pilih rekening penampung" required error={errors.kasBankInduk}>
-                        <select
-                          className={`control control-cembung ${errors.kasBankInduk ? 'border-danger focus:ring-danger/20' : ''}`}
-                          value={form.kasBankInduk || ''}
-                          onChange={(e) => setForm({ ...form, kasBankInduk: e.target.value || undefined })}
-                        >
-                          <option value="">-- Pilih Rekening --</option>
-                          <option value="REKENING TABUNGAN PENAMPUNG">REKENING TABUNGAN PENAMPUNG</option>
-                          <option value="BANK BCA BRI BSI BNI (GIRO)">BANK BCA BRI BSI BNI (GIRO)</option>
-                          <option value="BANK BTN BTNS (GIRO)">BANK BTN BTNS (GIRO)</option>
-                          <option value="BANK MANDIRI">BANK MANDIRI</option>
-                        </select>
+                      <Field label="Nomor rekening" hint="Samakan dengan rekening tujuan PR Track agar pembayaran terhubung otomatis. Kosongkan untuk kas tunai." optional>
+                        <input className="control" maxLength={30} value={form.noRekening || ''} onChange={(e) => setForm({ ...form, noRekening: e.target.value })} placeholder="Nomor rekening tujuan pembayaran" />
                       </Field>
                     </div>
                   )}

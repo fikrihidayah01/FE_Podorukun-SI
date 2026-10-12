@@ -25,6 +25,7 @@ const STATUS: Record<JurnalStatus, { label: string; tone: Tone }> = {
   draft: { label: 'Draft', tone: 'warning' },
   diposting: { label: 'Diposting', tone: 'positive' },
   dikoreksi: { label: 'Dikoreksi', tone: 'danger' },
+  balik: { label: 'Jurnal balik', tone: 'positive' },
 };
 
 const SUMBER_LABEL: Record<string, string> = {
@@ -66,6 +67,11 @@ export default function JurnalPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [detailJurnal, setDetailJurnal] = useState<Jurnal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Jurnal | null>(null);
+  const [reverseOpen, setReverseOpen] = useState(false);
+  const [reverseDate, setReverseDate] = useState(new Date().toISOString().slice(0, 10));
+  const [reverseReason, setReverseReason] = useState('');
+  const [reverseBusy, setReverseBusy] = useState(false);
+  const [reverseError, setReverseError] = useState('');
 
   const [filterProyek, setFilterProyek] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -670,6 +676,7 @@ export default function JurnalPage() {
         size="lg"
         footer={
           <>
+            {detailJurnal?.status === 'diposting' && ['manual', 'pr_track'].includes(detailJurnal.sumber) && <Button onClick={() => { setReverseOpen(true); setReverseError(''); setReverseReason(''); }}>Buat jurnal balik</Button>}
             {detailJurnal?.status === 'draft' && (
               <Button variant="danger-ghost" icon={PiTrash} onClick={() => setDeleteTarget(detailJurnal)} className="sm:mr-auto">
                 Hapus draft
@@ -809,12 +816,24 @@ export default function JurnalPage() {
         )}
       </Modal>
 
+      <Modal isOpen={reverseOpen} onClose={() => { if (!reverseBusy) setReverseOpen(false); }} title="Buat jurnal balik" footer={<><Button disabled={reverseBusy} onClick={() => setReverseOpen(false)}>Batal</Button><Button variant="danger" disabled={reverseBusy || !reverseDate || !reverseReason.trim()} onClick={async () => {
+        if (!detailJurnal) return;
+        setReverseBusy(true); setReverseError('');
+        try {
+          const res = await fetchApi(`/jurnal/${detailJurnal.id}/balik`, { method: 'POST', body: JSON.stringify({ tanggal: reverseDate, keterangan: reverseReason }) });
+          const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal membuat jurnal balik');
+          await fetch(); setDetailJurnal(null); setReverseOpen(false);
+        } catch (err) { setReverseError(err instanceof Error ? err.message : 'Gagal membuat jurnal balik'); }
+        finally { setReverseBusy(false); }
+      }}>{reverseBusy ? 'Memproses…' : 'Konfirmasi pembalikan'}</Button></>}>
+        <div className="space-y-4">{reverseError && <Notice tone="danger">{reverseError}</Notice>}<p>Jurnal asal tetap tersimpan dan jurnal balik mengimbangi nilai pembukuannya. Gunakan tanggal pada periode yang terbuka.</p><label>Tanggal jurnal balik<input className="control" type="date" value={reverseDate} onChange={(e) => setReverseDate(e.target.value)} /></label><label>Alasan<textarea className="control" value={reverseReason} onChange={(e) => setReverseReason(e.target.value)} /></label></div>
+      </Modal>
       <ConfirmDialog
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!deleteTarget) return;
-          remove(deleteTarget.id);
+          await remove(deleteTarget.id);
           setDetailJurnal(null);
         }}
         title="Hapus draft jurnal"

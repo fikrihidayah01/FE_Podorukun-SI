@@ -73,7 +73,7 @@ export default function DetailKodePembantuPage() {
       <PageHeader
         back={back}
         title={kp.nama}
-        status={<Badge color={KATEGORI_HUTANG_HEX[kp.kategori]}>{KATEGORI_HUTANG_LABELS[kp.kategori]}</Badge>}
+        status={<Badge color={{ ...KATEGORI_HUTANG_HEX, kontraktor: '#c2410c', pembeli: '#0369a1' }[kp.kategori]}>{{ ...KATEGORI_HUTANG_LABELS, kontraktor: 'Kontraktor', pembeli: 'Pembeli' }[kp.kategori]}</Badge>}
         description={`Kartu hutang, ${proyekNama}`}
         actions={
           <div className="flex items-center gap-4">

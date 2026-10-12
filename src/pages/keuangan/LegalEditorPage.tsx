@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  PiArrowLeft, PiCheckCircle, PiPencilSimple, PiFileText, PiArrowsDownUp, PiTrash, PiPlus, PiLockKey, PiFilePdf, PiFileDoc, PiUploadSimple
+  PiArrowLeft, PiCheckCircle, PiPencilSimple, PiFileText, PiArrowsDownUp, PiTrash, PiPlus, PiLockKey
 } from 'react-icons/pi';
 import { useDokumenLegalStore, type StatusDokumen, type BarisJadwal } from '../../store/dokumenLegalStore';
 import { useMasterPtStore } from '../../store/masterPtStore';
@@ -9,6 +9,7 @@ import { useProyekStore } from '../../store/proyekStore';
 import { usePustakaPasalStore } from '../../store/pustakaPasalStore';
 import { usePiutangStore } from '../../store/piutangStore';
 import LegalHistoryPanel from './LegalHistoryPanel';
+import LegalExports from './LegalExports';
 import Button, { IconButton } from '../../components/ui/Button';
 import Field from '../../components/ui/Field';
 import Notice from '../../components/ui/Notice';
@@ -363,7 +364,7 @@ function LegalEditorBody() {
             <h1 className="text-lg font-bold text-ink uppercase tracking-wide">Surat Pernyataan Pembelian Rumah</h1>
             <div className="mt-2 flex justify-center gap-2">
               <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 uppercase">{perumahan?.nama}</span>
-              <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 uppercase">Kavling {kavling?.nomor}</span>
+              <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 uppercase">Kavling {kavlingNomor}</span>
             </div>
           </div>
 
@@ -647,23 +648,26 @@ function LegalEditorBody() {
           </div>
         ) : (
           <div className="space-y-6">
-            <section>
-              <h3 className="mb-3 text-sm font-semibold text-ink">Ekspor</h3>
-              <div className="flex flex-wrap gap-3">
-                <Button icon={PiFilePdf} onClick={() => window.print()}>Cetak PDF</Button>
-                <Button icon={PiFileDoc}>Unduh Word</Button>
-                <Button icon={PiUploadSimple} variant="secondary">Unggah scan bertanda tangan</Button>
-              </div>
-            </section>
+            <LegalExports id={dokumen.id} nomor={dokumen.noDokumen} blocks={[
+              { text: 'SURAT PERNYATAAN PEMBELIAN RUMAH', heading: true },
+              { text: dokumen.noDokumen, heading: true },
+              { text: `PT: ${pt?.namaPt || ''}\nDirektur: ${pt?.namaDirektur || ''}\nAlamat PT: ${pt?.alamat || ''}\nPerumahan: ${perumahan?.nama || ''}\nKavling: ${kavlingNomor}\nTanggal: ${tanggalDalamHuruf(dokumen.tanggalPerjanjian)}` },
+              { text: `Pembeli: ${dokumen.pembeli.nama}\nTempat/tanggal lahir: ${dokumen.pembeli.ttl}\nPekerjaan: ${dokumen.pembeli.pekerjaan}\nKTP: ${dokumen.pembeli.noKtp}\nAlamat: ${dokumen.pembeli.alamat}\nHP: ${dokumen.pembeli.noHp}` },
+              { text: `Harga awal: Rp ${autoValues.harga_awal}\nBPHTB: Rp ${dokumen.bphtb.toLocaleString('id-ID')}\nAJB/BBN: Rp ${dokumen.ajbBbn.toLocaleString('id-ID')}\nHarga nett: Rp ${autoValues.harga_nett}\nUang muka: Rp ${autoValues.uang_muka}\nFasilitas tambahan: ${autoValues.fasilitas_tambahan}` },
+              ...dokumen.pasalDokumen.flatMap((pasal, idx) => [{ text: `Pasal ${idx + 1} — ${pasal.judul}`, heading: true }, { text: pasal.isi.replace(/\{([^}]+)\}/g, (_, key: string) => resolveNilai(key, pasal.fields)) }]),
+              { text: 'Jadwal angsuran uang muka', heading: true },
+              ...(dokumen.jadwalPembayaran?.baris || []).map((row) => ({ text: `${row.keterangan} | ${row.tanggal} | Rp ${row.jumlah.toLocaleString('id-ID')}` })),
+              { text: `Pihak penjual: ${pt?.namaDirektur || ''}\n\n\nPihak pembeli: ${dokumen.pembeli.nama}` },
+            ]} />
 
             <section className="pt-4 border-t border-line">
               <h3 className="mb-3 text-sm font-semibold text-ink">Status Terkini</h3>
               <div className="flex items-center gap-3">
-                <select className="control w-auto" value={dokumen.status} onChange={(e) => runAction(() => updateStatus(dokumen.id, e.target.value as StatusDokumen))}>
+                <select className="control w-auto" disabled={saving || dokumen.status === 'ditandatangani'} value={dokumen.status} onChange={(e) => runAction(() => updateStatus(dokumen.id, e.target.value as StatusDokumen))}>
                   <option value="final">Final</option>
                   <option value="ditandatangani">Ditandatangani</option>
                 </select>
-                <span className="text-sm text-ink-3">Perubahan nilai uang dan jadwal memerlukan fitur Adendum di modul Piutang.</span>
+                <span className="text-sm text-ink-3">Perubahan nilai dan jadwal dilakukan melalui Buat adendum pada riwayat SPPR.</span>
               </div>
             </section>
           </div>

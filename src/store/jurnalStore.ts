@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
 
-export type JurnalStatus = 'draft' | 'diposting' | 'dikoreksi';
+export type JurnalStatus = 'draft' | 'diposting' | 'dikoreksi' | 'balik';
 
 export interface JurnalRow {
   id: string;

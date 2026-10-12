@@ -90,6 +90,8 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
 
     if (
       !form.akunKasId ||
+      !form.akunHutangId ||
+      !form.akunBebanBungaId ||
       !form.proyekId ||
       !form.namaBank.trim() ||
       !form.tanggalPencairanAwal ||
@@ -339,18 +341,18 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Akun hutang (COA)" optional>
+            <Field label="Akun hutang (COA)" required>
               <select className="control" value={form.akunHutangId} onChange={(e) => set('akunHutangId', e.target.value)}>
                 <option value="">Pilih akun hutang</option>
-                {akuns.filter((a) => a.kategori === 'hutang').map((a) => (
+                {akuns.filter((a) => a.kategori === 'hutang' && a.status === 'aktif' && !akuns.some((child) => child.akunIndukId === a.id)).map((a) => (
                   <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Akun beban bunga (COA)" optional>
+            <Field label="Akun beban bunga (COA)" required>
               <select className="control" value={form.akunBebanBungaId} onChange={(e) => set('akunBebanBungaId', e.target.value)}>
                 <option value="">Pilih akun beban</option>
-                {akuns.filter((a) => a.kategori === 'beban').map((a) => (
+                {akuns.filter((a) => a.kategori === 'beban' && a.status === 'aktif' && !akuns.some((child) => child.akunIndukId === a.id)).map((a) => (
                   <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
                 ))}
               </select>

@@ -29,13 +29,15 @@ const EMPTY_FORM = {
 type FormErrors = Partial<Record<keyof typeof EMPTY_FORM, string>>;
 
 export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalProps) {
-  const { kodePembantus, addKodePembantu, addMutasi } = useHutangStore();
+  const { kodePembantus, addMutasi } = useHutangStore();
   const { items: proyeks } = useProyekStore();
   const { items: akuns } = useCoaStore();
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [createNewKp, setCreateNewKp] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const filteredKp = useMemo(() => {
     if (!form.proyekId || !form.kategori) return [];
@@ -64,7 +66,7 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
     const e: FormErrors = {};
     if (!form.proyekId) e.proyekId = 'Pilih proyek.';
     if (!form.kategori) e.kategori = 'Pilih kategori hutang.';
-    if (form.proyekId && form.kategori) {
+    if (form.proyekId && form.kategori && !isAntarProyek) {
       if (!pihakBaru && !form.kodePembantuId) e.kodePembantuId = 'Pilih pihak, atau tambahkan pihak baru.';
       if (pihakBaru && !form.kodePembantuBaru.trim()) e.kodePembantuBaru = 'Tulis nama pihak.';
     }
@@ -79,14 +81,14 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
 
   const handleSubmit = async () => {
     if (!validate()) return;
+    setSaving(true); setSaveError('');
     try {
-      const kpId = pihakBaru
-        ? await addKodePembantu({ nama: form.kodePembantuBaru.trim(), proyekId: form.proyekId, kategori: form.kategori as KategoriHutang })
-        : form.kodePembantuId;
+      const kpId = !isAntarProyek && !pihakBaru ? form.kodePembantuId : undefined;
 
       await addMutasi({
         proyekId: form.proyekId,
         kodePembantuId: kpId,
+        kodePembantuBaru: !isAntarProyek && pihakBaru ? form.kodePembantuBaru.trim() : undefined,
         kategori: form.kategori as KategoriHutang,
         tanggal: form.tanggal,
         uraian: form.uraian.trim(),
@@ -105,8 +107,8 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
 
       handleClose();
     } catch (err: any) {
-      alert('Gagal menyimpan mutasi: ' + err.message);
-    }
+      setSaveError(err.message || 'Gagal menyimpan mutasi');
+    } finally { setSaving(false); }
   };
 
   return (
@@ -114,18 +116,19 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
       isOpen={isOpen}
       onClose={handleClose}
       title="Input mutasi hutang"
-      description="Mutasi langsung masuk ke saldo berjalan kode pembantu yang dipilih"
+      description="Mutasi kas/bank masuk saldo setelah bukti diunggah dan jurnal diposting"
       size="lg"
       footer={
         <>
-          <Button onClick={handleClose}>Batal</Button>
-          <Button variant="primary" onClick={handleSubmit}>
-            Simpan mutasi
+          <Button disabled={saving} onClick={handleClose}>Batal</Button>
+          <Button variant="primary" disabled={saving} onClick={handleSubmit}>
+            {saving ? 'Menyimpan…' : 'Simpan mutasi'}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
+        {saveError && <Notice tone="danger">{saveError}</Notice>}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Proyek" required error={errors.proyekId}>
             <select
@@ -169,7 +172,7 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
           </>
         )}
 
-        {form.proyekId && form.kategori && (
+        {form.proyekId && form.kategori && !isAntarProyek && (
           <div>
             {!pihakBaru ? (
               <Field label="Kode pembantu (pihak)" required error={errors.kodePembantuId}>
@@ -237,7 +240,7 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
         <Field label="Akun COA" required error={errors.akunCoaId}>
           <select className="control" value={form.akunCoaId} onChange={(e) => setForm({ ...form, akunCoaId: e.target.value })}>
             <option value="">Pilih akun</option>
-            {akuns.map((a) => (
+            {akuns.filter((a) => a.status === 'aktif' && !a.kategoriHutangPiutang && !akuns.some((child) => child.akunIndukId === a.id)).map((a) => (
               <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
             ))}
           </select>
@@ -253,7 +256,7 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
         </div>
 
         <p className="rounded-lg border border-dashed border-line-strong/60 px-4 py-3 text-[13px] text-ink-3">
-          Lampiran bukti transfer belum bisa diunggah. Fitur ini menyusul setelah penyimpanan file di backend siap.
+          Untuk transaksi kas/bank, unggah bukti lalu posting draft melalui Jurnal Umum.
         </p>
       </div>
     </Modal>

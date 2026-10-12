@@ -22,12 +22,6 @@ export default function KontraktorTab() {
     fetchKontrak();
   }, [fetchKontrak]);
 
-  useEffect(() => {
-    if (kontraks.length > 0) {
-      kontraks.forEach((k) => fetchDetail(k.id));
-    }
-  }, [kontraks, fetchDetail]);
-
   const [selectedProyek, setSelectedProyek] = useState('');
   const [selectedKontraktor, setSelectedKontraktor] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);

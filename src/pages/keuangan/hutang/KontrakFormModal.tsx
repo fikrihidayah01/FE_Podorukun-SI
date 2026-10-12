@@ -55,16 +55,16 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
   }, [form.proyekId]);
 
   const kontraktorList = useMemo(
-    () => kodePembantus.filter((kp) => kp.kategori === 'pihak_ketiga' || kp.nama.toLowerCase().includes('kontraktor')),
-    [kodePembantus],
+    () => kodePembantus.filter((kp) => kp.kategori === 'kontraktor' && (!form.proyekId || kp.proyekId === form.proyekId)),
+    [kodePembantus, form.proyekId],
   );
 
   const persediaanAkuns = useMemo(
-    () => akuns.filter((a) => a.kategori === 'aktiva' && a.namaAkun.toLowerCase().includes('persediaan')),
+    () => akuns.filter((a) => a.kategori === 'aktiva' && a.status === 'aktif' && !akuns.some((child) => child.akunIndukId === a.id)),
     [akuns],
   );
   const hutangAkuns = useMemo(
-    () => akuns.filter((a) => a.kategori === 'hutang' && a.namaAkun.toLowerCase().includes('kontraktor')),
+    () => akuns.filter((a) => a.kategori === 'hutang' && a.status === 'aktif' && !akuns.some((child) => child.akunIndukId === a.id)),
     [akuns],
   );
 

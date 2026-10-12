@@ -28,6 +28,7 @@ import ShmRiwayatModal from './ShmRiwayatModal';
 
 interface AgunanShmTabProps {
   selectedProyekId?: string;
+  selectedProyekName?: string;
   selectedBulan?: string;
 }
 
@@ -35,7 +36,7 @@ const shmLabel =(s: Pick<Shm, 'status' | 'statusKustom'>) =>
   s.status === 'lainnya' && s.statusKustom ? s.statusKustom : STATUS_SHM_LABELS[s.status];
 const pbgLabel = (s: Shm) => (s.statusPbg === 'lainnya' && s.statusPbgKustom ? s.statusPbgKustom : STATUS_PBG_LABELS[s.statusPbg]);
 
-export default function AgunanShmTab({ selectedProyekId, selectedBulan }: AgunanShmTabProps) {
+export default function AgunanShmTab({ selectedProyekId, selectedProyekName, selectedBulan }: AgunanShmTabProps) {
   const { shms, fetch: fetchShm, removeShm, updateStatus, getCustomStatuses, getCustomLokasis } = useShmStore();
   const pinjamans = usePinjamanBankStore((s) => s.pinjamans);
 
@@ -61,6 +62,7 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
   const customStatuses = getCustomStatuses();
 
   const filtered = shms.filter((s) => {
+    if (selectedProyekId && s.proyekId !== selectedProyekId) return false;
     if (filterStatusShm !== 'semua' && s.status !== filterStatusShm) return false;
     if (filterStatusPbg !== 'semua' && s.statusPbg !== filterStatusPbg) return false;
     return true;
@@ -139,9 +141,9 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
             }
             opts={{
               namaLaporan: 'Laporan Dokumen Legal (SHM & PBG)',
-              proyek: selectedProyekId,
+              proyek: selectedProyekName,
               periode: selectedBulan,
-              filenameBase: buildFilename('Dokumen_Legal', selectedProyekId, selectedBulan),
+              filenameBase: buildFilename('Dokumen_Legal', selectedProyekName, selectedBulan),
             }}
           />
           <Button variant="primary" icon={PiPlus} onClick={() => setFormOpen(true)}>

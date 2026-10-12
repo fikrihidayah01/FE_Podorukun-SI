@@ -58,6 +58,7 @@ export interface Shm {
   nomorShm: string;
   kavling: string;
   unitId?: string;
+  proyekId?: string;
   status: StatusShm;
   statusKustom?: string;
   lokasi: string;
