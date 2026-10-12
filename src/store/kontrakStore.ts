@@ -13,6 +13,9 @@ export interface Kontrak {
   namaKontraktor: string;
   rab: number;
   nilaiKontrak: number;
+  nilaiTerkini?: number;
+  totalDibayar?: number;
+  sisaHutang?: number;
   keterangan?: string;
   akunPersediaanId: string;
   akunHutangId?: string;
@@ -91,11 +94,14 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
       const detail = json.data;
       if (!detail) return;
 
-      const newAdendums = Array.isArray(detail.adendum)
-        ? detail.adendum.map((a: any) => ({ ...a, kontrakId: id }))
+      const rawAdendums = detail.adendums ?? detail.adendum ?? [];
+      const newAdendums = Array.isArray(rawAdendums)
+        ? rawAdendums.map((a: any) => ({ ...a, kontrakId: id }))
         : [];
-      const newPembayarans = Array.isArray(detail.pembayaran)
-        ? detail.pembayaran.map((p: any) => ({ ...p, kontrakId: id }))
+
+      const rawPembayarans = detail.pembayarans ?? detail.pembayaran ?? [];
+      const newPembayarans = Array.isArray(rawPembayarans)
+        ? rawPembayarans.map((p: any) => ({ ...p, kontrakId: id }))
         : [];
 
       set((state) => ({

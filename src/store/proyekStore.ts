@@ -11,6 +11,7 @@ export interface Proyek {
 export interface KavlingUnit {
   id: string;
   nomor: string;
+  kode?: string;
   tipe?: string;
   luasTanah?: number;
   luasBangunan?: number;
@@ -55,7 +56,12 @@ export const useProyekStore = create<ProyekState>((set, get) => ({
       const res = await fetchApi(`/proyek/${proyekId}/kavling`);
       if (res.ok) {
         const json = await res.json();
-        const list: KavlingUnit[] = json.data || [];
+        const rawList = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+        const list: KavlingUnit[] = rawList.map((item: any) => ({
+          ...item,
+          nomor: item.nomor || item.kode || item.nomorKavling || '',
+          kode: item.kode || item.nomor || '',
+        }));
         set((state) => ({
           kavlingsByProyek: { ...state.kavlingsByProyek, [proyekId]: list },
         }));

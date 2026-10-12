@@ -188,28 +188,27 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
   },
 
   updateStatus: async (id, status, oleh = 'User') => {
-    try {
-      let res;
-      if (status === 'final') {
-        res = await fetchApi(`/dokumen/${id}/finalisasi`, { method: 'POST' });
-      } else if (status === 'ditandatangani') {
-        res = await fetchApi(`/dokumen/${id}/tandatangani`, { method: 'POST' });
-      } else {
-        res = await fetchApi(`/dokumen/${id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status, oleh }),
-        });
-      }
+    let res;
+    if (status === 'final') {
+      res = await fetchApi(`/dokumen/${id}/finalisasi`, { method: 'POST' });
+    } else if (status === 'ditandatangani') {
+      res = await fetchApi(`/dokumen/${id}/tandatangani`, { method: 'POST' });
+    } else {
+      res = await fetchApi(`/dokumen/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, oleh }),
+      });
+    }
 
-      if (res && res.ok) {
-        const json = await res.json();
-        const updatedItem = json.data;
-        set((state) => ({
-          items: state.items.map((doc) => (doc.id === id ? { ...doc, ...updatedItem } : doc)),
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to update status:', error);
+    if (res && res.ok) {
+      const json = await res.json();
+      const updatedItem = json.data;
+      set((state) => ({
+        items: state.items.map((doc) => (doc.id === id ? { ...doc, ...updatedItem } : doc)),
+      }));
+    } else if (res) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || 'Gagal mengubah status dokumen di server');
     }
   },
 

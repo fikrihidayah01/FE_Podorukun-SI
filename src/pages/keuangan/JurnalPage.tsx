@@ -18,12 +18,8 @@ import Notice from '../../components/ui/Notice';
 import Field from '../../components/ui/Field';
 import EmptyState from '../../components/ui/EmptyState';
 import { bulanIni, formatBulan, formatTanggal } from '../../utils/format';
-
-const DUMMY_KODE_PEMBANTU = [
-  { id: 'LH-0008', nama: 'Pak Warsito (pemilik lahan)', kategori: 'lahan', proyek: 'Atlantis Hills' },
-  { id: 'BK-0001', nama: 'Bank Mandiri', kategori: 'bank', proyek: 'Umum' },
-  { id: 'KT-0012', nama: 'PT Bangun Jaya', kategori: 'kontraktor', proyek: 'Atlantis Icon' },
-];
+import { useHutangStore } from '../../store/hutangStore';
+import { fetchApi, API_BASE_URL } from '../../lib/api';
 
 const STATUS: Record<JurnalStatus, { label: string; tone: Tone }> = {
   draft: { label: 'Draft', tone: 'warning' },
@@ -57,12 +53,14 @@ export default function JurnalPage() {
   const { items, isLoading, error, fetch, add, remove } = useJurnalStore();
   const { items: akuns } = useCoaStore();
   const { items: proyeks } = useProyekStore();
+  const { kodePembantus, fetchKodePembantus } = useHutangStore();
 
   useEffect(() => {
     fetch();
     useCoaStore.getState().fetch();
     useProyekStore.getState().fetch();
-  }, [fetch]);
+    fetchKodePembantus();
+  }, [fetch, fetchKodePembantus]);
 
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
@@ -82,8 +80,64 @@ export default function JurnalPage() {
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [lampiranForm, setLampiranForm] = useState<Lampiran[]>([]);
   const [uploadError, setUploadError] = useState('');
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBukaLampiran = async (l: Lampiran) => {
+    if (l.dataUrl) {
+      window.open(l.dataUrl, '_blank');
+      return;
+    }
+    if (!l.url) return;
+    setDownloadingId(l.id);
+    try {
+      const res = await fetchApi(l.url);
+      if (!res.ok) throw new Error('Gagal membuka berkas');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    } catch {
+      const fullUrl = l.url.startsWith('http')
+        ? l.url
+        : `${API_BASE_URL}${l.url.startsWith('/') ? '' : '/'}${l.url}`;
+      window.open(fullUrl, '_blank');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleUnduhLampiran = async (l: Lampiran) => {
+    if (l.dataUrl) {
+      const a = document.createElement('a');
+      a.href = l.dataUrl;
+      a.download = l.nama;
+      a.click();
+      return;
+    }
+    if (!l.url) return;
+    setDownloadingId(l.id);
+    try {
+      const res = await fetchApi(l.url);
+      if (!res.ok) throw new Error('Gagal mengunduh berkas');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = l.nama;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      const fullUrl = l.url.startsWith('http')
+        ? l.url
+        : `${API_BASE_URL}${l.url.startsWith('/') ? '' : '/'}${l.url}`;
+      window.open(fullUrl, '_blank');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const nomorBerikutnya = 'Otomatis';
   const totalDebit = rows.reduce((s, r) => s + (Number(r.debit) || 0), 0);
@@ -221,7 +275,7 @@ export default function JurnalPage() {
   };
 
   const impactRow = rows.find((r) => r.akunId && r.kodePembantuId && r.debit + r.kredit > 0);
-  const impactKp = impactRow && DUMMY_KODE_PEMBANTU.find((k) => k.id === impactRow.kodePembantuId);
+  const impactKp = impactRow && kodePembantus.find((k) => k.id === impactRow.kodePembantuId);
   const impactText = (() => {
     if (!impactRow || !impactKp) return null;
     const isAktiva = getAkun(impactRow.akunId)?.kategori === 'aktiva';
@@ -459,9 +513,13 @@ export default function JurnalPage() {
                             onChange={(e) => updateRow(row.id, 'kodePembantuId', e.target.value)}
                           >
                             <option value="">{akun.wajibKodePembantu ? 'Wajib dipilih' : 'Tidak wajib'}</option>
-                            {DUMMY_KODE_PEMBANTU.map((kp) => (
-                              <option key={kp.id} value={kp.id}>{kp.id}</option>
-                            ))}
+                            {kodePembantus
+                              .filter((kp) => !formProyekId || !kp.proyekId || kp.proyekId === formProyekId)
+                              .map((kp) => (
+                                <option key={kp.id} value={kp.id}>
+                                  {kp.nama} ({kp.kategori})
+                                </option>
+                              ))}
                           </select>
                         ) : (
                           <span className="text-xs text-ink-3">Pilih akun dulu</span>
@@ -597,7 +655,7 @@ export default function JurnalPage() {
 
           {impactText && (
             <Notice title="Akan tercatat di saldo berjalan">
-              {impactText.kp.nama} ({impactText.kp.proyek}): hutang {impactText.berkurang ? 'berkurang' : 'bertambah'}{' '}
+              {impactText.kp.nama} {impactText.kp.proyekId ? `(${getProyekName(impactText.kp.proyekId)})` : ''}: hutang {impactText.berkurang ? 'berkurang' : 'bertambah'}{' '}
               <Money value={impactText.nominal} />.
             </Notice>
           )}
@@ -661,7 +719,12 @@ export default function JurnalPage() {
                   {detailJurnal.rows.map((r) => (
                     <tr key={r.id}>
                       <td className={r.kredit ? 'pl-8 text-ink-2' : 'text-ink'}>{getAkunLabel(r.akunId)}</td>
-                      <td>{r.kodePembantuId || <span className="text-ink-3">-</span>}</td>
+                      <td>
+                        {(() => {
+                          const kp = kodePembantus.find((k) => k.id === r.kodePembantuId);
+                          return kp ? `${kp.nama} (${kp.kategori})` : (r.kodePembantuId || <span className="text-ink-3">-</span>);
+                        })()}
+                      </td>
                       <td>{r.keterangan || <span className="text-ink-3">-</span>}</td>
                       <td className="num">{r.debit ? <Money value={r.debit} /> : <span className="text-ink-3">-</span>}</td>
                       <td className="num">{r.kredit ? <Money value={r.kredit} /> : <span className="text-ink-3">-</span>}</td>
@@ -693,24 +756,24 @@ export default function JurnalPage() {
                       }
                       <span className="flex-1 truncate text-sm text-ink">{l.nama}</span>
                       <span className="shrink-0 text-xs text-ink-3">{formatUkuran(l.ukuranBytes)}</span>
-                      <a
-                        href={l.url || l.dataUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        download={l.nama}
-                        className="shrink-0 rounded p-0.5 text-ink-3 hover:text-brand-600"
+                      <button
+                        type="button"
+                        onClick={() => handleBukaLampiran(l)}
+                        disabled={downloadingId === l.id}
+                        className="shrink-0 rounded p-0.5 text-ink-3 hover:text-brand-600 disabled:opacity-50"
                         aria-label={`Buka ${l.nama}`}
                       >
                         <PiArrowSquareOut className="h-4 w-4" aria-hidden />
-                      </a>
-                      <a
-                        href={l.url || l.dataUrl}
-                        download={l.nama}
-                        className="shrink-0 rounded p-0.5 text-ink-3 hover:text-brand-600"
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUnduhLampiran(l)}
+                        disabled={downloadingId === l.id}
+                        className="shrink-0 rounded p-0.5 text-ink-3 hover:text-brand-600 disabled:opacity-50"
                         aria-label={`Unduh ${l.nama}`}
                       >
                         <PiDownloadSimple className="h-4 w-4" aria-hidden />
-                      </a>
+                      </button>
                     </li>
                   ))}
                 </ul>

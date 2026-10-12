@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
@@ -26,9 +27,17 @@ export default function SaldoBerjalanDetailModal({
   isPeriodeTerkunci,
 }: SaldoBerjalanDetailModalProps) {
   const navigate = useNavigate();
-  const { getMutasiByKodePembantu } = useHutangStore();
+  const [loading, setLoading] = useState(false);
+  const { getMutasiByKodePembantu, fetchMutasiByKodePembantu } = useHutangStore();
   const { items: coaList } = useCoaStore();
   const { items: proyeks } = useProyekStore();
+
+  useEffect(() => {
+    if (isOpen && rowData?.kodePembantu?.id) {
+      setLoading(true);
+      fetchMutasiByKodePembantu(rowData.kodePembantu.id).finally(() => setLoading(false));
+    }
+  }, [isOpen, rowData?.kodePembantu?.id, fetchMutasiByKodePembantu]);
 
   if (!rowData) return null;
 
@@ -111,7 +120,13 @@ export default function SaldoBerjalanDetailModal({
                 </tr>
               </thead>
               <tbody>
-                {entries.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="!py-8 text-center text-ink-3">
+                      Memuat rincian mutasi dari server...
+                    </td>
+                  </tr>
+                ) : entries.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="!py-8 text-center text-ink-3">
                       Tidak ada mutasi di {periodeLabel}. Saldo akhir sama dengan saldo awal.

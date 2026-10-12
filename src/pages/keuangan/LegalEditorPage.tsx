@@ -13,14 +13,6 @@ import Field from '../../components/ui/Field';
 import Notice from '../../components/ui/Notice';
 import Modal from '../../components/ui/Modal';
 
-// Dummy kavling
-const DUMMY_KAVLING = [
-  { id: 'kav-001', nomor: 'A-01', luas: 120, batasUtara: 'Jalan lingkungan', batasSelatan: 'Kavling A-02', batasBarat: 'Saluran drainase', batasTimur: 'Kavling A-08' },
-  { id: 'kav-002', nomor: 'A-02', luas: 135, batasUtara: 'Kavling A-01', batasSelatan: 'Jalan lingkungan', batasBarat: 'Saluran drainase', batasTimur: 'Kavling A-09' },
-  { id: 'kav-003', nomor: 'B-05', luas: 90, batasUtara: 'Fasum', batasSelatan: 'Jalan utama', batasBarat: 'Kavling B-04', batasTimur: 'Kavling B-06' },
-  { id: 'kav-004', nomor: 'C-12', luas: 200, batasUtara: 'Jalan utama', batasSelatan: 'Lahan kosong', batasBarat: 'Kavling C-11', batasTimur: 'Pagar perumahan' },
-];
-
 const STATUS_OPT: { value: StatusDokumen; label: string; cls: string }[] = [
   { value: 'draft', label: 'Draft', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   { value: 'final', label: 'Final', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -55,17 +47,26 @@ export default function LegalEditorPage() {
   const { items: proyeks } = useProyekStore();
   const { items: pustakaPasal, fetch: fetchPasals } = usePustakaPasalStore();
 
+  const dokumen = items.find((d) => d.id === id);
+
   useEffect(() => {
     fetchDokumen();
     fetchPts();
     fetchPasals();
+    useProyekStore.getState().fetch();
   }, [fetchDokumen, fetchPts, fetchPasals]);
 
-  const dokumen = items.find((d) => d.id === id);
+  useEffect(() => {
+    if (dokumen?.perumahanId) {
+      useProyekStore.getState().fetchKavling(dokumen.perumahanId);
+    }
+  }, [dokumen?.perumahanId]);
 
   const [panelDataOpen, setPanelDataOpen] = useState(false);
   const [jadwalOpen, setJadwalOpen] = useState(false);
   const [finalisasiOpen, setFinalisasiOpen] = useState(false);
+  const [finalisasiLoading, setFinalisasiLoading] = useState(false);
+  const [finalisasiError, setFinalisasiError] = useState<string | null>(null);
   const [sisipPasalOpen, setSisipPasalOpen] = useState(false);
   const [editPasalId, setEditPasalId] = useState<string | null>(null);
   
@@ -112,7 +113,10 @@ export default function LegalEditorPage() {
 
   const pt = pts.find((p) => p.id === dokumen.ptId);
   const perumahan = proyeks.find((p) => p.id === dokumen.perumahanId);
-  const kavling = DUMMY_KAVLING.find((k) => k.id === dokumen.kavlingId);
+  const kavlingFromStore = useProyekStore.getState().kavlingsByProyek[dokumen.perumahanId]?.find((k) => k.id === dokumen.kavlingId);
+  const kavling = (dokumen as any).kavling || kavlingFromStore;
+  const kavlingNomor = kavling?.nomor || kavling?.kode || dokumen.kavlingNomor || dokumen.kavlingId;
+  const kavlingLuas = kavling?.luasTanah || kavling?.luas || '';
   const hargaNett = dokumen.hargaAwal + dokumen.bphtb + dokumen.ajbBbn;
   const sisaKpr = hargaNett - dokumen.uangMuka;
 
@@ -129,8 +133,8 @@ export default function LegalEditorPage() {
     alamat_pembeli: dokumen.pembeli.alamat,
     no_ktp_pembeli: dokumen.pembeli.noKtp,
     nama_perumahan: perumahan?.nama ?? '',
-    no_kavling: kavling?.nomor ?? '',
-    luas_kavling: kavling ? String(kavling.luas) : '',
+    no_kavling: kavlingNomor ?? '',
+    luas_kavling: kavlingLuas ? String(kavlingLuas) : '',
     harga_nett: hargaNett.toLocaleString('id-ID'),
     harga_awal: dokumen.hargaAwal.toLocaleString('id-ID'),
     uang_muka: dokumen.uangMuka.toLocaleString('id-ID'),
@@ -263,11 +267,19 @@ export default function LegalEditorPage() {
   const totalJadwal = dokumen.jadwalPembayaran?.baris.reduce((s, b) => s + b.jumlah, 0) || 0;
   const isJadwalMatch = totalJadwal === dokumen.uangMuka;
 
-  const handleFinalisasi = () => {
+  const handleFinalisasi = async () => {
     if (!dokumen.pembeli.nama || dokumen.hargaAwal <= 0 || !isJadwalMatch) return;
-    updateStatus(dokumen.id, 'final');
-    addFromLegal(dokumen);
-    setFinalisasiOpen(false);
+    setFinalisasiLoading(true);
+    setFinalisasiError(null);
+    try {
+      await updateStatus(dokumen.id, 'final');
+      await addFromLegal(dokumen);
+      setFinalisasiOpen(false);
+    } catch (err: any) {
+      setFinalisasiError(err.message || 'Gagal memfinalkan dokumen ke server');
+    } finally {
+      setFinalisasiLoading(false);
+    }
   };
 
   return (
@@ -285,7 +297,7 @@ export default function LegalEditorPage() {
           </button>
           <div>
             <p className="text-sm font-semibold text-ink">{dokumen.noDokumen}</p>
-            <p className="text-xs text-ink-3">Kav {kavling?.nomor} &middot; {pt?.namaPt} &middot; {dokumen.tipeTransaksi.toUpperCase()}</p>
+            <p className="text-xs text-ink-3">Kav {kavlingNomor} &middot; {pt?.namaPt} &middot; {dokumen.tipeTransaksi.toUpperCase()}</p>
           </div>
         </div>
 
@@ -575,9 +587,21 @@ export default function LegalEditorPage() {
               Kartu tagihan {dokumen.pembeli.nama || 'pembeli'} terbentuk di Piutang dengan nilai SPPR Rp {hargaNett.toLocaleString('id-ID')}. 
               Jadwal {dokumen.jadwalPembayaran?.baris.length || 0} angsuran menjadi acuan rekonsiliasi. Angka terkunci, perubahan berikutnya lewat adendum.
             </Notice>
+            {finalisasiError && (
+              <Notice tone="danger" title="Gagal Finalisasi">
+                {finalisasiError}
+              </Notice>
+            )}
             <div className="flex justify-end gap-3 pt-4 border-t border-line">
               <Button onClick={() => setFinalisasiOpen(false)}>Batal</Button>
-              <Button variant="primary" onClick={handleFinalisasi} disabled={!dokumen.pembeli.nama || dokumen.hargaAwal <= 0 || !isJadwalMatch}>Finalkan dokumen</Button>
+              <Button
+                variant="primary"
+                loading={finalisasiLoading}
+                onClick={handleFinalisasi}
+                disabled={!dokumen.pembeli.nama || dokumen.hargaAwal <= 0 || !isJadwalMatch || finalisasiLoading}
+              >
+                Finalkan dokumen
+              </Button>
             </div>
           </div>
         ) : (

@@ -54,9 +54,10 @@ export default function KontraktorTab() {
           const aRiwayat = adendums
             .filter((a) => a.kontrakId === k.id)
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          const nilaiTerkini = aRiwayat.length > 0 ? aRiwayat[0].nilaiBaru : k.nilaiKontrak;
-          const terbayar = pRiwayat.reduce((sum, p) => sum + p.nominal, 0);
-          return { ...k, nilaiTerkini, terbayar, sisa: nilaiTerkini - terbayar, pRiwayat, aRiwayat };
+          const nilaiTerkini = k.nilaiTerkini ?? (aRiwayat.length > 0 ? aRiwayat[0].nilaiBaru : k.nilaiKontrak);
+          const terbayar = k.totalDibayar ?? pRiwayat.reduce((sum, p) => sum + p.nominal, 0);
+          const sisa = k.sisaHutang ?? (nilaiTerkini - terbayar);
+          return { ...k, nilaiTerkini, terbayar, sisa, pRiwayat, aRiwayat };
         }),
     [kontraks, adendums, pembayarans, selectedProyek, selectedKontraktor],
   );

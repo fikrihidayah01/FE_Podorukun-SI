@@ -51,25 +51,34 @@ export default function HutangPage() {
 const { periodes, tutupPeriode } = usePeriodeStore();
   const { items: pts } = useMasterPtStore();
 
-  const currentPtId = useMemo(() => {
+  const currentPt = useMemo(() => {
+    if (!selectedProyek) return null;
     const proj = proyeks.find((p) => p.id === selectedProyek);
-    return proj?.ptId || pts[0]?.id;
+    if (!proj?.ptId) return null;
+    return pts.find((p) => p.id === proj.ptId) || null;
   }, [proyeks, selectedProyek, pts]);
 
+  const currentPtId = currentPt?.id || null;
+
   const isPeriodeTerkunci = useMemo(() => {
-    return periodes.some((p) => (!currentPtId || p.ptId === currentPtId) && p.bulan === selectedBulan && p.status === 'terkunci');
+    if (!currentPtId) return false;
+    return periodes.some((p) => p.ptId === currentPtId && p.bulan === selectedBulan && p.status === 'terkunci');
   }, [periodes, currentPtId, selectedBulan]);
 
   const handleToggleKunci = async () => {
-    if (isPeriodeTerkunci) {
-      alert('Periode yang sudah dikunci/ditutup tidak dapat dibuka kembali secara langsung.');
+    if (!selectedProyek) {
+      alert('Pilih proyek spesifik terlebih dahulu sebelum mengunci periode buku.');
       return;
     }
     if (!currentPtId) {
-      alert('Pilih proyek atau pastikan master PT telah terdaftar.');
+      alert('Proyek yang dipilih belum terhubung ke Master PT. Hubungkan proyek ke PT di pengaturan sebelum mengunci periode.');
       return;
     }
-    const confirm = window.confirm(`Kunci periode ${periodeLabel}? Ditolak jika masih ada jurnal draft di bulan ini.`);
+    if (isPeriodeTerkunci) {
+      alert(`Periode ${periodeLabel} untuk ${currentPt?.namaPt || 'PT ini'} sudah terkunci dan tidak dapat dibuka kembali.`);
+      return;
+    }
+    const confirm = window.confirm(`Kunci periode ${periodeLabel} untuk ${currentPt?.namaPt}? Ditolak jika masih ada jurnal draft di bulan ini.`);
     if (!confirm) return;
     try {
       await tutupPeriode(currentPtId, selectedBulan);

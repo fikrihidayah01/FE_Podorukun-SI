@@ -158,8 +158,10 @@ export default function LegalPage() {
       } else if (item.namaPembeli) {
         setPembeli((prev) => ({ ...prev, nama: item.namaPembeli }));
       }
-      if (item.hargaAwal || item.hargaJual) setHargaAwal(String(item.hargaAwal || item.hargaJual));
-      if (item.uangMuka) setUangMuka(String(item.uangMuka));
+      const nominalHarga = item.hargaTrack ?? item.hargaAwal ?? item.hargaJual ?? '';
+      if (nominalHarga !== '') setHargaAwal(String(nominalHarga));
+      const nominalDp = item.uangMukaTrack ?? item.uangMuka ?? '';
+      if (nominalDp !== '') setUangMuka(String(nominalDp));
     }
   };
 
