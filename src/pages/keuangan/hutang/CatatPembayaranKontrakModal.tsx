@@ -31,7 +31,7 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
   const sisaKontrak = nilaiTerkini - totalTerbayar;
   const pNominal = Number(form.nominal) || 0;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.tanggal) return setError('Tanggal bayar wajib diisi.');
     if (!form.akunKasId) return setError('Pilih akun kas atau bank.');
@@ -39,7 +39,7 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
     if (pNominal <= 0) return setError('Nominal pembayaran harus lebih dari 0.');
     if (pNominal > sisaKontrak) return setError(`Nominal melebihi sisa kontrak. Maksimal ${formatRupiah(sisaKontrak)}.`);
 
-    addPembayaran({
+    await addPembayaran({
       kontrakId: kontrak.id,
       tanggal: form.tanggal,
       nominal: pNominal,

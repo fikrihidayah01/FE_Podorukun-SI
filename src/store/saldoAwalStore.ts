@@ -54,7 +54,7 @@ export const useSaldoAwalStore = create<SaldoAwalState>((set, get) => ({
   updateSaldo: async (proyekId, akunId, data) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await fetchApi(`/saldo-awal/${proyekId}/${akunId}`, {
+      const res = await fetchApi(`/saldo-awal/${proyekId}/akun/${akunId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       });

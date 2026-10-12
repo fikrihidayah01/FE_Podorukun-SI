@@ -19,6 +19,8 @@ import {
 import { useCoaStore } from '../../store/coaStore';
 import { useProyekStore } from '../../store/proyekStore';
 import { usePinjamanBankStore } from '../../store/pinjamanBankStore';
+import { usePeriodeStore } from '../../store/periodeStore';
+import { useMasterPtStore } from '../../store/masterPtStore';
 import { buildFilename } from '../../utils/exportUtils';
 import { bulanIni, formatBulan, formatRupiah, opsiBulan } from '../../utils/format';
 import { KATEGORI_HUTANG_HEX, MODULE_ACCENT } from '../../config/theme';
@@ -46,8 +48,36 @@ export default function HutangPage() {
   const [selectedProyek, setSelectedProyek] = useState('');
   const [selectedKategori, setSelectedKategori] = useState<KategoriHutang | ''>('');
   const [selectedBulan, setSelectedBulan] = useState(bulanIni());
-  // Simulasi status periode sampai backend menyediakan status tutup buku
-  const [isPeriodeTerkunci, setIsPeriodeTerkunci] = useState(false);
+const { periodes, tutupPeriode } = usePeriodeStore();
+  const { items: pts } = useMasterPtStore();
+
+  const currentPtId = useMemo(() => {
+    const proj = proyeks.find((p) => p.id === selectedProyek);
+    return proj?.ptId || pts[0]?.id;
+  }, [proyeks, selectedProyek, pts]);
+
+  const isPeriodeTerkunci = useMemo(() => {
+    return periodes.some((p) => (!currentPtId || p.ptId === currentPtId) && p.bulan === selectedBulan && p.status === 'terkunci');
+  }, [periodes, currentPtId, selectedBulan]);
+
+  const handleToggleKunci = async () => {
+    if (isPeriodeTerkunci) {
+      alert('Periode yang sudah dikunci/ditutup tidak dapat dibuka kembali secara langsung.');
+      return;
+    }
+    if (!currentPtId) {
+      alert('Pilih proyek atau pastikan master PT telah terdaftar.');
+      return;
+    }
+    const confirm = window.confirm(`Kunci periode ${periodeLabel}? Ditolak jika masih ada jurnal draft di bulan ini.`);
+    if (!confirm) return;
+    try {
+      await tutupPeriode(currentPtId, selectedBulan);
+      alert(`Periode ${periodeLabel} berhasil ditutup dan dikunci.`);
+    } catch (err: any) {
+      alert(err.message || 'Gagal menutup periode');
+    }
+  };
 
   useEffect(() => {
     useProyekStore.getState().fetch();
@@ -57,6 +87,8 @@ export default function HutangPage() {
     useHutangStore.getState().fetchMutasiAntarProyek();
     usePinjamanBankStore.getState().fetch();
     usePinjamanBankStore.getState().fetchReminders(30);
+    usePeriodeStore.getState().fetch();
+    useMasterPtStore.getState().fetch();
   }, [selectedBulan]);
 
   const [inputOpen, setInputOpen] = useState(false);
@@ -97,9 +129,9 @@ export default function HutangPage() {
         status={
           <button
             type="button"
-            onClick={() => setIsPeriodeTerkunci((v) => !v)}
+            onClick={handleToggleKunci}
             aria-pressed={isPeriodeTerkunci}
-            title="Simulasi: klik untuk mengunci atau membuka periode"
+            title="Klik untuk mengunci periode melalui backend"
             className="rounded-md"
           >
             <Badge tone={isPeriodeTerkunci ? 'warning' : 'positive'}>

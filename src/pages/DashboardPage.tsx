@@ -76,8 +76,11 @@ function KeuanganDashboard() {
     useProyekStore.getState().fetch();
     usePinjamanBankStore.getState().fetch();
     usePinjamanBankStore.getState().fetchReminders(30);
-    // Note: hutangStore, piutangStore, and jurnalStore fetch will be called here if needed.
-  }, []);
+    useHutangStore.getState().fetchSaldo(bulan);
+    useHutangStore.getState().fetchKodePembantus();
+    usePiutangStore.getState().fetchItems();
+    useJurnalStore.getState().fetch();
+  }, [bulan]);
 
   const { getSaldoPerKodePembantu } = useHutangStore();
   const kavlings = usePiutangStore((s) => s.items);

@@ -132,27 +132,23 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
   updateLampiran: async (id, lampiran) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await fetchApi(`/jurnal/${id}/lampiran`, {
-        method: 'PATCH',
-        body: JSON.stringify({ lampiran }),
-      });
-      if (!res.ok) {
-        // Fallback to full patch
-        if (res.status === 404) {
-          const updateRes = await fetchApi(`/jurnal/${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ lampiran }),
-          });
-          if (!updateRes.ok) throw new Error('Gagal memperbarui lampiran');
-        } else {
-          throw new Error('Gagal memperbarui lampiran');
+      if (lampiran && lampiran.length > 0) {
+        for (const l of lampiran) {
+          if (l.dataUrl) {
+            const blobRes = await fetch(l.dataUrl);
+            const blob = await blobRes.blob();
+            const formData = new FormData();
+            formData.append('file', blob, l.nama);
+
+            await fetchApi(`/lampiran?entityType=jurnal&entityId=${id}`, {
+              method: 'POST',
+              body: formData,
+            });
+          }
         }
       }
 
-      set((state) => ({
-        items: state.items.map((item) => (item.id === id ? { ...item, lampiran } : item)),
-        isLoading: false,
-      }));
+      await get().fetch();
     } catch (err: any) {
       set({ error: err.message || 'Terjadi kesalahan', isLoading: false });
       throw err;

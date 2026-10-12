@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { PiPlus, PiClockCounterClockwise, PiPencilSimple, PiTrash, PiFileText } from 'react-icons/pi';
 import {
   useShmStore,
@@ -36,8 +36,12 @@ const shmLabel =(s: Pick<Shm, 'status' | 'statusKustom'>) =>
 const pbgLabel = (s: Shm) => (s.statusPbg === 'lainnya' && s.statusPbgKustom ? s.statusPbgKustom : STATUS_PBG_LABELS[s.statusPbg]);
 
 export default function AgunanShmTab({ selectedProyekId, selectedBulan }: AgunanShmTabProps) {
-  const { shms, removeShm, updateStatus, getCustomStatuses, getCustomLokasis } = useShmStore();
+  const { shms, fetch: fetchShm, removeShm, updateStatus, getCustomStatuses, getCustomLokasis } = useShmStore();
   const pinjamans = usePinjamanBankStore((s) => s.pinjamans);
+
+  useEffect(() => {
+    fetchShm();
+  }, [fetchShm]);
 
   const [filterStatusShm, setFilterStatusShm] = useState<StatusShm | 'semua'>('semua');
   const [filterStatusPbg, setFilterStatusPbg] = useState<StatusPbg | 'semua'>('semua');
@@ -84,10 +88,10 @@ export default function AgunanShmTab({ selectedProyekId, selectedBulan }: Agunan
     (ubahStatus !== 'dijaminkan' || ubahPinjamanId !== '') &&
     (ubahStatus !== 'lainnya' || ubahStatusKustom.trim() !== '');
 
-  const handleUbahSubmit = (e: FormEvent) => {
+  const handleUbahSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!ubahTarget || !ubahIsValid) return;
-    updateStatus(
+    await updateStatus(
       ubahTarget.id,
       ubahStatus,
       ubahLokasi.trim(),

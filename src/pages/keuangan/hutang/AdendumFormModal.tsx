@@ -28,7 +28,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
   const pNilaiBaru = Number(form.nilaiBaru) || 0;
   const selisih = pNilaiBaru - nilaiLama;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.noAdendum.trim()) return setError('No. dokumen adendum wajib diisi.');
     if (!form.tanggal) return setError('Tanggal adendum wajib diisi.');
@@ -36,7 +36,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
     if (selisih === 0) return setError('Nilai baru sama dengan nilai lama, jadi tidak ada yang perlu diadendum.');
     if (!form.alasan.trim()) return setError('Tuliskan alasan perubahan kontrak.');
 
-    addAdendum({
+    await addAdendum({
       kontrakId: kontrak.id,
       noAdendum: form.noAdendum.trim(),
       tanggal: form.tanggal,

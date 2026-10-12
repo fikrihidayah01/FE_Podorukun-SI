@@ -94,7 +94,7 @@ export const useCoaStore = create<CoaState>()((set) => ({
 
   update: async (id, data, _oleh = 'System') => {
     try {
-      const res = await fetchApi(/akun/ + id, {
+      const res = await fetchApi(`/akun/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       });
@@ -110,7 +110,7 @@ export const useCoaStore = create<CoaState>()((set) => ({
 
   remove: async (id) => {
     try {
-      const res = await fetchApi(/akun/ + id, {
+      const res = await fetchApi(`/akun/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Gagal menghapus akun');

@@ -63,11 +63,11 @@ export default function ShmFormModal({ isOpen, onClose }: ShmFormModalProps) {
     (status !== 'lainnya' || statusKustom.trim() !== '') &&
     (statusPbg !== 'lainnya' || statusPbgKustom.trim() !== '');
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
     setDupError(false);
-    const ok = addShm({
+    const ok = await addShm({
       nomorShm: nomorShm.trim(),
       kavling: kavling.trim(),
       status,

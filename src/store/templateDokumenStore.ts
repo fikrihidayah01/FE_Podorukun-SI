@@ -21,7 +21,7 @@ interface TemplateDokumenState {
   remove: (id: string) => Promise<void>;
 }
 
-export const useTemplateDokumenStore = create<TemplateDokumenState>()((set, get) => ({
+export const useTemplateDokumenStore = create<TemplateDokumenState>()((set) => ({
   items: [],
 
   fetch: async () => {
@@ -57,7 +57,7 @@ export const useTemplateDokumenStore = create<TemplateDokumenState>()((set, get)
   update: async (id, data) => {
     try {
       const res = await fetchApi(`/template-dokumen/${id}`, {
-        method: 'PUT', // or PATCH
+        method: 'PATCH',
         body: JSON.stringify(data),
       });
       if (res.ok) {
@@ -74,16 +74,8 @@ export const useTemplateDokumenStore = create<TemplateDokumenState>()((set, get)
 
   duplikat: async (id) => {
     try {
-      const src = get().items.find((t) => t.id === id);
-      if (!src) return '';
-      
-      // Remove id, change name slightly
-      const { id: _id, createdAt: _createdAt, ...rest } = src;
-      const data = { ...rest, polaNomor: `${src.polaNomor}_COPY` };
-
-      const res = await fetchApi('/template-dokumen', {
+      const res = await fetchApi(`/template-dokumen/${id}/duplikat`, {
         method: 'POST',
-        body: JSON.stringify(data),
       });
       if (res.ok) {
         const json = await res.json();

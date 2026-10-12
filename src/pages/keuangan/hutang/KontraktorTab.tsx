@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, useEffect } from 'react';
 import { PiCaretRight, PiPlus, PiHardHat, PiFileText, PiCheckCircle, PiHandCoins } from 'react-icons/pi';
 import { useKontrakStore, type Kontrak } from '../../../store/kontrakStore';
 import { useProyekStore } from '../../../store/proyekStore';
@@ -15,8 +15,12 @@ import AdendumFormModal from './AdendumFormModal';
 import CatatPembayaranKontrakModal from './CatatPembayaranKontrakModal';
 
 export default function KontraktorTab() {
-  const { kontraks, adendums, pembayarans, cancelKontrak } = useKontrakStore();
+  const { kontraks, adendums, pembayarans, fetch: fetchKontrak, cancelKontrak } = useKontrakStore();
   const proyeks = useProyekStore((s) => s.items);
+
+  useEffect(() => {
+    fetchKontrak();
+  }, [fetchKontrak]);
 
   const [selectedProyek, setSelectedProyek] = useState('');
   const [selectedKontraktor, setSelectedKontraktor] = useState('');
@@ -212,7 +216,9 @@ export default function KontraktorTab() {
       <ConfirmDialog
         isOpen={batalTarget !== null}
         onClose={() => setBatalTarget(null)}
-        onConfirm={() => batalTarget && cancelKontrak(batalTarget.id)}
+        onConfirm={async () => {
+          if (batalTarget) await cancelKontrak(batalTarget.id);
+        }}
         title="Batalkan kontrak"
         message={`Batalkan kontrak ${batalTarget?.noSpk ?? ''} untuk kavling ${batalTarget?.kavling ?? ''}? Kontrak tidak bisa menerima pembayaran atau adendum lagi.`}
         confirmLabel="Batalkan kontrak"

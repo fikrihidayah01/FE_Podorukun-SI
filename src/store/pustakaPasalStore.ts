@@ -67,7 +67,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
   update: async (id, data) => {
     try {
       const res = await fetchApi(`/pasal/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(data),
       });
       if (res.ok) {
@@ -85,7 +85,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
   nonaktifkan: async (id) => {
     try {
       const res = await fetchApi(`/pasal/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ aktif: false }),
       });
       if (res.ok) {
@@ -101,7 +101,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
   aktifkan: async (id) => {
     try {
       const res = await fetchApi(`/pasal/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ aktif: true }),
       });
       if (res.ok) {

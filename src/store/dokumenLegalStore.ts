@@ -139,7 +139,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
   updateDataUtama: async (id, data) => {
     try {
       const res = await fetchApi(`/dokumen/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(data),
       });
       if (res.ok) {
@@ -156,11 +156,19 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
 
   updateStatus: async (id, status, oleh = 'User') => {
     try {
-      const res = await fetchApi(`/dokumen/${id}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ status, oleh }),
-      });
-      if (res.ok) {
+      let res;
+      if (status === 'final') {
+        res = await fetchApi(`/dokumen/${id}/finalisasi`, { method: 'POST' });
+      } else if (status === 'ditandatangani') {
+        res = await fetchApi(`/dokumen/${id}/tandatangani`, { method: 'POST' });
+      } else {
+        res = await fetchApi(`/dokumen/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status, oleh }),
+        });
+      }
+
+      if (res && res.ok) {
         const json = await res.json();
         const updatedItem = json.data;
         set((state) => ({
@@ -188,9 +196,16 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
   // -- Pasal Actions
   addPasal: async (docId, pasal, index) => {
     try {
+      const payload = {
+        pustakaId: pasal.pustakaId,
+        judul: pasal.judul,
+        isi: pasal.isi,
+        fields: pasal.fields,
+        index,
+      };
       const res = await fetchApi(`/dokumen/${docId}/pasal`, {
         method: 'POST',
-        body: JSON.stringify({ pasal, index }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         const json = await res.json();
@@ -207,7 +222,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
   updatePasalUtama: async (docId, pasalId, data) => {
     try {
       const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(data),
       });
       if (res.ok) {
@@ -224,9 +239,9 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
 
   updatePasalField: async (docId, pasalId, fieldKey, nilai) => {
     try {
-      const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}/field`, {
-        method: 'PUT',
-        body: JSON.stringify({ fieldKey, nilai }),
+      const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ fieldValues: { [fieldKey]: nilai } }),
       });
       if (res.ok) {
         const json = await res.json();
@@ -259,15 +274,22 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
 
   reorderPasal: async (docId, startIndex, endIndex) => {
     try {
-      const res = await fetchApi(`/dokumen/${docId}/pasal/reorder`, {
+      const doc = get().items.find((d) => d.id === docId);
+      if (!doc) return;
+      const list = [...doc.pasalDokumen];
+      const [moved] = list.splice(startIndex, 1);
+      list.splice(endIndex, 0, moved);
+      const pasalIds = list.map((p) => p.id);
+
+      const res = await fetchApi(`/dokumen/${docId}/pasal-urutan`, {
         method: 'PUT',
-        body: JSON.stringify({ startIndex, endIndex }),
+        body: JSON.stringify({ pasalIds }),
       });
       if (res.ok) {
         const json = await res.json();
         const updatedDoc = json.data;
         set((state) => ({
-          items: state.items.map((doc) => (doc.id === docId ? updatedDoc : doc)),
+          items: state.items.map((d) => (d.id === docId ? (updatedDoc || { ...d, pasalDokumen: list }) : d)),
         }));
       }
     } catch (error) {
@@ -280,7 +302,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
     try {
       const res = await fetchApi(`/dokumen/${docId}/jadwal`, {
         method: 'PUT',
-        body: JSON.stringify({ jadwal }),
+        body: JSON.stringify(jadwal),
       });
       if (res.ok) {
         const json = await res.json();
@@ -297,7 +319,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
   updateBarisJadwal: async (docId, barisId, jumlah) => {
     try {
       const res = await fetchApi(`/dokumen/${docId}/jadwal/baris/${barisId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ jumlah }),
       });
       if (res.ok) {

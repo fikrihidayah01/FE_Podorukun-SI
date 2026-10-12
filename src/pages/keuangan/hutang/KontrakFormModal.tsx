@@ -56,7 +56,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
     onClose();
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.proyekId) return setError('Pilih proyek.');
     if (!form.kavling.trim()) return setError('Kavling wajib diisi.');
@@ -68,7 +68,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
     if (pRab <= 0) return setError('Nilai RAB harus lebih dari 0.');
     if (!form.akunHutangId || !form.akunPersediaanId) return setError('Pilih akun hutang dan akun lawan untuk jurnal.');
 
-    addKontrak({
+    await addKontrak({
       noSpk: form.noSpk.trim(),
       tanggalSpk: form.tanggalSpk,
       proyekId: form.proyekId,

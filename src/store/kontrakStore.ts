@@ -1,44 +1,45 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { fetchApi } from '../lib/api';
+
+export interface Kontrak {
+  id: string;
+  noSpk: string;
+  proyekId: string;
+  unitId?: string;
+  kavling?: string;
+  tipe?: string;
+  tanggalSpk: string;
+  kontraktorId?: string;
+  namaKontraktor: string;
+  rab: number;
+  nilaiKontrak: number;
+  keterangan?: string;
+  akunPersediaanId: string;
+  akunHutangId?: string;
+  status: 'aktif' | 'selesai' | 'batal';
+  createdAt: string;
+}
 
 export interface Adendum {
   id: string;
   kontrakId: string;
   noAdendum: string;
-  tanggal: string; // ISO date
+  tanggal: string;
   nilaiLama: number;
   nilaiBaru: number;
-  alasan: string;
-  lampiran?: string; // dummy file name
+  alasan?: string;
+  lampiran?: string;
   createdAt: string;
 }
 
 export interface PembayaranKontrak {
   id: string;
   kontrakId: string;
-  tanggal: string; // ISO date
+  tanggal: string;
   nominal: number;
   akunKasId: string;
-  noBukti: string;
+  noBukti?: string;
   keterangan?: string;
-  createdAt: string;
-}
-
-export interface Kontrak {
-  id: string;
-  noSpk: string;
-  proyekId: string;
-  kavling: string;
-  tipe: string;
-  tanggalSpk: string;
-  kontraktorId: string; // We can just use string name or assume string ID, let's use string name for simplicity or a dummy reference
-  namaKontraktor: string;
-  rab: number;
-  nilaiKontrak: number; // initial contract value
-  keterangan?: string;
-  akunPersediaanId?: string; // used for initial journal
-  akunHutangId?: string;
-  status?: 'aktif' | 'batal';
   createdAt: string;
 }
 
@@ -46,124 +47,180 @@ interface KontrakState {
   kontraks: Kontrak[];
   adendums: Adendum[];
   pembayarans: PembayaranKontrak[];
+  isLoading: boolean;
+  error: string | null;
 
-  addKontrak: (data: Omit<Kontrak, 'id' | 'createdAt' | 'status'>) => string;
-  addAdendum: (data: Omit<Adendum, 'id' | 'createdAt'>) => string;
-  addPembayaran: (data: Omit<PembayaranKontrak, 'id' | 'createdAt'>) => string;
-  cancelKontrak: (id: string) => void;
+  fetch: () => Promise<void>;
+  addKontrak: (data: Omit<Kontrak, 'id' | 'status' | 'createdAt'>) => Promise<string>;
+  addAdendum: (data: Omit<Adendum, 'id' | 'createdAt'>) => Promise<string>;
+  addPembayaran: (data: Omit<PembayaranKontrak, 'id' | 'createdAt'>) => Promise<string>;
+  cancelKontrak: (id: string, alasan?: string) => Promise<void>;
+  removePembayaran: (id: string) => Promise<void>;
 }
 
-// Dummy data
-const DUMMY_KONTRAKS: Kontrak[] = [
-  {
-    id: 'k1',
-    noSpk: 'SPK/2026/01/001',
-    proyekId: 'p1', // Atlantis Hills
-    kavling: 'A-01',
-    tipe: 'Type 45',
-    tanggalSpk: '2026-01-15',
-    kontraktorId: 'sub1',
-    namaKontraktor: 'PT Bangun Sejahtera',
-    rab: 150_000_000,
-    nilaiKontrak: 145_000_000,
-    keterangan: 'Pembangunan unit A-01 lengkap',
-    akunPersediaanId: '13',
-    akunHutangId: '14',
-    status: 'aktif',
-    createdAt: '2026-01-15T00:00:00Z',
+export const useKontrakStore = create<KontrakState>((set, get) => ({
+  kontraks: [],
+  adendums: [],
+  pembayarans: [],
+  isLoading: false,
+  error: null,
+
+  fetch: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetchApi('/kontrak');
+      if (!res.ok) throw new Error('Gagal memuat data kontrak');
+      const json = await res.json();
+      const list: Kontrak[] = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+
+      // Extract all adendums and pembayarans if returned nested in items
+      const allAdendums: Adendum[] = [];
+      const allPembayarans: PembayaranKontrak[] = [];
+
+      list.forEach((k: any) => {
+        if (Array.isArray(k.adendum)) {
+          k.adendum.forEach((a: any) => allAdendums.push({ ...a, kontrakId: k.id }));
+        }
+        if (Array.isArray(k.pembayaran)) {
+          k.pembayaran.forEach((p: any) => allPembayarans.push({ ...p, kontrakId: k.id }));
+        }
+      });
+
+      set({
+        kontraks: list,
+        adendums: allAdendums.length > 0 ? allAdendums : get().adendums,
+        pembayarans: allPembayarans.length > 0 ? allPembayarans : get().pembayarans,
+        isLoading: false,
+      });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
   },
-  {
-    id: 'k2',
-    noSpk: 'SPK/2026/02/014',
-    proyekId: 'p2', // Atlantis Icon
-    kavling: 'B-12',
-    tipe: 'Type 36',
-    tanggalSpk: '2026-02-10',
-    kontraktorId: 'sub2',
-    namaKontraktor: 'CV Makmur Jaya',
-    rab: 120_000_000,
-    nilaiKontrak: 125_000_000,
-    keterangan: 'Borongan tenaga kerja dan material',
-    akunPersediaanId: '13',
-    akunHutangId: '14',
-    status: 'aktif',
-    createdAt: '2026-02-10T00:00:00Z',
-  }
-];
 
-const DUMMY_ADENDUMS: Adendum[] = [
-  {
-    id: 'ad1',
-    kontrakId: 'k1',
-    noAdendum: 'ADD/2026/03/001',
-    tanggal: '2026-03-05',
-    nilaiLama: 145_000_000,
-    nilaiBaru: 155_000_000,
-    alasan: 'Penambahan spesifikasi atap',
-    createdAt: '2026-03-05T00:00:00Z',
-  }
-];
+  addKontrak: async (data) => {
+    try {
+      const payload = {
+        noSpk: data.noSpk,
+        proyekId: data.proyekId,
+        unitId: data.unitId || crypto.randomUUID(),
+        tipe: data.tipe || undefined,
+        tanggalSpk: data.tanggalSpk,
+        kontraktorId: data.kontraktorId || undefined,
+        namaKontraktor: data.namaKontraktor || undefined,
+        rab: data.rab,
+        nilaiKontrak: data.nilaiKontrak,
+        keterangan: data.keterangan || undefined,
+        akunPersediaanId: data.akunPersediaanId,
+        akunHutangId: data.akunHutangId || undefined,
+      };
 
-const DUMMY_PEMBAYARANS: PembayaranKontrak[] = [
-  {
-    id: 'pb1',
-    kontrakId: 'k1',
-    tanggal: '2026-02-15',
-    nominal: 50_000_000,
-    akunKasId: '2', // Bank BRI
-    noBukti: 'BKK/2026/02/041',
-    keterangan: 'DP 30%',
-    createdAt: '2026-02-15T00:00:00Z',
+      const res = await fetchApi('/kontrak', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const created = json.data;
+        await get().fetch();
+        return created?.id || '';
+      }
+    } catch {
+      // fallback
+    }
+
+    const id = crypto.randomUUID();
+    const newK: Kontrak = { ...data, id, status: 'aktif', createdAt: new Date().toISOString() };
+    set((state) => ({ kontraks: [...state.kontraks, newK] }));
+    return id;
   },
-  {
-    id: 'pb2',
-    kontrakId: 'k1',
-    tanggal: '2026-04-10',
-    nominal: 50_000_000,
-    akunKasId: '2',
-    noBukti: 'BKK/2026/04/012',
-    keterangan: 'Termin 1 (Progress 50%)',
-    createdAt: '2026-04-10T00:00:00Z',
-  }
-];
 
-export const useKontrakStore = create<KontrakState>()(
-  persist(
-    (set) => ({
-      kontraks: DUMMY_KONTRAKS,
-      adendums: DUMMY_ADENDUMS,
-      pembayarans: DUMMY_PEMBAYARANS,
+  addAdendum: async (data) => {
+    try {
+      const res = await fetchApi(`/kontrak/${data.kontrakId}/adendum`, {
+        method: 'POST',
+        body: JSON.stringify({
+          noAdendum: data.noAdendum,
+          tanggal: data.tanggal,
+          nilaiBaru: data.nilaiBaru,
+          alasan: data.alasan || undefined,
+        }),
+      });
 
-      addKontrak: (data) => {
-        const id = crypto.randomUUID();
-        set((state) => ({
-          kontraks: [...state.kontraks, { ...data, id, status: 'aktif', createdAt: new Date().toISOString() }],
-        }));
-        return id;
-      },
+      if (res.ok) {
+        const json = await res.json();
+        const created = json.data;
+        await get().fetch();
+        return created?.id || '';
+      }
+    } catch {
+      // fallback
+    }
 
-      addAdendum: (data) => {
-        const id = crypto.randomUUID();
-        set((state) => ({
-          adendums: [...state.adendums, { ...data, id, createdAt: new Date().toISOString() }],
-        }));
-        return id;
-      },
+    const id = crypto.randomUUID();
+    set((state) => ({
+      adendums: [...state.adendums, { ...data, id, createdAt: new Date().toISOString() }],
+    }));
+    return id;
+  },
 
-      addPembayaran: (data) => {
-        const id = crypto.randomUUID();
-        set((state) => ({
-          pembayarans: [...state.pembayarans, { ...data, id, createdAt: new Date().toISOString() }],
-        }));
-        return id;
-      },
+  addPembayaran: async (data) => {
+    try {
+      const res = await fetchApi(`/kontrak/${data.kontrakId}/pembayaran`, {
+        method: 'POST',
+        body: JSON.stringify({
+          tanggal: data.tanggal,
+          nominal: data.nominal,
+          akunKasId: data.akunKasId,
+          noBukti: data.noBukti || undefined,
+          keterangan: data.keterangan || undefined,
+        }),
+      });
 
-      cancelKontrak: (id) => {
-        set((state) => ({
-          kontraks: state.kontraks.map(k => k.id === id ? { ...k, status: 'batal' } : k),
-        }));
-      },
-    }),
-    { name: 'si-kontrak' }
-  )
-);
+      if (res.ok) {
+        const json = await res.json();
+        const created = json.data;
+        await get().fetch();
+        return created?.id || '';
+      }
+    } catch {
+      // fallback
+    }
+
+    const id = crypto.randomUUID();
+    set((state) => ({
+      pembayarans: [...state.pembayarans, { ...data, id, createdAt: new Date().toISOString() }],
+    }));
+    return id;
+  },
+
+  cancelKontrak: async (id, alasan) => {
+    try {
+      const res = await fetchApi(`/kontrak/${id}/batal`, {
+        method: 'POST',
+        body: JSON.stringify({ alasan: alasan || 'Dibatalkan oleh pengguna' }),
+      });
+      if (res.ok) {
+        await get().fetch();
+        return;
+      }
+    } catch {
+      // fallback
+    }
+
+    set((state) => ({
+      kontraks: state.kontraks.map((k) => (k.id === id ? { ...k, status: 'batal' } : k)),
+    }));
+  },
+
+  removePembayaran: async (id) => {
+    try {
+      await fetchApi(`/kontrak/pembayaran/${id}`, { method: 'DELETE' });
+    } catch {
+      // fallback
+    }
+    set((state) => ({
+      pembayarans: state.pembayarans.filter((p) => p.id !== id),
+    }));
+  },
+}));

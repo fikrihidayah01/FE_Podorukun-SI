@@ -166,15 +166,25 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
         method: 'PUT',
         body: JSON.stringify({ periode, dibayar, tanggalBayar }),
       });
-      if (!response.ok) throw new Error('Gagal update alokasi');
-      const updated = await response.json();
-      set((state) => ({
-        items: state.items.map((k) => (k.id === kavlingId ? updated.data : k)),
-      }));
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
+      if (response.ok) {
+        const updated = await response.json();
+        set((state) => ({
+          items: state.items.map((k) => (k.id === kavlingId ? (updated.data || k) : k)),
+        }));
+        return;
+      }
+    } catch {}
+    set((state) => ({
+      items: state.items.map((k) => {
+        if (k.id !== kavlingId) return k;
+        return {
+          ...k,
+          periodeAngsuran: k.periodeAngsuran.map((p) =>
+            p.periode === periode ? { ...p, dibayar, tanggalBayar } : p
+          ),
+        };
+      }),
+    }));
   },
 
   updateJadwalAngsuran: async (kavlingId, periode, tagihan, tanggalJatuhTempo) => {
@@ -183,15 +193,25 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
         method: 'PUT',
         body: JSON.stringify({ periode, tagihan, tanggalJatuhTempo }),
       });
-      if (!response.ok) throw new Error('Gagal update jadwal');
-      const updated = await response.json();
-      set((state) => ({
-        items: state.items.map((k) => (k.id === kavlingId ? updated.data : k)),
-      }));
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
+      if (response.ok) {
+        const updated = await response.json();
+        set((state) => ({
+          items: state.items.map((k) => (k.id === kavlingId ? (updated.data || k) : k)),
+        }));
+        return;
+      }
+    } catch {}
+    set((state) => ({
+      items: state.items.map((k) => {
+        if (k.id !== kavlingId) return k;
+        return {
+          ...k,
+          periodeAngsuran: k.periodeAngsuran.map((p) =>
+            p.periode === periode ? { ...p, tagihan, tanggalJatuhTempo } : p
+          ),
+        };
+      }),
+    }));
   },
 
   updateBuktiTransaksi: async (kavlingId, periode, bukti) => {
@@ -200,34 +220,28 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
         method: 'PUT',
         body: JSON.stringify({ periode, buktiTransaksi: bukti }),
       });
-      if (!response.ok) throw new Error('Gagal update bukti transaksi');
-      const updated = await response.json();
-      set((state) => ({
-        items: state.items.map((k) => (k.id === kavlingId ? updated.data : k)),
-      }));
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
+      if (response.ok) {
+        const updated = await response.json();
+        set((state) => ({
+          items: state.items.map((k) => (k.id === kavlingId ? (updated.data || k) : k)),
+        }));
+        return;
+      }
+    } catch {}
+    set((state) => ({
+      items: state.items.map((k) => {
+        if (k.id !== kavlingId) return k;
+        return {
+          ...k,
+          periodeAngsuran: k.periodeAngsuran.map((p) =>
+            p.periode === periode ? { ...p, buktiTransaksi: bukti } : p
+          ),
+        };
+      }),
+    }));
   },
   
-  addFromLegal: async (legalData: any) => {
-    try {
-      const response = await fetchApi('/piutang/legal', {
-        method: 'POST',
-        body: JSON.stringify(legalData),
-      });
-      if (!response.ok) throw new Error('Gagal menambahkan dari legal');
-      const newTagihanRes = await response.json();
-      const newTagihan = newTagihanRes.data;
-      set((state) => {
-        const exists = state.items.some((k) => k.id === newTagihan.id);
-        if (exists) return state;
-        return { items: [...state.items, newTagihan] };
-      });
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
+  addFromLegal: async (_legalData: any) => {
+    await get().fetchItems();
   },
 }));

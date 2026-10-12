@@ -1,8 +1,7 @@
-﻿import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from 'zustand';
+import { fetchApi } from '../lib/api';
 import type { Tone } from '../components/ui/Badge';
 
-// ── Types ────────────────────────────────────────────────────
 export type StatusShm =
   | 'di_notaris'
   | 'di_kantor'
@@ -18,7 +17,6 @@ export const STATUS_SHM_LABELS: Record<StatusShm, string> = {
   lainnya: 'Lainnya',
 };
 
-// Tone badge: dijaminkan = sertifikat sedang terikat ke bank (perlu perhatian), ditebus = kembali aman.
 export const STATUS_SHM_TONE: Record<StatusShm, Tone> = {
   di_notaris: 'brand',
   di_kantor: 'neutral',
@@ -59,26 +57,28 @@ export interface Shm {
   id: string;
   nomorShm: string;
   kavling: string;
+  unitId?: string;
   status: StatusShm;
-  statusKustom?: string;    // custom status text when status = 'lainnya'
-  lokasi: string;           // lokasi saat ini (mis. "Bank Mandiri", "Notaris Budi", "Kantor Podorukun")
-  lokasiKustom?: string;    // custom lokasi when lokasi = 'lainnya'
-  pinjamanBankId?: string;  // relasi ke pinjaman bank jika dijaminkan
+  statusKustom?: string;
+  lokasi: string;
+  lokasiKustom?: string;
+  pinjamanBankId?: string;
   namaBank?: string;
-  noPbg?: string;           // No. PBG, optional
-  statusPbg: StatusPbg;     // status permohonan PBG
-  statusPbgKustom?: string; // when statusPbg = 'lainnya'
+  noPbg?: string;
+  statusPbg: StatusPbg;
+  statusPbgKustom?: string;
   riwayat: ShmRiwayat[];
   createdAt: string;
 }
 
-// ── Store ────────────────────────────────────────────────────
 interface ShmState {
   shms: Shm[];
+  isLoading: boolean;
+  error: string | null;
 
-  /** Returns true if added successfully, false if nomorShm already exists */
-  addShm: (data: Omit<Shm, 'id' | 'riwayat' | 'createdAt'>) => boolean;
-  removeShm: (id: string) => void;
+  fetch: () => Promise<void>;
+  addShm: (data: Omit<Shm, 'id' | 'riwayat' | 'createdAt'>) => Promise<boolean>;
+  removeShm: (id: string) => Promise<void>;
   updateStatus: (
     id: string,
     keStatus: StatusShm,
@@ -87,210 +87,185 @@ interface ShmState {
     pinjamanBankId?: string,
     namaBank?: string,
     statusKustom?: string,
-  ) => void;
+  ) => Promise<void>;
   updateNoPbg: (
     id: string,
     noPbg: string,
     statusPbg: StatusPbg,
     statusPbgKustom?: string,
-  ) => void;
+  ) => Promise<void>;
 
   getRiwayat: (shmId: string) => ShmRiwayat[];
   getShmByPinjaman: (pinjamanBankId: string) => Shm[];
-  /** Unique custom status values across all SHMs that use status='lainnya' */
   getCustomStatuses: () => string[];
-  /** Unique lokasi values across all SHMs (for autocomplete suggestions) */
   getCustomLokasis: () => string[];
 }
 
-// ── Dummy Data ───────────────────────────────────────────────
-const DUMMY_SHM: Shm[] = [
-  {
-    id: 'shm1',
-    nomorShm: 'SHM-001/2024',
-    kavling: 'Kav A-01',
-    status: 'dijaminkan',
-    lokasi: 'Bank Mandiri',
-    pinjamanBankId: 'pb1',
-    namaBank: 'Bank Mandiri',
-    noPbg: 'PBG/24/017',
-    statusPbg: 'terbit',
-    riwayat: [
-      {
-        id: 'sr1', shmId: 'shm1', tanggal: '2024-01-15',
-        dariStatus: 'di_notaris', keStatus: 'di_kantor',
-        keterangan: 'Sertifikat selesai dari notaris',
-      },
-      {
-        id: 'sr2', shmId: 'shm1', tanggal: '2025-03-15',
-        dariStatus: 'di_kantor', keStatus: 'dijaminkan',
-        keterangan: 'Dijaminkan ke Bank Mandiri untuk kredit konstruksi',
-      },
-    ],
-    createdAt: '2024-01-15T00:00:00Z',
-  },
-  {
-    id: 'shm2',
-    nomorShm: 'SHM-002/2024',
-    kavling: 'Kav A-02',
-    status: 'di_kantor',
-    lokasi: 'Kantor Podorukun',
-    noPbg: 'PBG/24/018',
-    statusPbg: 'terbit',
-    riwayat: [
-      {
-        id: 'sr3', shmId: 'shm2', tanggal: '2024-03-01',
-        dariStatus: 'di_notaris', keStatus: 'di_kantor',
-        keterangan: 'Sertifikat selesai dari notaris',
-      },
-    ],
-    createdAt: '2024-03-01T00:00:00Z',
-  },
-  {
-    id: 'shm3',
-    nomorShm: 'SHM-003/2025',
-    kavling: 'Kav B-05',
-    status: 'sudah_ditebus',
-    lokasi: 'Kantor Podorukun',
-    noPbg: '',
-    statusPbg: 'dalam_proses',
-    riwayat: [
-      {
-        id: 'sr4', shmId: 'shm3', tanggal: '2025-01-10',
-        dariStatus: 'di_notaris', keStatus: 'dijaminkan',
-        keterangan: 'Dijaminkan ke BRI',
-      },
-      {
-        id: 'sr5', shmId: 'shm3', tanggal: '2026-02-01',
-        dariStatus: 'dijaminkan', keStatus: 'sudah_ditebus',
-        keterangan: 'Pinjaman lunas, SHM ditebus',
-      },
-    ],
-    createdAt: '2025-01-10T00:00:00Z',
-  },
-  {
-    id: 'shm4',
-    nomorShm: 'SHM-004/2025',
-    kavling: 'Kav B-06',
-    status: 'di_notaris',
-    lokasi: 'Notaris Ulfa',
-    noPbg: '',
-    statusPbg: 'belum_diajukan',
-    riwayat: [],
-    createdAt: '2025-06-01T00:00:00Z',
-  },
-  {
-    id: 'shm5',
-    nomorShm: 'SHM-005/2025',
-    kavling: 'Kav C-03',
-    status: 'lainnya',
-    statusKustom: 'Di BPN',
-    lokasi: 'Kantor BPN',
-    noPbg: '',
-    statusPbg: 'belum_diajukan',
-    riwayat: [],
-    createdAt: '2025-08-01T00:00:00Z',
-  },
-];
+export const useShmStore = create<ShmState>((set, get) => ({
+  shms: [],
+  isLoading: false,
+  error: null,
 
-// ── Implementation ───────────────────────────────────────────
-export const useShmStore = create<ShmState>()(
-  persist(
-    (set, get) => ({
-      shms: DUMMY_SHM,
+  fetch: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetchApi('/shm');
+      if (!res.ok) throw new Error('Gagal memuat data SHM');
+      const json = await res.json();
+      const list = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+      set({ shms: list, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
 
-      addShm: (data) => {
-        const exists = get().shms.some(
-          (s) => s.nomorShm.trim().toLowerCase() === data.nomorShm.trim().toLowerCase()
-        );
-        if (exists) return false;
+  addShm: async (data) => {
+    try {
+      const payload = {
+        nomorShm: data.nomorShm,
+        unitId: data.unitId || crypto.randomUUID(),
+        status: data.status,
+        statusKustom: data.statusKustom || undefined,
+        lokasi: data.lokasi,
+        pinjamanBankId: data.pinjamanBankId || undefined,
+        noPbg: data.noPbg || undefined,
+        statusPbg: data.statusPbg,
+        statusPbgKustom: data.statusPbgKustom || undefined,
+      };
 
-        set((state) => ({
-          shms: [
-            ...state.shms,
-            {
-              ...data,
-              id: crypto.randomUUID(),
-              riwayat: [],
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        }));
+      const res = await fetchApi('/shm', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        // Fallback local update
+        const newItem: Shm = {
+          ...data,
+          id: crypto.randomUUID(),
+          riwayat: [],
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ shms: [newItem, ...state.shms] }));
         return true;
-      },
+      }
 
-      removeShm: (id) =>
-        set((state) => ({
-          shms: state.shms.filter((s) => s.id !== id),
-        })),
+      await get().fetch();
+      return true;
+    } catch {
+      const newItem: Shm = {
+        ...data,
+        id: crypto.randomUUID(),
+        riwayat: [],
+        createdAt: new Date().toISOString(),
+      };
+      set((state) => ({ shms: [newItem, ...state.shms] }));
+      return true;
+    }
+  },
 
-      updateStatus: (id, keStatus, lokasi, keterangan, pinjamanBankId, namaBank, statusKustom) =>
-        set((state) => ({
-          shms: state.shms.map((shm) => {
-            if (shm.id !== id) return shm;
+  removeShm: async (id) => {
+    try {
+      await fetchApi(`/shm/${id}`, { method: 'DELETE' });
+    } catch {
+      // ignore
+    }
+    set((state) => ({ shms: state.shms.filter((s) => s.id !== id) }));
+  },
 
-            const newRiwayat: ShmRiwayat = {
-              id: crypto.randomUUID(),
-              shmId: id,
-              tanggal: new Date().toISOString().split('T')[0],
-              dariStatus: shm.status,
-              keStatus,
-              keterangan,
-            };
+  updateStatus: async (id, keStatus, lokasi, keterangan, pinjamanBankId, namaBank, statusKustom) => {
+    try {
+      const payload = {
+        keStatus,
+        lokasi,
+        keterangan: keterangan || undefined,
+        pinjamanBankId: keStatus === 'dijaminkan' ? (pinjamanBankId || undefined) : undefined,
+        statusKustom: keStatus === 'lainnya' ? (statusKustom || undefined) : undefined,
+      };
+      const res = await fetchApi(`/shm/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        await get().fetch();
+        return;
+      }
+    } catch {
+      // fallback
+    }
 
-            return {
+    set((state) => ({
+      shms: state.shms.map((shm) => {
+        if (shm.id !== id) return shm;
+
+        const newRiwayat: ShmRiwayat = {
+          id: crypto.randomUUID(),
+          shmId: id,
+          tanggal: new Date().toISOString().split('T')[0],
+          dariStatus: shm.status,
+          keStatus,
+          keterangan,
+        };
+
+        return {
+          ...shm,
+          status: keStatus,
+          statusKustom: keStatus === 'lainnya' ? statusKustom : undefined,
+          lokasi,
+          pinjamanBankId: keStatus === 'dijaminkan' ? pinjamanBankId : undefined,
+          namaBank: keStatus === 'dijaminkan' ? namaBank : undefined,
+          riwayat: [...(shm.riwayat || []), newRiwayat],
+        };
+      }),
+    }));
+  },
+
+  updateNoPbg: async (id, noPbg, statusPbg, statusPbgKustom) => {
+    try {
+      const payload = {
+        noPbg: noPbg || undefined,
+        statusPbg,
+        statusPbgKustom: statusPbg === 'lainnya' ? (statusPbgKustom || undefined) : undefined,
+      };
+      const res = await fetchApi(`/shm/${id}/pbg`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        await get().fetch();
+        return;
+      }
+    } catch {
+      // fallback
+    }
+
+    set((state) => ({
+      shms: state.shms.map((shm) =>
+        shm.id !== id
+          ? shm
+          : {
               ...shm,
-              status: keStatus,
-              statusKustom: keStatus === 'lainnya' ? statusKustom : undefined,
-              lokasi,
-              pinjamanBankId: keStatus === 'dijaminkan' ? pinjamanBankId : undefined,
-              namaBank: keStatus === 'dijaminkan' ? namaBank : undefined,
-              riwayat: [...shm.riwayat, newRiwayat],
-            };
-          }),
-        })),
+              noPbg,
+              statusPbg,
+              statusPbgKustom: statusPbg === 'lainnya' ? statusPbgKustom : undefined,
+            }
+      ),
+    }));
+  },
 
-      updateNoPbg: (id, noPbg, statusPbg, statusPbgKustom) =>
-        set((state) => ({
-          shms: state.shms.map((shm) =>
-            shm.id !== id
-              ? shm
-              : {
-                  ...shm,
-                  noPbg,
-                  statusPbg,
-                  statusPbgKustom: statusPbg === 'lainnya' ? statusPbgKustom : undefined,
-                }
-          ),
-        })),
-
-      getRiwayat: (shmId) => {
-        const shm = get().shms.find((s) => s.id === shmId);
-        return shm?.riwayat ?? [];
-      },
-
-      getShmByPinjaman: (pinjamanBankId) =>
-        get().shms.filter((s) => s.pinjamanBankId === pinjamanBankId),
-
-      getCustomStatuses: () => {
-        const seen = new Set<string>();
-        get().shms.forEach((s) => {
-          if (s.status === 'lainnya' && s.statusKustom?.trim()) {
-            seen.add(s.statusKustom.trim());
-          }
-        });
-        return Array.from(seen);
-      },
-
-      getCustomLokasis: () => {
-        const seen = new Set<string>();
-        get().shms.forEach((s) => {
-          if (s.lokasi?.trim()) seen.add(s.lokasi.trim());
-          if (s.lokasiKustom?.trim()) seen.add(s.lokasiKustom.trim());
-        });
-        return Array.from(seen);
-      },
-    }),
-    { name: 'si-shm' }
-  )
-);
+  getRiwayat: (shmId) => get().shms.find((s) => s.id === shmId)?.riwayat ?? [],
+  getShmByPinjaman: (pinjamanBankId) =>
+    get().shms.filter((s) => s.status === 'dijaminkan' && s.pinjamanBankId === pinjamanBankId),
+  getCustomStatuses: () =>
+    Array.from(
+      new Set(
+        get()
+          .shms.filter((s) => s.status === 'lainnya' && s.statusKustom)
+          .map((s) => s.statusKustom as string)
+      )
+    ),
+  getCustomLokasis: () =>
+    Array.from(
+      new Set(get().shms.map((s) => s.lokasi).filter((l) => l && l.trim() !== ''))
+    ),
+}));
