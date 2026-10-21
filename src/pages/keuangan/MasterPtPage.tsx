@@ -1,4 +1,5 @@
 import { useProyekStore } from '../../store/proyekStore';
+import { fetchApi } from '../../lib/api';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -64,7 +65,7 @@ export default function MasterPtPage() {
   const [ptForm, setPtForm] = useState(EMPTY_PT());
   const [ptErrors, setPtErrors] = useState<Partial<Record<keyof Omit<MasterPt, 'id' | 'perumahanId'>, string>>>({});
   const { items: proyeks, fetch: fetchProyeks } = useProyekStore();
-  const [companies] = useState<{ id: string; nama: string }[]>([]);
+  const [companies, setCompanies] = useState<{ id: string; nama: string }[]>([]);
   const [deletePtId, setDeletePtId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -73,6 +74,13 @@ export default function MasterPtPage() {
   useEffect(() => {
     void fetchProyeks();
   }, [fetchProyeks]);
+
+  // Company PR Track (cermin sinkron) untuk menghubungkan PT; id lokal dipakai sebagai trackCompanyId.
+  useEffect(() => {
+    void fetchApi('/master-pt/companies')
+      .then(async (res) => { const body = await res.json(); if (res.ok) setCompanies(body.data ?? []); })
+      .catch(() => setCompanies([]));
+  }, []);
 
   // State modal Template
   const [tmplModalOpen, setTmplModalOpen] = useState(false);
