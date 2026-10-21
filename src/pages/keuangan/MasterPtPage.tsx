@@ -1,4 +1,3 @@
-import { fetchApi } from '../../lib/api';
 import { useProyekStore } from '../../store/proyekStore';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -65,7 +64,7 @@ export default function MasterPtPage() {
   const [ptForm, setPtForm] = useState(EMPTY_PT());
   const [ptErrors, setPtErrors] = useState<Partial<Record<keyof Omit<MasterPt, 'id' | 'perumahanId'>, string>>>({});
   const { items: proyeks, fetch: fetchProyeks } = useProyekStore();
-  const [companies, setCompanies] = useState<{ id: string; nama: string }[]>([]);
+  const [companies] = useState<{ id: string; nama: string }[]>([]);
   const [deletePtId, setDeletePtId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -73,7 +72,6 @@ export default function MasterPtPage() {
 
   useEffect(() => {
     void fetchProyeks();
-    void (async () => { const res = await fetchApi('/master-pt/companies'); if (res.status === 404) return; const body = await res.json(); if (!res.ok) throw new Error(body.message); setCompanies(body.data); })().catch((err) => setActionError(err.message));
   }, [fetchProyeks]);
 
   // State modal Template
