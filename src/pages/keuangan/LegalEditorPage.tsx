@@ -273,11 +273,12 @@ function LegalEditorBody() {
       const maxDays = getDaysInMonth(targetYear, targetMonth);
       const targetDate = Math.min(acuan, maxDays);
 
-      const jadwalDate = new Date(targetYear, targetMonth, targetDate);
+      // Format tanggal lokal langsung; toISOString() menggeser ke UTC (WIB jadi mundur sehari).
+      const tanggal = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(targetDate).padStart(2, '0')}`;
 
       baris.push({
         id: crypto.randomUUID(),
-        tanggal: jadwalDate.toISOString().split('T')[0],
+        tanggal,
         jumlah: nominal,
         keterangan: `DP ${no}`,
       });
