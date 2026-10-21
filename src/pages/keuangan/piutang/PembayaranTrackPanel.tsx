@@ -21,7 +21,8 @@ type Keputusan = 'terima' | 'tolak';
 const STATUS = ['belum_diproses', 'menunggu', 'gagal_validasi', 'perlu_ditinjau', 'ditolak', 'dijurnal', 'historis'];
 // historis: pembayaran sebelum saldo awal proyek, dialokasikan tanpa jurnal (cutoff Opsi A).
 const STATUS_TONE: Record<string, Tone> = { dijurnal: 'positive', historis: 'neutral', ditolak: 'danger', gagal_validasi: 'danger', perlu_ditinjau: 'warning', menunggu: 'warning' };
-const label = (s: string) => s.replaceAll('_', ' ');
+// Pembayaran lama dari PR Track bisa tanpa jenis (null); jangan sampai satu baris menjatuhkan halaman.
+const label = (s: string | null | undefined) => (s ? s.replaceAll('_', ' ') : '—');
 
 // Track mengirim bukti sebagai URL tunggal atau array JSON; hanya tautan https yang ditampilkan.
 function buktiLinks(raw: string | null): string[] {
