@@ -41,10 +41,11 @@ const EMPTY_PT = (): Omit<MasterPt, 'id'> => ({
   alamat: '',
   noKtp: '',
   perumahanId: undefined,
+  perumahanIds: [],
 });
 
 export default function MasterPtPage() {
-  const { items: pts, add: addPt, update: updatePt, remove: removePt, fetch: fetchPts} = useMasterPtStore();
+  const { items: pts, add: addPt, update: updatePt, remove: removePt, fetch: fetchPts } = useMasterPtStore();
   const { items: templates, add: addTemplate, update: updateTemplate, duplikat, remove: removeTemplate, fetch: fetchTemplates } = useTemplateDokumenStore();
   const { items: pasals, fetch: fetchPasals } = usePustakaPasalStore();
 
@@ -63,13 +64,24 @@ export default function MasterPtPage() {
   const [ptModalOpen, setPtModalOpen] = useState(false);
   const [editingPtId, setEditingPtId] = useState<string | null>(null);
   const [ptForm, setPtForm] = useState(EMPTY_PT());
-  const [ptErrors, setPtErrors] = useState<Partial<Record<keyof Omit<MasterPt, 'id' | 'perumahanId'>, string>>>({});
+  const [ptErrors, setPtErrors] = useState<Partial<Record<keyof Omit<MasterPt, 'id' | 'perumahanId' | 'perumahanIds'>, string>>>({});
   const { items: proyeks, fetch: fetchProyeks } = useProyekStore();
   const [companies, setCompanies] = useState<{ id: string; nama: string }[]>([]);
   const [deletePtId, setDeletePtId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
   const [saving, setSaving] = useState(false);
-  const runAction = async (action: () => Promise<unknown>) => { setSaving(true); setActionError(''); try { await action(); } catch (err) { setActionError(err instanceof Error ? err.message : 'Gagal menyimpan'); } finally { setSaving(false); } };
+  const runAction = async (action: () => Promise<unknown>) => {
+    setSaving(true);
+    setActionError('');
+    try {
+      await action();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal menyimpan';
+      setActionError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     void fetchProyeks();
@@ -88,6 +100,7 @@ export default function MasterPtPage() {
   const [tmplForm, setTmplForm] = useState<{ ptId: string; tipeTransaksi: TipeTransaksi; polaNomor: string; pasalIds: string[] }>({
     ptId: '', tipeTransaksi: 'Cash', polaNomor: '', pasalIds: [],
   });
+  const [tmplValidationError, setTmplValidationError] = useState('');
   const [deleteTmplId, setDeleteTmplId] = useState<string | null>(null);
   const [tmplFilterPt, setTmplFilterPt] = useState('all');
 
@@ -96,11 +109,15 @@ export default function MasterPtPage() {
     setEditingPtId(null);
     setPtForm(EMPTY_PT());
     setPtErrors({});
+    setActionError('');
     setPtModalOpen(true);
   };
 
   const openEditPt = (pt: MasterPt) => {
     setEditingPtId(pt.id);
+    const pIds = Array.isArray(pt.perumahanIds) && pt.perumahanIds.length > 0
+      ? pt.perumahanIds
+      : (pt.perumahanId ? [pt.perumahanId] : []);
     setPtForm({
       namaPt: pt.namaPt,
       singkatan: pt.singkatan,
@@ -111,8 +128,10 @@ export default function MasterPtPage() {
       alamat: pt.alamat,
       noKtp: pt.noKtp,
       perumahanId: pt.perumahanId,
+      perumahanIds: pIds,
     });
     setPtErrors({});
+    setActionError('');
     setPtModalOpen(true);
   };
 
@@ -124,28 +143,48 @@ export default function MasterPtPage() {
     if (!ptForm.alamat?.trim()) errs.alamat = 'Alamat wajib diisi.';
     if (Object.keys(errs).length > 0) { setPtErrors(errs); return; }
 
+    const payload = {
+      ...ptForm,
+      perumahanId: ptForm.perumahanIds && ptForm.perumahanIds.length > 0 ? ptForm.perumahanIds[0] : null,
+      perumahanIds: ptForm.perumahanIds || [],
+    };
+
     await runAction(async () => {
-      if (editingPtId) await updatePt(editingPtId, ptForm);
-      else await addPt(ptForm);
+      if (editingPtId) await updatePt(editingPtId, payload);
+      else await addPt(payload);
       setPtModalOpen(false);
     });
   };
 
   // ─── Template handlers ──────────────────────────────────
   const openAddTemplate = () => {
-    setEditingTmplId(null);
+    setEditingPtId(null);
     setTmplForm({ ptId: pts[0]?.id ?? '', tipeTransaksi: 'Cash', polaNomor: '', pasalIds: [] });
+    setTmplValidationError('');
+    setActionError('');
     setTmplModalOpen(true);
   };
 
   const openEditTemplate = (t: TemplateDokumen) => {
     setEditingTmplId(t.id);
     setTmplForm({ ptId: t.ptId, tipeTransaksi: t.tipeTransaksi, polaNomor: t.polaNomor, pasalIds: [...t.pasalIds] });
+    setTmplValidationError('');
+    setActionError('');
     setTmplModalOpen(true);
   };
 
   const saveTemplate = async () => {
-    if (!tmplForm.ptId || !tmplForm.polaNomor.trim()) return;
+    setTmplValidationError('');
+    setActionError('');
+    if (!tmplForm.ptId) {
+      setTmplValidationError('Pilih PT terlebih dahulu.');
+      return;
+    }
+    if (!tmplForm.polaNomor.trim()) {
+      setTmplValidationError('Pola nomor wajib diisi.');
+      return;
+    }
+
     await runAction(async () => {
       if (editingTmplId) await updateTemplate(editingTmplId, tmplForm);
       else await addTemplate(tmplForm);
@@ -190,7 +229,7 @@ export default function MasterPtPage() {
           {activeTab === 'master-pt' && (
           <Panel
             title="Daftar PT"
-            description="Satu perumahan terikat ke satu PT. Data PT terisi otomatis di dokumen legal."
+            description="Satu PT dapat menaungi satu atau beberapa perumahan. Data PT terisi otomatis di dokumen legal."
             actions={<Button variant="primary" icon={PiPlus} onClick={openAddPt}>Tambah PT</Button>}
           >
             {pts.length === 0 ? (
@@ -201,6 +240,7 @@ export default function MasterPtPage() {
                   <thead>
                     <tr>
                       <th scope="col">Nama PT</th>
+                      <th scope="col">Perumahan</th>
                       <th scope="col">Nama Direktur</th>
                       <th scope="col">Tempat &amp; Tanggal Lahir</th>
                       <th scope="col">Pekerjaan</th>
@@ -209,19 +249,44 @@ export default function MasterPtPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {pts.map((pt) => (
-                      <tr key={pt.id}>
-                        <td className="font-semibold text-ink">{pt.namaPt}</td>
-                        <td>{pt.namaDirektur}</td>
-                        <td className="text-ink-2">{pt.ttl}</td>
-                        <td className="text-ink-2">{pt.pekerjaan}</td>
-                        <td className="max-w-[200px] truncate text-ink-2" title={pt.alamat || undefined}>{pt.alamat}</td>
-                        <td className="flex items-center gap-1">
-                          <IconButton icon={PiPencilSimple} label={`Edit ${pt.namaPt}`} onClick={() => openEditPt(pt)} />
-                          <IconButton icon={PiTrash} tone="danger" label={`Hapus ${pt.namaPt}`} onClick={() => setDeletePtId(pt.id)} />
-                        </td>
-                      </tr>
-                    ))}
+                    {pts.map((pt) => {
+                      const ptProyekIds = Array.isArray(pt.perumahanIds) && pt.perumahanIds.length > 0
+                        ? pt.perumahanIds
+                        : (pt.perumahanId ? [pt.perumahanId] : []);
+                      const assignedProyeks = proyeks.filter((p) => ptProyekIds.includes(p.id));
+
+                      return (
+                        <tr key={pt.id}>
+                          <td className="font-semibold text-ink">
+                            <div>{pt.namaPt}</div>
+                            {pt.singkatan && <span className="text-xs font-normal text-ink-3">({pt.singkatan})</span>}
+                          </td>
+                          <td>
+                            <div className="flex flex-wrap gap-1 max-w-[220px]">
+                              {assignedProyeks.map((p) => (
+                                <span
+                                  key={p.id}
+                                  className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-200"
+                                >
+                                  {p.nama}
+                                </span>
+                              ))}
+                              {assignedProyeks.length === 0 && (
+                                <span className="text-xs text-ink-3 italic">Semua / Belum diatur</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>{pt.namaDirektur}</td>
+                          <td className="text-ink-2">{pt.ttl}</td>
+                          <td className="text-ink-2">{pt.pekerjaan}</td>
+                          <td className="max-w-[200px] truncate text-ink-2" title={pt.alamat || undefined}>{pt.alamat}</td>
+                          <td className="flex items-center gap-1">
+                            <IconButton icon={PiPencilSimple} label={`Edit ${pt.namaPt}`} onClick={() => openEditPt(pt)} />
+                            <IconButton icon={PiTrash} tone="danger" label={`Hapus ${pt.namaPt}`} onClick={() => setDeletePtId(pt.id)} />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -326,7 +391,74 @@ export default function MasterPtPage() {
           </div>
           <Field label="Singkatan PT"><input className="control" value={ptForm.singkatan || ''} onChange={(e) => setPtForm((p) => ({ ...p, singkatan: e.target.value }))} /></Field>
           <Field label="Company PR Track" hint={companies.length === 0 ? 'Pilihan company tersedia setelah pembaruan backend diaktifkan dan data Track tersinkron.' : undefined}><select className="control" value={ptForm.trackCompanyId || ''} onChange={(e) => setPtForm((p) => ({ ...p, trackCompanyId: e.target.value || null }))}><option value="">Belum dihubungkan</option>{companies.map((c) => <option key={c.id} value={c.id}>{c.nama}</option>)}</select></Field>
-          <Field label="Perumahan"><select className="control" value={ptForm.perumahanId || ''} onChange={(e) => setPtForm((p) => ({ ...p, perumahanId: e.target.value || null }))}><option value="">Tanpa perumahan</option>{proyeks.map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}</select></Field>
+          
+          <Field
+            label="Perumahan yang Dinaungi"
+            hint="Pilih satu atau beberapa perumahan yang dikelola PT ini (bisa lebih dari 1 perumahan)."
+          >
+            <div className="rounded-lg border border-line bg-subtle p-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-line text-xs">
+                <span className="font-medium text-ink-2">
+                  {(ptForm.perumahanIds?.length ?? 0)} perumahan dipilih
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allIds = proyeks.map((pr) => pr.id);
+                      setPtForm((p) => ({ ...p, perumahanIds: allIds, perumahanId: allIds[0] || null }));
+                    }}
+                    className="text-brand-600 hover:underline cursor-pointer"
+                  >
+                    Pilih Semua
+                  </button>
+                  <span className="text-ink-3">&middot;</span>
+                  <button
+                    type="button"
+                    onClick={() => setPtForm((p) => ({ ...p, perumahanIds: [], perumahanId: null }))}
+                    className="text-ink-3 hover:underline cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                {proyeks.map((proyek) => {
+                  const isChecked = (ptForm.perumahanIds || []).includes(proyek.id);
+                  return (
+                    <label
+                      key={proyek.id}
+                      className={`flex cursor-pointer items-center gap-2 rounded-md p-2 text-sm transition ${
+                        isChecked ? 'bg-blue-50/80 font-medium text-brand-700' : 'hover:bg-white text-ink'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-500"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const current = ptForm.perumahanIds || [];
+                          const next = e.target.checked
+                            ? [...current, proyek.id]
+                            : current.filter((id) => id !== proyek.id);
+                          setPtForm((prev) => ({
+                            ...prev,
+                            perumahanIds: next,
+                            perumahanId: next[0] || null,
+                          }));
+                        }}
+                      />
+                      <span className="truncate">{proyek.nama}</span>
+                    </label>
+                  );
+                })}
+                {proyeks.length === 0 && (
+                  <p className="col-span-2 py-3 text-center text-xs text-ink-3">Belum ada data perumahan.</p>
+                )}
+              </div>
+            </div>
+          </Field>
+
           <Field label="Alamat" required error={ptErrors.alamat}>
             <textarea className="control" rows={2} value={ptForm.alamat || ''} onChange={(e) => setPtForm((p) => ({ ...p, alamat: e.target.value }))} />
           </Field>
@@ -361,9 +493,56 @@ export default function MasterPtPage() {
               </select>
             </Field>
           </div>
-          <Field label="Pola nomor" hint='Gunakan {PT}, {TAHUN}, {NO} sebagai variabel. Contoh: PRSM/{TAHUN}/KPR/{NO}' required>
-            <input className="control font-mono" value={tmplForm.polaNomor} onChange={(e) => setTmplForm((p) => ({ ...p, polaNomor: e.target.value }))} />
+
+          <Field
+            label="Pola nomor"
+            required
+            error={tmplValidationError}
+            hint="Bisa menggunakan nomor beneran (contoh: TST/2026/KPR/01) atau variabel seperti {NO}, {TAHUN}, {PT}."
+          >
+            <div className="space-y-2">
+              <input
+                className="control font-mono"
+                value={tmplForm.polaNomor}
+                onChange={(e) => {
+                  setTmplForm((p) => ({ ...p, polaNomor: e.target.value }));
+                  setTmplValidationError('');
+                }}
+                placeholder="TST/2026/KPR/01 atau PRSM/{TAHUN}/KPR/{NO}"
+              />
+              
+              {/* Interactive variable chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-xs text-ink-3">Variabel opsional:</span>
+                {[
+                  { tag: '{NO}', label: '{NO} (Nomor urut)' },
+                  { tag: '{TAHUN}', label: '{TAHUN}' },
+                  { tag: '{BULAN}', label: '{BULAN}' },
+                  { tag: '{BULAN_ROMAWI}', label: '{BULAN_ROMAWI}' },
+                  { tag: '{PT}', label: '{PT}' },
+                ].map((item) => (
+                  <button
+                    key={item.tag}
+                    type="button"
+                    onClick={() => {
+                      if (!tmplForm.polaNomor.includes(item.tag)) {
+                        setTmplForm((p) => ({
+                          ...p,
+                          polaNomor: p.polaNomor ? `${p.polaNomor}/${item.tag}` : item.tag,
+                        }));
+                        setTmplValidationError('');
+                      }
+                    }}
+                    className="inline-flex items-center rounded px-2 py-0.5 text-xs font-mono font-medium transition cursor-pointer border bg-white text-ink-2 border-line hover:bg-subtle"
+                    title={`Sisipkan ${item.tag}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </Field>
+
           <Field label="Susunan pasal" hint="Centang pasal yang dipakai dalam template ini, sesuai urutan tampil.">
             <div className="mt-1 max-h-60 overflow-y-auto rounded-lg border border-line bg-subtle p-2 space-y-1">
               {pasals.length === 0 ? (

@@ -12,6 +12,34 @@ export interface MasterPt {
   alamat?: string | null;
   noKtp?: string | null;
   perumahanId?: string | null;
+  perumahanIds?: string[] | null;
+}
+
+const LOCAL_PT_PERUMAHAN_KEY = 'podorukun_pt_perumahan_map';
+
+function getLocalPtPerumahanMap(): Record<string, string[]> {
+  try {
+    const raw = localStorage.getItem(LOCAL_PT_PERUMAHAN_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalPtPerumahan(ptId: string, ids: string[]) {
+  try {
+    const map = getLocalPtPerumahanMap();
+    map[ptId] = ids;
+    localStorage.setItem(LOCAL_PT_PERUMAHAN_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+function removeLocalPtPerumahan(ptId: string) {
+  try {
+    const map = getLocalPtPerumahanMap();
+    delete map[ptId];
+    localStorage.setItem(LOCAL_PT_PERUMAHAN_KEY, JSON.stringify(map));
+  } catch {}
 }
 
 interface MasterPtState {
@@ -35,7 +63,14 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
       const res = await fetchApi('/master-pt');
       const json = await res.json();
       if (res.ok) {
-        set({ items: json.data || [], isLoading: false });
+        const localMap = getLocalPtPerumahanMap();
+        const itemsWithPerumahan = (json.data || []).map((pt: MasterPt) => {
+          const ids = Array.isArray(pt.perumahanIds) && pt.perumahanIds.length > 0
+            ? pt.perumahanIds
+            : (localMap[pt.id] || (pt.perumahanId ? [pt.perumahanId] : []));
+          return { ...pt, perumahanIds: ids };
+        });
+        set({ items: itemsWithPerumahan, isLoading: false });
       } else {
         set({ error: json.message || 'Gagal memuat PT', isLoading: false });
       }
@@ -52,9 +87,14 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Gagal menambah PT');
     
+    const newId = json.data?.id || '';
+    if (newId && data.perumahanIds) {
+      saveLocalPtPerumahan(newId, data.perumahanIds);
+    }
+
     // Refresh list
     await get().fetch();
-    return json.data?.id || '';
+    return newId;
   },
 
   update: async (id, data) => {
@@ -65,6 +105,10 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Gagal mengubah PT');
     
+    if (data.perumahanIds) {
+      saveLocalPtPerumahan(id, data.perumahanIds);
+    }
+
     // Optimistic update or refresh
     set((state) => ({
       items: state.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
@@ -78,6 +122,8 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Gagal menghapus PT');
     
+    removeLocalPtPerumahan(id);
+
     set((state) => ({
       items: state.items.filter((item) => item.id !== id),
     }));

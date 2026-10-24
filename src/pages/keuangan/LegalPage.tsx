@@ -376,43 +376,78 @@ export default function LegalPage() {
                 </select>
               </Field>
 
-              {penjualanList.length > 0 && (
-                <Field label="Pilih dari Penjualan PR Track" optional hint="Otomatis mengisi kavling, pembeli & harga" className="sm:col-span-2">
+              {/* Unified dropdown: Penjualan PR Track & Kavling */}
+              <Field
+                label="Kavling / Unit Penjualan PR Track"
+                required
+                hint="Pilih unit penjualan dari PR Track untuk pengisian otomatis data pembeli & harga, atau pilih unit kavling untuk input manual."
+                className="sm:col-span-2"
+              >
+                {kavlingList.length > 0 || penjualanList.length > 0 ? (
                   <select
                     className="control"
-                    value={formAssignmentId}
-                    onChange={(e) => handlePenjualanSelect(e.target.value)}
+                    value={
+                      formAssignmentId
+                        ? `penjualan:${formAssignmentId}`
+                        : formKavlingId
+                        ? `kavling:${formKavlingId}`
+                        : ''
+                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) {
+                        setFormAssignmentId('');
+                        setFormKavlingId('');
+                        return;
+                      }
+                      if (val.startsWith('penjualan:')) {
+                        const assignmentIdVal = val.replace('penjualan:', '');
+                        handlePenjualanSelect(assignmentIdVal);
+                      } else if (val.startsWith('kavling:')) {
+                        const kavId = val.replace('kavling:', '');
+                        setFormAssignmentId('');
+                        setFormKavlingId(kavId);
+                      }
+                    }}
                   >
-                    <option value="">Pilih data penjualan PR Track...</option>
-                    {penjualanList.map((p) => (
-                      <option key={p.assignmentId || p.id} value={p.assignmentId || p.id}>
-                        {p.kavlingNomor ? `Kavling ${p.kavlingNomor}` : 'Unit'} &middot; {p.namaPembeli || p.pembeli?.nama || 'Pembeli'} &middot; {p.tipeTransaksi || ''}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              )}
+                    <option value="">Pilih unit kavling atau data penjualan...</option>
 
-              <Field label="Kavling (Unit PR Track)" required className="sm:col-span-2">
-                {kavlingList.length > 0 ? (
-                  <select
-                    className="control"
-                    value={formKavlingId}
-                    onChange={(e) => setFormKavlingId(e.target.value)}
-                  >
-                    <option value="">Pilih unit kavling</option>
-                    {kavlingList.map((k) => (
-                      <option key={k.id} value={k.id}>
-                        {k.nomor} {k.tipe ? `(Tipe ${k.tipe})` : ''} {k.status ? ` - ${k.status}` : ''}
-                      </option>
-                    ))}
+                    {penjualanList.length > 0 && (
+                      <optgroup label="Unit Terjual (Data Penjualan PR Track - Otomatis)">
+                        {penjualanList.map((p) => {
+                          const val = `penjualan:${p.assignmentId || p.id}`;
+                          const kavNomor = p.kavlingNomor ? `Kavling ${p.kavlingNomor}` : 'Unit';
+                          const namaPembeli = p.namaPembeli || p.pembeli?.nama || 'Pembeli';
+                          const tipeTrx = p.tipeTransaksi ? ` · ${p.tipeTransaksi}` : '';
+                          return (
+                            <option key={val} value={val}>
+                              {kavNomor} — {namaPembeli}{tipeTrx}
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    )}
+
+                    {kavlingList.length > 0 && (
+                      <optgroup label="Semua Unit Kavling (Input Data Manual)">
+                        {kavlingList.map((k) => {
+                          const val = `kavling:${k.id}`;
+                          const label = `${k.nomor}${k.tipe ? ` (Tipe ${k.tipe})` : ''}${k.status ? ` - ${k.status}` : ''}`;
+                          return (
+                            <option key={val} value={val}>
+                              {label}
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    )}
                   </select>
                 ) : (
                   <input
                     className="control"
                     value={formKavlingId}
                     onChange={(e) => setFormKavlingId(e.target.value)}
-                    placeholder="UUID kavling atau pilih perumahan"
+                    placeholder="Pilih perumahan terlebih dahulu atau masukkan ID kavling"
                   />
                 )}
               </Field>
