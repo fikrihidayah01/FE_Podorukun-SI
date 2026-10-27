@@ -208,7 +208,8 @@ export default function PiutangPage() {
                     <th scope="col">Tipe</th>
                     <th scope="col" className="num">Nilai SPPR</th>
                     <th scope="col" className="num">Dibayar</th>
-                    <th scope="col" className="num">Sisa</th><th>Aksi</th>
+                    <th scope="col" className="num">Sisa</th>
+                    <th scope="col" className="w-14 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -242,7 +243,9 @@ export default function PiutangPage() {
                         <td className="num font-semibold">
                           {sisa === 0 ? <Badge tone="positive">Lunas</Badge> : <Money value={sisa} className="text-ink" />}
                         </td>
-                        <td><PiutangActions item={kv} /></td>
+                        <td className="text-center">
+                          <PiutangActions item={kv} />
+                        </td>
                       </tr>
                     );
                   })}
@@ -253,6 +256,7 @@ export default function PiutangPage() {
                     <td className="num"><Money value={totals.nilai} /></td>
                     <td className="num"><Money value={totals.dibayar} /></td>
                     <td className="num"><Money value={totals.sisa} /></td>
+                    <td />
                   </tr>
                 </tfoot>
               </table>

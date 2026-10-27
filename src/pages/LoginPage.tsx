@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // const isLocalhost =
+  const isLocalhost =
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1' ||
@@ -113,7 +113,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {false && (
+          {isLocalhost && (
             <div className="mt-5 rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-3.5 text-xs text-amber-900">
               <div className="flex items-center justify-between font-semibold text-amber-800">
                 <span>⚡ Dev Auto Login (Localhost Only)</span>
@@ -155,7 +155,7 @@ export default function LoginPage() {
         </div>
       </main>
 
-      <p className="mx-auto mt-8 text-center text-xs text-ink-3">SI-Podorukun Ac 2026</p>
+      <p className="mx-auto mt-8 text-center text-xs text-ink-3">SI-Podorukun © 2026</p>
     </div>
   );
 }

@@ -120,6 +120,13 @@ interface TagihanState {
   getTotalDibayar: (proyekId?: string) => number;
   getTotalSisa: (proyekId?: string) => number;
   pindahAlokasi: (piutangId: string, dariJadwalId: string, keJadwalId: string, nominal: number) => Promise<void>;
+  updateJadwalAngsuran: (
+    kavlingId: string,
+    periode: string,
+    tagihan: number,
+    tanggalJatuhTempo: string,
+    jadwalId?: string
+  ) => Promise<void>;
   addFromLegal: (legalData: any) => Promise<void>;
 }
 
@@ -173,6 +180,46 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
     await get().fetchItems();
   },
   
+  updateJadwalAngsuran: async (kavlingId, periode, tagihan, tanggalJatuhTempo, jadwalId) => {
+    try {
+      const response = await fetchApi(`/piutang/${kavlingId}/jadwal`, {
+        method: 'PUT',
+        body: JSON.stringify({ periode, tagihan, tanggalJatuhTempo, jadwalId }),
+      });
+      if (response.ok) {
+        const updated = await response.json().catch(() => null);
+        if (updated?.data) {
+          set((state) => ({
+            items: state.items.map((k) => (k.id === kavlingId ? updated.data : k)),
+          }));
+          return;
+        }
+      }
+    } catch {}
+
+    set((state) => ({
+      items: state.items.map((k) => {
+        if (k.id !== kavlingId) return k;
+        const updatedPeriode = k.periodeAngsuran.map((p) =>
+          p.periode === periode || (jadwalId && p.id === jadwalId)
+            ? { ...p, tagihan, tanggalJatuhTempo }
+            : p
+        );
+        const totalTagihan = updatedPeriode.reduce((sum, p) => sum + p.tagihan, 0);
+        const totalLainnya = (k.pembayaranLainnya || []).reduce((sum, p) => sum + p.nominal, 0);
+        const totalDibayar = updatedPeriode.reduce((sum, p) => sum + p.dibayar, 0);
+        const nilaiSppr = totalTagihan + totalLainnya;
+        return {
+          ...k,
+          nilaiSppr,
+          totalDibayar,
+          sisa: Math.max(0, nilaiSppr - totalDibayar),
+          periodeAngsuran: updatedPeriode,
+        };
+      }),
+    }));
+  },
+
   addFromLegal: async (_legalData: any) => {
     await get().fetchItems();
   },

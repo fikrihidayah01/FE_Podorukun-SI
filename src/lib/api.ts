@@ -1,7 +1,7 @@
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
 
-// API lintas origin memakai token eksplisit; kompatibel dengan mode CORS terbuka tanpa cookie.
-export const API_CREDENTIALS: RequestCredentials = new URL(API_BASE_URL, window.location.origin).origin === window.location.origin ? 'include' : 'omit';
+// API selalu memakai token eksplisit (Bearer token di localStorage) tanpa cookie agar kompatibel lintas-origin.
+export const API_CREDENTIALS: RequestCredentials = 'omit';
 
 export function getAccessToken(): string | null {
   return localStorage.getItem('si_access_token');
@@ -26,8 +26,7 @@ export function clearTokens() {
 /**
  * Attempt a silent token refresh.
  * Backend accepts refreshToken in JSON body OR via HttpOnly cookie.
- * We send both: body (for localhost dev where Secure cookies don't work over HTTP)
- * and same-origin cookies; cross-origin requests use the explicit tokens.
+ * We send refreshToken in JSON body using explicit tokens (credentials: 'omit').
  */
 export async function tryRefresh(): Promise<string | null> {
   const storedRefreshToken = getRefreshToken();
@@ -36,8 +35,6 @@ export async function tryRefresh(): Promise<string | null> {
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: API_CREDENTIALS,
-      // Send refreshToken in body so localhost dev works (Secure cookies are blocked on HTTP).
-      // Backend also accepts cookie, so production still works correctly.
       ...(storedRefreshToken
         ? {
             headers: { 'Content-Type': 'application/json' },

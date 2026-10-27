@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import {
+  PiCheck,
+  PiPencilSimple,
+  PiX,
   PiFilePdf,
   PiImage,
   PiDownloadSimple,
@@ -9,7 +12,7 @@ import {
   PiArrowsClockwise,
 } from 'react-icons/pi';
 import Modal from '../../../components/ui/Modal';
-import Button from '../../../components/ui/Button';
+import Button, { IconButton } from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Money from '../../../components/ui/Money';
 import Notice from '../../../components/ui/Notice';
@@ -61,7 +64,12 @@ function getEffectiveBukti(row: PeriodeAngsuran): BuktiTransaksi | null {
 }
 
 export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Props) {
-  const { getById, pindahAlokasi } = usePiutangStore();
+  const { getById, pindahAlokasi, updateJadwalAngsuran } = usePiutangStore();
+  // Edit Jatuh Tempo & Tagihan
+  const [editingPeriode, setEditingPeriode] = useState<string | null>(null);
+  const [editJatuhTempo, setEditJatuhTempo] = useState('');
+  const [editTagihan, setEditTagihan] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const kv = kavlingId ? getById(kavlingId) : undefined;
 
   // Modal Bukti Transaksi
@@ -84,20 +92,47 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
   const rows = kv ? [...kv.periodeAngsuran].sort((a, b) => a.periode.localeCompare(b.periode)) : [];
 
   const totals = rows.reduce(
-    (acc, r) => ({
-      tagihan: acc.tagihan + r.tagihan,
-      dibayar: acc.dibayar + r.dibayar,
-      sisa: acc.sisa + Math.max(0, r.tagihan - r.dibayar),
-    }),
+    (acc, r) => {
+      const tagihanVal = editingPeriode === r.periode ? Math.max(0, Number(editTagihan) || 0) : r.tagihan;
+      return {
+        tagihan: acc.tagihan + tagihanVal,
+        dibayar: acc.dibayar + r.dibayar,
+        sisa: acc.sisa + Math.max(0, tagihanVal - r.dibayar),
+      };
+    },
     { tagihan: 0, dibayar: 0, sisa: 0 },
   );
 
   const now = new Date();
   const tunggakan = rows
-    .filter((r) => new Date(r.tanggalJatuhTempo) < now)
-    .reduce((sum, r) => sum + Math.max(0, r.tagihan - r.dibayar), 0);
+    .filter((r) => {
+      const jtStr = editingPeriode === r.periode && editJatuhTempo ? editJatuhTempo : r.tanggalJatuhTempo;
+      return new Date(jtStr) < now;
+    })
+    .reduce((sum, r) => {
+      const tagihanVal = editingPeriode === r.periode ? Math.max(0, Number(editTagihan) || 0) : r.tagihan;
+      return sum + Math.max(0, tagihanVal - r.dibayar);
+    }, 0);
 
   if (!kv) return null;
+
+  const startEdit = (row: PeriodeAngsuran) => {
+    setEditingPeriode(row.periode);
+    setEditJatuhTempo(row.tanggalJatuhTempo);
+    setEditTagihan(String(row.tagihan));
+  };
+
+  const saveEdit = async (periode: string, jadwalId?: string) => {
+    if (!kavlingId) return;
+    setSavingEdit(true);
+    try {
+      const tagihanNum = Math.max(0, Number(editTagihan) || 0);
+      await updateJadwalAngsuran(kavlingId, periode, tagihanNum, editJatuhTempo, jadwalId);
+      setEditingPeriode(null);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handlePindahAlokasi = async () => {
     if (!dariJadwal || !keJadwal || !nominalPindah || Number(nominalPindah) <= 0) return;
@@ -192,21 +227,38 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                   <th scope="col" className="text-left">Sisa</th>
                   <th scope="col" className="text-left">Status</th>
                   <th scope="col" className="text-left">Bukti transaksi</th>
+                  <th scope="col" className="w-16 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const sisa = Math.max(0, row.tagihan - row.dibayar);
-                  const status = computeStatus(row);
+                  const editing = editingPeriode === row.periode;
+                  const tagihanVal = editing ? Math.max(0, Number(editTagihan) || 0) : row.tagihan;
+                  const sisa = Math.max(0, tagihanVal - row.dibayar);
+                  const status = computeStatus({
+                    ...row,
+                    tagihan: tagihanVal,
+                    tanggalJatuhTempo: editing && editJatuhTempo ? editJatuhTempo : row.tanggalJatuhTempo,
+                  });
                   const effectiveBukti = getEffectiveBukti(row);
 
                   return (
-                    <tr key={row.periode}>
+                    <tr key={row.periode} className={editing ? '[&>td]:bg-brand-50/40' : undefined}>
                       <td className="whitespace-nowrap font-semibold text-ink text-left">{formatBulanPendek(row.periode)}</td>
 
-                      {/* Jatuh tempo: Resmi dari SPPR (Read-only) */}
+                      {/* Jatuh tempo: BISA DIEDIT (RATA KIRI) */}
                       <td className="whitespace-nowrap tabular-nums text-left">
-                        {formatTanggal(row.tanggalJatuhTempo)}
+                        {editing ? (
+                          <input
+                            type="date"
+                            aria-label={`Jatuh tempo ${formatBulanPendek(row.periode)}`}
+                            className="control control-sm w-36 text-left"
+                            value={editJatuhTempo}
+                            onChange={(e) => setEditJatuhTempo(e.target.value)}
+                          />
+                        ) : (
+                          formatTanggal(row.tanggalJatuhTempo)
+                        )}
                       </td>
 
                       {/* Tgl bayar: Dari sinkron PR Track (Read-only) */}
@@ -218,9 +270,20 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                         )}
                       </td>
 
-                      {/* Tagihan: Resmi dari SPPR (Read-only) */}
+                      {/* Tagihan: BISA DIEDIT (RATA KIRI) */}
                       <td className="whitespace-nowrap tabular-nums text-left font-semibold text-ink">
-                        <Money value={row.tagihan} />
+                        {editing ? (
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            aria-label={`Nominal tagihan ${formatBulanPendek(row.periode)}`}
+                            className="control control-sm w-36 text-left"
+                            value={editTagihan}
+                            onChange={(e) => setEditTagihan(e.target.value)}
+                          />
+                        ) : (
+                          <Money value={row.tagihan} />
+                        )}
                       </td>
 
                       {/* Dibayar: Dari sinkron PR Track (Read-only) */}
@@ -264,6 +327,36 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                           <span className="text-ink-3">-</span>
                         )}
                       </td>
+
+                      {/* Aksi */}
+                      <td className="!pr-2 text-center whitespace-nowrap">
+                        {editing ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <IconButton
+                              icon={PiCheck}
+                              label="Simpan perubahan"
+                              disabled={savingEdit}
+                              onClick={() => void saveEdit(row.periode, row.id || row.jadwalId)}
+                              className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                            />
+                            <IconButton
+                              icon={PiX}
+                              label="Batal perubahan"
+                              disabled={savingEdit}
+                              onClick={() => setEditingPeriode(null)}
+                              tone="danger"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <IconButton
+                              icon={PiPencilSimple}
+                              label={`Edit jadwal ${formatBulanPendek(row.periode)}`}
+                              onClick={() => startEdit(row)}
+                            />
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -274,7 +367,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                   <td className="text-left font-bold"><Money value={totals.tagihan} /></td>
                   <td className="text-left font-bold"><Money value={totals.dibayar} /></td>
                   <td className="text-left font-bold"><Money value={totals.sisa} /></td>
-                  <td colSpan={2} />
+                  <td colSpan={3} />
                 </tr>
               </tfoot>
             </table>
