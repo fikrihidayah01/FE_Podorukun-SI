@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PiCaretLeft, PiCaretRight } from 'react-icons/pi';
 import { fetchApi } from '../../../lib/api';
 import { usePiutangStore } from '../../../store/piutangStore';
 import Panel, { TableScroll } from '../../../components/ui/Panel';
-import Button from '../../../components/ui/Button';
+import Button, { IconButton } from '../../../components/ui/Button';
 import Money from '../../../components/ui/Money';
 import Modal from '../../../components/ui/Modal';
 import Notice from '../../../components/ui/Notice';
@@ -47,18 +48,71 @@ function masalahTagihan(p: Payment): string | null {
 const terkunci = (p: Payment) => p.jurnalStatus === 'diposting';
 const bisaDiverifikasi = (p: Payment) => Boolean(p.siJadwalId) && !p.isDeleted && !terkunci(p);
 
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total];
+  }
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total];
+}
+
 export default function PembayaranTrackPanel() {
   const [rows, setRows] = useState<Payment[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(1);
   const [target, setTarget] = useState<{ payment: Payment; keputusan: Keputusan } | null>(null);
   const [alasan, setAlasan] = useState('');
   const [dialogError, setDialogError] = useState('');
 
+  const PAGE_SIZE = 30;
+
   const load = async () => { const res = await fetchApi('/pembayaran-track'); const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal memuat pembayaran'); setRows(body.data); };
   useEffect(() => { void load().catch((err) => setError(err.message)); }, []);
   const refresh = async () => { await load(); await usePiutangStore.getState().fetchItems(); };
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      const matchStatus = !status || r.statusProses === status;
+      const tgl = (r.tanggal || '').slice(0, 10);
+      const matchStart = !startDate || tgl >= startDate;
+      const matchEnd = !endDate || tgl <= endDate;
+      return matchStatus && matchStart && matchEnd;
+    });
+  }, [rows, status, startDate, endDate]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredRows.slice(start, start + PAGE_SIZE);
+  }, [filteredRows, page]);
+
+  const handleStatusChange = (val: string) => {
+    setStatus(val);
+    setPage(1);
+  };
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    setPage(1);
+  };
+  const handleEndDateChange = (val: string) => {
+    setEndDate(val);
+    setPage(1);
+  };
+  const handleResetFilter = () => {
+    setStatus('');
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+  };
 
   const process = async (id?: string) => {
     setBusy(true); setError('');
@@ -86,22 +140,157 @@ export default function PembayaranTrackPanel() {
 
   return <Panel title="Pembayaran dari PR Track" description="Verifikasi pengajuan berdasarkan tagihan, lalu periksa yang gagal validasi atau perlu ditinjau." actions={<Button disabled={busy} onClick={() => void process()}>Proses pembayaran menunggu</Button>}>
     {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
-    <label className="mb-4 block">Status<select className="control" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Semua</option>{STATUS.map((s) => <option key={s} value={s}>{label(s)}</option>)}</select></label>
-    <TableScroll label="Status pembayaran"><table className="tbl"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Nominal</th><th>Status</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>
-      {rows.filter((r) => !status || r.statusProses === status).map((r) => <tr key={r.id}>
-        <td>{r.tanggal}</td>
-        <td>{label(r.jenis)}<span className="block text-xs text-ink-3">{r.siJadwalId ? 'Berdasarkan tagihan' : 'Legacy'}</span></td>
-        <td><Money value={r.nominal} /></td>
-        <td><Badge tone={STATUS_TONE[r.statusProses] ?? 'neutral'}>{label(r.statusProses)}</Badge>{r.keputusanSi && <span className="mt-1 block text-xs text-ink-3">Keputusan SI: {r.keputusanSi}</span>}</td>
-        <td>{r.alasan || '—'}{r.jurnalId && <Link className="block underline" to="/keuangan/jurnal">{r.nomorJurnal} ({r.jurnalStatus})</Link>}{r.siJadwalId && terkunci(r) && <span className="block text-xs text-ink-3">Untuk mengubah keputusan, balik jurnal ini dulu.</span>}</td>
-        <td><div className="flex flex-wrap gap-2">
-          {bisaDiverifikasi(r) ? <>
-            <Button size="sm" variant="primary" disabled={busy} onClick={() => openVerifikasi(r, 'terima')}>Terima</Button>
-            <Button size="sm" variant="danger-ghost" disabled={busy} onClick={() => openVerifikasi(r, 'tolak')}>Tolak</Button>
-          </> : !r.siJadwalId && <Button size="sm" disabled={busy} onClick={() => void process(r.id)}>Proses ulang</Button>}
-        </div></td>
-      </tr>)}
-    </tbody></table>{rows.length === 0 && <p className="p-4 text-ink-2">Belum ada pembayaran tersinkron.</p>}</TableScroll>
+
+    <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end">
+      <div>
+        <label htmlFor="track-dari-tgl" className="field-label">Dari tanggal</label>
+        <input
+          id="track-dari-tgl"
+          type="date"
+          className="control w-full"
+          value={startDate}
+          onChange={(e) => handleStartDateChange(e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="track-sampai-tgl" className="field-label">Sampai tanggal</label>
+        <input
+          id="track-sampai-tgl"
+          type="date"
+          className="control w-full"
+          value={endDate}
+          onChange={(e) => handleEndDateChange(e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="track-status" className="field-label">Status</label>
+        <select
+          id="track-status"
+          className="control w-full"
+          value={status}
+          onChange={(e) => handleStatusChange(e.target.value)}
+        >
+          <option value="">Semua status</option>
+          {STATUS.map((s) => (
+            <option key={s} value={s}>{label(s)}</option>
+          ))}
+        </select>
+      </div>
+      {(startDate || endDate || status) && (
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleResetFilter}
+            className="text-xs text-ink-3 hover:text-danger"
+          >
+            Reset filter
+          </Button>
+        </div>
+      )}
+    </div>
+
+    <TableScroll label="Status pembayaran">
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Jenis</th>
+            <th>Nominal</th>
+            <th>Status</th>
+            <th>Keterangan</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paginatedRows.map((r) => (
+            <tr key={r.id}>
+              <td>{r.tanggal}</td>
+              <td>{label(r.jenis)}<span className="block text-xs text-ink-3">{r.siJadwalId ? 'Berdasarkan tagihan' : 'Legacy'}</span></td>
+              <td><Money value={r.nominal} /></td>
+              <td><Badge tone={STATUS_TONE[r.statusProses] ?? 'neutral'}>{label(r.statusProses)}</Badge>{r.keputusanSi && <span className="mt-1 block text-xs text-ink-3">Keputusan SI: {r.keputusanSi}</span>}</td>
+              <td>{r.alasan || '—'}{r.jurnalId && <Link className="block underline" to="/keuangan/jurnal">{r.nomorJurnal} ({r.jurnalStatus})</Link>}{r.siJadwalId && terkunci(r) && <span className="block text-xs text-ink-3">Untuk mengubah keputusan, balik jurnal ini dulu.</span>}</td>
+              <td>
+                <div className="flex flex-wrap gap-2">
+                  {bisaDiverifikasi(r) ? (
+                    <>
+                      <Button size="sm" variant="primary" disabled={busy} onClick={() => openVerifikasi(r, 'terima')}>Terima</Button>
+                      <Button size="sm" variant="danger-ghost" disabled={busy} onClick={() => openVerifikasi(r, 'tolak')}>Tolak</Button>
+                    </>
+                  ) : !r.siJadwalId && (
+                    <Button size="sm" disabled={busy} onClick={() => void process(r.id)}>Proses ulang</Button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {filteredRows.length === 0 && (
+        <p className="p-4 text-center text-sm text-ink-3">
+          {rows.length === 0 ? 'Belum ada pembayaran tersinkron.' : 'Tidak ada pembayaran yang sesuai filter.'}
+        </p>
+      )}
+    </TableScroll>
+
+    {filteredRows.length > 0 && (
+      <nav
+        aria-label="Navigasi halaman pembayaran"
+        className="flex flex-col gap-3 border-t border-line px-4 py-3 text-[13px] text-ink-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <p className="tabular-nums">
+          Menampilkan{' '}
+          <span className="font-semibold text-ink">
+            {(page - 1) * PAGE_SIZE + 1}
+          </span>
+          –
+          <span className="font-semibold text-ink">
+            {Math.min(page * PAGE_SIZE, filteredRows.length)}
+          </span>{' '}
+          dari{' '}
+          <span className="font-semibold text-ink">
+            {filteredRows.length}
+          </span>{' '}
+          pembayaran
+        </p>
+
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <IconButton
+              icon={PiCaretLeft}
+              label="Halaman sebelumnya"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            />
+            {getPageNumbers(page, totalPages).map((p, idx) =>
+              p === '...' ? (
+                <span key={`dots-${idx}`} className="px-1.5 text-xs text-ink-3">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPage(Number(p))}
+                  aria-current={p === page ? 'page' : undefined}
+                  className={`tap-target h-8 min-w-8 rounded-lg px-2 text-[13px] font-semibold tabular-nums transition-colors cursor-pointer ${
+                    p === page ? 'bg-ink text-white' : 'text-ink-2 hover:bg-neutral-soft'
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+            <IconButton
+              icon={PiCaretRight}
+              label="Halaman berikutnya"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+            />
+          </div>
+        )}
+      </nav>
+    )}
 
     <Modal isOpen={target !== null} onClose={closeVerifikasi} title={tolak ? 'Tolak pembayaran' : 'Terima pembayaran'} description={p ? `${p.tanggal} · ${label(p.jenis)}` : undefined}
       footer={<><Button disabled={busy} onClick={closeVerifikasi}>Batal</Button><Button variant={tolak ? 'danger' : 'primary'} disabled={busy || (tolak && !alasan.trim())} onClick={() => void submitVerifikasi()}>{busy ? 'Menyimpan…' : tolak ? 'Tolak pembayaran' : 'Terima dan buat jurnal'}</Button></>}>
