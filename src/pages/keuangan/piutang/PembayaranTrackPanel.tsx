@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PiCaretLeft, PiCaretRight } from 'react-icons/pi';
 import { fetchApi } from '../../../lib/api';
 import { usePiutangStore } from '../../../store/piutangStore';
+import { useProyekStore } from '../../../store/proyekStore';
 import Panel, { TableScroll } from '../../../components/ui/Panel';
 import Button, { IconButton } from '../../../components/ui/Button';
 import Money from '../../../components/ui/Money';
@@ -15,6 +16,19 @@ interface Payment {
   jurnalId: string | null; nomorJurnal: string | null; jurnalStatus: string | null;
   keputusanSi: 'terima' | 'tolak' | null; siJadwalId: string | null; rekeningTujuan: string | null; buktiUrl: string | null; isDeleted: boolean;
   tagihan: Tagihan | null;
+  unit?: string;
+  nomorKavling?: string;
+  kavling?: string | { nomor?: string; nomorKavling?: string };
+  namaPemilik?: string;
+  namaUser?: string;
+  customerName?: string;
+  namaCustomer?: string;
+  namaPerumahan?: string;
+  proyekNama?: string;
+  namaProyek?: string;
+  proyek?: string | { id?: string; nama?: string };
+  kavlingId?: string;
+  piutangId?: string;
 }
 interface Tagihan { id: string; noUrut: number; tanggal: string; jenis: string; keterangan: string | null; aktif: boolean; jumlah: number; terpakai: number; sisa: number; milikPenjualan: boolean }
 type Keputusan = 'terima' | 'tolak';
@@ -73,11 +87,62 @@ export default function PembayaranTrackPanel() {
   const [alasan, setAlasan] = useState('');
   const [dialogError, setDialogError] = useState('');
 
+  const piutangItems = usePiutangStore((s) => s.items);
+  const proyeks = useProyekStore((s) => s.items);
+
   const PAGE_SIZE = 30;
 
   const load = async () => { const res = await fetchApi('/pembayaran-track'); const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal memuat pembayaran'); setRows(body.data); };
-  useEffect(() => { void load().catch((err) => setError(err.message)); }, []);
-  const refresh = async () => { await load(); await usePiutangStore.getState().fetchItems(); };
+  useEffect(() => {
+    void load().catch((err) => setError(err.message));
+    if (proyeks.length === 0) void useProyekStore.getState().fetch();
+    if (piutangItems.length === 0) void usePiutangStore.getState().fetchItems();
+  }, [proyeks.length, piutangItems.length]);
+  const refresh = async () => {
+    await load();
+    await usePiutangStore.getState().fetchItems();
+    await useProyekStore.getState().fetch();
+  };
+
+  const resolvePaymentInfo = (r: Payment) => {
+    let unit = r.unit || r.nomorKavling;
+    if (!unit && r.kavling) {
+      unit = typeof r.kavling === 'string' ? r.kavling : r.kavling.nomorKavling || r.kavling.nomor;
+    }
+    let pemilik = r.namaPemilik || r.namaUser || r.customerName || r.namaCustomer;
+    let perumahan =
+      r.namaPerumahan ||
+      r.proyekNama ||
+      r.namaProyek ||
+      (typeof r.proyek === 'string' ? r.proyek : r.proyek?.nama);
+
+    if (!unit || !pemilik || !perumahan) {
+      const kv = piutangItems.find(
+        (k) =>
+          (r.kavlingId && k.id === r.kavlingId) ||
+          (r.piutangId && k.id === r.piutangId) ||
+          (r.siJadwalId &&
+            k.periodeAngsuran?.some((p) => p.id === r.siJadwalId || p.jadwalId === r.siJadwalId)) ||
+          k.periodeAngsuran?.some((p) => p.prTrackPaymentId === r.id) ||
+          (unit && k.nomorKavling?.trim().toLowerCase() === unit.trim().toLowerCase())
+      );
+
+      if (kv) {
+        if (!unit) unit = kv.nomorKavling;
+        if (!pemilik) pemilik = kv.namaUser;
+        if (!perumahan && kv.proyekId) {
+          const matchedProj = proyeks.find((p) => p.id === kv.proyekId);
+          perumahan = matchedProj?.nama || kv.proyekId;
+        }
+      }
+    }
+
+    return {
+      unit: unit || '—',
+      pemilik: pemilik || '—',
+      perumahan: perumahan || '—',
+    };
+  };
 
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
@@ -137,6 +202,7 @@ export default function PembayaranTrackPanel() {
 
   const tolak = target?.keputusan === 'tolak';
   const p = target?.payment;
+  const targetInfo = target?.payment ? resolvePaymentInfo(target.payment) : null;
 
   return <Panel title="Pembayaran dari PR Track" description="Verifikasi pengajuan berdasarkan tagihan, lalu periksa yang gagal validasi atau perlu ditinjau." actions={<Button disabled={busy} onClick={() => void process()}>Proses pembayaran menunggu</Button>}>
     {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
@@ -195,6 +261,9 @@ export default function PembayaranTrackPanel() {
         <thead>
           <tr>
             <th>Tanggal</th>
+            <th>Unit</th>
+            <th>Nama pemilik</th>
+            <th>Nama perumahan</th>
             <th>Jenis</th>
             <th>Nominal</th>
             <th>Status</th>
@@ -203,27 +272,33 @@ export default function PembayaranTrackPanel() {
           </tr>
         </thead>
         <tbody>
-          {paginatedRows.map((r) => (
-            <tr key={r.id}>
-              <td>{r.tanggal}</td>
-              <td>{label(r.jenis)}<span className="block text-xs text-ink-3">{r.siJadwalId ? 'Berdasarkan tagihan' : 'Legacy'}</span></td>
-              <td><Money value={r.nominal} /></td>
-              <td><Badge tone={STATUS_TONE[r.statusProses] ?? 'neutral'}>{label(r.statusProses)}</Badge>{r.keputusanSi && <span className="mt-1 block text-xs text-ink-3">Keputusan SI: {r.keputusanSi}</span>}</td>
-              <td>{r.alasan || '—'}{r.jurnalId && <Link className="block underline" to="/keuangan/jurnal">{r.nomorJurnal} ({r.jurnalStatus})</Link>}{r.siJadwalId && terkunci(r) && <span className="block text-xs text-ink-3">Untuk mengubah keputusan, balik jurnal ini dulu.</span>}</td>
-              <td>
-                <div className="flex flex-wrap gap-2">
-                  {bisaDiverifikasi(r) ? (
-                    <>
-                      <Button size="sm" variant="primary" disabled={busy} onClick={() => openVerifikasi(r, 'terima')}>Terima</Button>
-                      <Button size="sm" variant="danger-ghost" disabled={busy} onClick={() => openVerifikasi(r, 'tolak')}>Tolak</Button>
-                    </>
-                  ) : !r.siJadwalId && (
-                    <Button size="sm" disabled={busy} onClick={() => void process(r.id)}>Proses ulang</Button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
+          {paginatedRows.map((r) => {
+            const info = resolvePaymentInfo(r);
+            return (
+              <tr key={r.id}>
+                <td className="whitespace-nowrap">{r.tanggal}</td>
+                <td className="font-semibold text-ink whitespace-nowrap">{info.unit}</td>
+                <td>{info.pemilik}</td>
+                <td>{info.perumahan}</td>
+                <td>{label(r.jenis)}<span className="block text-xs text-ink-3">{r.siJadwalId ? 'Berdasarkan tagihan' : 'Legacy'}</span></td>
+                <td className="whitespace-nowrap"><Money value={r.nominal} /></td>
+                <td><Badge tone={STATUS_TONE[r.statusProses] ?? 'neutral'}>{label(r.statusProses)}</Badge>{r.keputusanSi && <span className="mt-1 block text-xs text-ink-3">Keputusan SI: {r.keputusanSi}</span>}</td>
+                <td>{r.alasan || '—'}{r.jurnalId && <Link className="block underline" to="/keuangan/jurnal">{r.nomorJurnal} ({r.jurnalStatus})</Link>}{r.siJadwalId && terkunci(r) && <span className="block text-xs text-ink-3">Untuk mengubah keputusan, balik jurnal ini dulu.</span>}</td>
+                <td>
+                  <div className="flex flex-wrap gap-2">
+                    {bisaDiverifikasi(r) ? (
+                      <>
+                        <Button size="sm" variant="primary" disabled={busy} onClick={() => openVerifikasi(r, 'terima')}>Terima</Button>
+                        <Button size="sm" variant="danger-ghost" disabled={busy} onClick={() => openVerifikasi(r, 'tolak')}>Tolak</Button>
+                      </>
+                    ) : !r.siJadwalId && (
+                      <Button size="sm" disabled={busy} onClick={() => void process(r.id)}>Proses ulang</Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       {filteredRows.length === 0 && (
@@ -292,12 +367,15 @@ export default function PembayaranTrackPanel() {
       </nav>
     )}
 
-    <Modal isOpen={target !== null} onClose={closeVerifikasi} title={tolak ? 'Tolak pembayaran' : 'Terima pembayaran'} description={p ? `${p.tanggal} · ${label(p.jenis)}` : undefined}
+    <Modal isOpen={target !== null} onClose={closeVerifikasi} title={tolak ? 'Tolak pembayaran' : 'Terima pembayaran'} description={p ? `${p.tanggal}${targetInfo?.unit && targetInfo.unit !== '—' ? ` · ${targetInfo.unit}` : ''} · ${label(p.jenis)}` : undefined}
       footer={<><Button disabled={busy} onClick={closeVerifikasi}>Batal</Button><Button variant={tolak ? 'danger' : 'primary'} disabled={busy || (tolak && !alasan.trim())} onClick={() => void submitVerifikasi()}>{busy ? 'Menyimpan…' : tolak ? 'Tolak pembayaran' : 'Terima dan buat jurnal'}</Button></>}>
       {p && <div className="space-y-4">
         {dialogError && <Notice tone="danger">{dialogError}</Notice>}
         {!tolak && masalahTagihan(p) && <Notice tone="warning">{masalahTagihan(p)} Pembayaran ini akan ditolak sistem bila diterima.</Notice>}
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          <dt className="text-ink-3">Unit</dt><dd className="font-semibold text-ink">{targetInfo?.unit || '—'}</dd>
+          <dt className="text-ink-3">Nama pemilik</dt><dd>{targetInfo?.pemilik || '—'}</dd>
+          <dt className="text-ink-3">Nama perumahan</dt><dd>{targetInfo?.perumahan || '—'}</dd>
           <dt className="text-ink-3">Tagihan</dt><dd>{p.tagihan ? <>Ke-{p.tagihan.noUrut} · {label(p.tagihan.jenis)}{p.tagihan.keterangan && ` · ${p.tagihan.keterangan}`}<span className="block text-xs text-ink-3">Tenggat {p.tagihan.tanggal}{!p.tagihan.aktif && ' · nonaktif'}</span></> : '—'}</dd>
           {p.tagihan && <>
             <dt className="text-ink-3">Nilai tagihan</dt><dd><Money value={p.tagihan.jumlah} /></dd>
