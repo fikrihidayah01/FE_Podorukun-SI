@@ -74,13 +74,7 @@ export default function SaldoBerjalanDetailModal({
     >
       <div className="space-y-5">
         <dl
-          className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/50 bg-line sm:grid-cols-3"
-          style={{
-            boxShadow: `
-              8px 8px 10px -1px rgba(0, 0, 0, 0.7),
-              -8px -8px 10px -1px rgba(255, 255, 255, 0.7)
-            `,
-          }}
+          className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line bg-line shadow-sm sm:grid-cols-3"
         >
           <div className="bg-subtle px-4 py-3">
             <dt className="text-xs font-semibold text-ink-3">Saldo awal</dt>

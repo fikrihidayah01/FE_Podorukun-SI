@@ -7,18 +7,18 @@ type Size = 'sm' | 'md';
 
 const VARIANT: Record<Variant, string> = {
   primary:
-    'bg-[#003aba] text-white border border-white/60 shadow-[4px_4px_8px_rgba(0,0,0,0.16),-4px_-4px_8px_rgba(255,255,255,0.9)] transition-all hover:bg-[#00319e] hover:shadow-[5px_5px_10px_rgba(0,0,0,0.18),-5px_-5px_10px_rgba(255,255,255,0.95)] active:scale-95 active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]',
+    'bg-[#cf1b1a] text-white shadow-xs hover:bg-[#b81817] active:bg-[#9e1413]',
   secondary:
-    'bg-[#f0eff4] text-ink border border-white/60 shadow-[4px_4px_8px_rgba(0,0,0,0.16),-4px_-4px_8px_rgba(255,255,255,0.9)] transition-all hover:bg-[#e6e5ea] hover:shadow-[5px_5px_10px_rgba(0,0,0,0.18),-5px_-5px_10px_rgba(255,255,255,0.95)] active:scale-95 active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]',
+    'border border-line bg-white text-ink shadow-xs hover:bg-neutral-soft active:bg-neutral-soft/80',
   ghost: 'text-ink-2 hover:bg-neutral-soft hover:text-ink active:bg-line',
   danger:
-    'bg-danger text-white border border-white/60 shadow-[4px_4px_8px_rgba(0,0,0,0.16),-4px_-4px_8px_rgba(255,255,255,0.9)] transition-all hover:bg-[#9a1d14] hover:shadow-[5px_5px_10px_rgba(0,0,0,0.18),-5px_-5px_10px_rgba(255,255,255,0.95)] active:scale-95 active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]',
+    'bg-danger text-white shadow-xs hover:bg-[#9a1d14] active:bg-[#80180f]',
   'danger-ghost': 'text-danger hover:bg-danger-soft active:bg-[#fbdcd8]',
 };
 
 const SIZE: Record<Size, string> = {
-  sm: 'h-8 gap-1.5 px-3.5 text-xs font-bold rounded-xl',
-  md: 'h-10 gap-2 px-4 text-sm font-semibold rounded-xl',
+  sm: 'h-8 gap-1.5 px-3.5 text-[13px] rounded-full',
+  md: 'h-10 gap-2 px-5 text-sm font-semibold rounded-full',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -39,7 +39,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`tap-target inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg font-semibold transition-[background-color,border-color,color,transform] duration-100 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 ${VARIANT[variant]} ${SIZE[size]} ${className}`}
+      className={`tap-target inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full font-semibold transition-[background-color,border-color,color,transform] duration-100 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 ${VARIANT[variant]} ${SIZE[size]} ${className}`}
       {...rest}
     >
       {loading ? (
@@ -71,7 +71,7 @@ export function IconButton({ icon: Icon, label, tone = 'default', className = ''
       type={type}
       aria-label={label}
       title={label}
-      className={`tap-target inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors disabled:pointer-events-none disabled:opacity-40 ${toneClass} ${className}`}
+      className={`tap-target inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:pointer-events-none disabled:opacity-40 ${toneClass} ${className}`}
       {...rest}
     >
       <Icon className="h-[18px] w-[18px]" aria-hidden />

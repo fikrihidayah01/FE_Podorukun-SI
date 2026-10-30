@@ -108,7 +108,7 @@ export default function DataTable<T>({
                 type="button"
                 onClick={() => onPageChange(p)}
                 aria-current={p === page ? 'page' : undefined}
-                className={`tap-target h-8 min-w-8 rounded-lg px-2 text-[13px] font-semibold tabular-nums transition-colors ${
+                className={`tap-target h-8 min-w-8 rounded-full px-2 text-[13px] font-semibold tabular-nums transition-colors ${
                   p === page ? 'bg-ink text-white' : 'text-ink-2 hover:bg-neutral-soft'
                 }`}
               >

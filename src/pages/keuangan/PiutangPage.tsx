@@ -89,7 +89,7 @@ export default function PiutangPage() {
         description={`Kavling belum serah terima, ${periode}`}
         actions={
           <Button variant="primary" icon={PiArrowsClockwise} loading={syncLoading} onClick={handleSinkron}>
-            Sinkron Podorukun Track
+            Sinkron Podorukuntrack
           </Button>
         }
       />

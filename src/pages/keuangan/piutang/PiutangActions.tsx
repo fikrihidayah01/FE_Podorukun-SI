@@ -130,10 +130,10 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
       <button
         type="button"
         onClick={toggleMenu}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-all cursor-pointer active:scale-95 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-all cursor-pointer active:scale-95 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
           menuOpen
-            ? 'border-brand-500 bg-brand-50 text-brand-700 shadow-sm ring-2 ring-brand-500/20'
-            : 'border-line/80 bg-white text-ink shadow-[0_2px_6px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.08)] hover:bg-neutral-50 hover:border-line-strong hover:shadow-[0_4px_10px_rgba(0,0,0,0.15)]'
+            ? 'border-brand-500 bg-brand-50 text-brand-700 shadow-xs ring-2 ring-brand-500/20'
+            : 'border-line bg-white text-ink shadow-xs hover:bg-neutral-50 hover:border-line-strong'
         }`}
         aria-label={`Menu aksi tagihan ${item.namaUser}`}
         aria-haspopup="true"

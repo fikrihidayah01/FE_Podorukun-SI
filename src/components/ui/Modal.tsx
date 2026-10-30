@@ -102,7 +102,7 @@ export default function Modal({ isOpen, onClose, title, description, children, s
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
-        className={`relative flex max-h-[92dvh] w-full animate-dialog-in flex-col rounded-t-xl bg-surface shadow-pop outline-none sm:max-h-[90dvh] sm:rounded-xl ${SIZE_CLASS[size]}`}
+        className={`relative flex max-h-[92dvh] w-full animate-dialog-in flex-col rounded-t-xl border border-line bg-surface shadow-pop outline-none sm:max-h-[90dvh] sm:rounded-xl ${SIZE_CLASS[size]}`}
       >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">

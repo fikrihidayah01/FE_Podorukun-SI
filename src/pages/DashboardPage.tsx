@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   PiHandCoins,
   PiBank,
   PiReceipt,
   PiNotebook,
+  PiCaretLeft,
   PiCaretRight,
   PiCheckCircle,
   PiHourglassMedium,
@@ -21,6 +22,7 @@ import menuConfig from '../config/menuConfig';
 import { KATEGORI_HUTANG_HEX, MODULE_ACCENT, shade, tint } from '../config/theme';
 import PageHeader, { PageBody } from '../components/ui/PageHeader';
 import Panel from '../components/ui/Panel';
+import { IconButton } from '../components/ui/Button';
 import Money from '../components/ui/Money';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
@@ -104,10 +106,15 @@ function KeuanganDashboard() {
     .sort((a, b) => b.value - a.value);
   const totalPositif = perKategori.reduce((s, k) => s + k.value, 0);
 
+  const [proyekPage, setProyekPage] = useState(1);
+  const PROYEK_PAGE_SIZE = 5;
+
   const perProyek = proyeks
     .map((p) => ({ ...p, value: saldo.filter((r) => r.kodePembantu.proyekId === p.id).reduce((s, r) => s + r.saldoAkhir, 0) }))
     .sort((a, b) => b.value - a.value);
   const maxProyek = Math.max(1, ...perProyek.map((p) => p.value));
+  const totalProyekPages = Math.max(1, Math.ceil(perProyek.length / PROYEK_PAGE_SIZE));
+  const paginatedProyek = perProyek.slice((proyekPage - 1) * PROYEK_PAGE_SIZE, proyekPage * PROYEK_PAGE_SIZE);
 
   const pinjamanAktif = pinjamans.filter((p) => p.status === 'aktif');
   const sisaPokokBank = pinjamanAktif.reduce((s, p) => s + p.sisaPokok, 0);
@@ -324,27 +331,71 @@ function KeuanganDashboard() {
 
         <div className="space-y-5 lg:space-y-6">
           <Panel title="Hutang per proyek" description={`Saldo akhir ${formatBulan(bulan)}`}>
-            <ul className="space-y-3.5">
-              {perProyek.map((p) => (
-                <li key={p.id} className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: tint(HUTANG, 12), color: shade(HUTANG, 85) }}>
-                    {p.kode}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span className="truncate font-medium text-ink">{p.nama}</span>
-                      <Money value={p.value} short className="font-semibold text-ink" />
-                    </div>
-                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-neutral-soft">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${Math.max(2, (p.value / maxProyek) * 100)}%`, backgroundImage: `linear-gradient(90deg, ${tint(HUTANG, 60)}, ${HUTANG})` }}
+            {perProyek.length === 0 ? (
+              <EmptyState compact icon={PiBuildings} title="Belum ada proyek" description="Proyek akan tampil setelah mutasi dicatat." />
+            ) : (
+              <>
+                <ul className="space-y-3.5">
+                  {paginatedProyek.map((p) => (
+                    <li key={p.id} className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: tint(HUTANG, 12), color: shade(HUTANG, 85) }}>
+                        {p.kode}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2 text-sm">
+                          <span className="truncate font-medium text-ink">{p.nama}</span>
+                          <Money value={p.value} short className="font-semibold text-ink" />
+                        </div>
+                        <div className="mt-1 h-2 overflow-hidden rounded-full bg-neutral-soft">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${Math.max(2, (p.value / maxProyek) * 100)}%`, backgroundImage: `linear-gradient(90deg, ${tint(HUTANG, 60)}, ${HUTANG})` }}
+                          />
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                {totalProyekPages > 1 && (
+                  <nav
+                    aria-label="Paging hutang per proyek"
+                    className="mt-4 flex items-center justify-between border-t border-line pt-3 text-xs text-ink-3"
+                  >
+                    <span className="tabular-nums">
+                      {(proyekPage - 1) * PROYEK_PAGE_SIZE + 1}–{Math.min(proyekPage * PROYEK_PAGE_SIZE, perProyek.length)} dari {perProyek.length} proyek
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <IconButton
+                        icon={PiCaretLeft}
+                        label="Halaman sebelumnya"
+                        onClick={() => setProyekPage((p) => Math.max(1, p - 1))}
+                        disabled={proyekPage <= 1}
+                      />
+                      {Array.from({ length: totalProyekPages }, (_, i) => i + 1).map((pg) => (
+                        <button
+                          key={pg}
+                          type="button"
+                          onClick={() => setProyekPage(pg)}
+                          aria-current={pg === proyekPage ? 'page' : undefined}
+                          className={`tap-target h-7 min-w-7 rounded-full px-2 text-xs font-semibold tabular-nums transition-colors cursor-pointer ${
+                            pg === proyekPage ? 'bg-ink text-white' : 'text-ink-2 hover:bg-neutral-soft'
+                          }`}
+                        >
+                          {pg}
+                        </button>
+                      ))}
+                      <IconButton
+                        icon={PiCaretRight}
+                        label="Halaman berikutnya"
+                        onClick={() => setProyekPage((p) => Math.min(totalProyekPages, p + 1))}
+                        disabled={proyekPage >= totalProyekPages}
                       />
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </nav>
+                )}
+              </>
+            )}
           </Panel>
 
           <Panel title="Jurnal" description={`${jurnals.length} jurnal tercatat`} flush>

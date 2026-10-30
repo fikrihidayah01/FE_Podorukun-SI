@@ -2,75 +2,54 @@
 @import 'tailwindcss';
 
 /*
-  Neumorphism warm theme. Light mode only.
-  Design Read: B2B internal finance dashboard, warm parchment base,
-  neumorphic elevation using split shadows (light top-left, warm-dark bottom-right).
-  
-  Palette rationale:
-  - Canvas: warm parchment #f5f0e8 — the "table surface" the whole app rests on.
-  - Surface: #faf8f4 — slightly warmer than canvas, so raised cards read as lifted.
-  - Ink: warm near-black #2a1f14 — brown-tinted, no harsh cool grey.
-  - Brand: deep teal #1a6b5a — accessible (5.8:1 on surface), distinct from amber-warning.
-  - Positive: muted olive-green #3a6b2a, danger: warm crimson #b83020.
-  - Warning: amber-brown #8a5200.
-
-  Neumorphism rules:
-  1. Only Panel, Modal, StatTile, and Button carry neumorphic shadows.
-  2. Never apply both inset and outset shadows to the same element simultaneously at rest.
-  3. Controls (inputs) use a soft inset shadow to read as "recessed" — the opposite of raised.
-  4. Radius is unchanged: panels 12px, controls 8px, badges 6px.
+  Clean flat theme. Light mode only (project rule in AGENTS.md).
+  - Background is #F4F6F8 canvas.
+  - Surface is crisp white #FFFFFF.
+  - Cards are flat with subtle border (border-line) and crisp shadow-sm.
+  - Radius rule: panels 12px (rounded-xl), controls and buttons 8px (rounded-lg), badges 6px (rounded-md).
 */
 @theme {
   --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  /* Warm neutrals */
-  --color-canvas: #f0eff4;
-  --color-surface: #f0eff4;
-  --color-subtle: #e6e5ea;
+  /* Flat neutrals */
+  --color-canvas: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-subtle: #f8fafc;
 
-  /* Warm ink tones */
-  --color-ink: #2a1f14;
-  --color-ink-2: #5c4a38;
-  --color-ink-3: #8a7260;
+  /* Ink tones */
+  --color-ink: #18212b;
+  --color-ink-2: #4a5562;
+  --color-ink-3: #64748b;
 
-  /* Warm border lines */
-  --color-line: #e2d9cc;
-  --color-line-strong: #b8a898;
+  /* Border lines */
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
 
-  /* Brand: royal blue (#003aba) */
-  --color-brand-50: #e8eeff;
-  --color-brand-100: #c5d5ff;
-  --color-brand-200: #96b5ff;
-  --color-brand-600: #003aba;
-  --color-brand-700: #00319e;
-  --color-brand-800: #002880;
+  /* Brand: Podorukun red (#cf1b1a) */
+  --color-brand-50: #fef2f2;
+  --color-brand-100: #fee2e2;
+  --color-brand-200: #fecaca;
+  --color-brand-600: #cf1b1a;
+  --color-brand-700: #b81817;
+  --color-brand-800: #9e1413;
 
-  /* Semantic states — warm variants */
-  --color-positive: #3a6b2a;
-  --color-positive-soft: #e8f2e3;
-  --color-warning: #8a5200;
-  --color-warning-soft: #fdf0d8;
-  --color-danger: #b83020;
-  --color-danger-soft: #fce8e5;
-  --color-neutral-soft: #ede8de;
+  /* Semantic states */
+  --color-positive: #0e6b45;
+  --color-positive-soft: #e7f4ec;
+  --color-warning: #8a4b00;
+  --color-warning-soft: #fcf1dc;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
+  --color-neutral-soft: #f1f5f9;
 
-  /* Standard raised element — Panel, cards */
-  --shadow-sm:
-    8px 8px 10px -3px rgba(0, 0, 0, 0.3),
-    -8px -8px 10px -1px rgba(255, 255, 255, 0.7),
-    inset 0 1px 2px rgba(0, 0, 0, 0.06),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.5);
+  /* Crisp flat card drop shadow */
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
 
-  /* Strong popup — Modal */
-  --shadow-pop:
-    6px 6px 18px rgb(190 168 140 / 0.55),
-    -4px -4px 12px rgb(255 252 245 / 0.90),
-    0 24px 48px -12px rgb(42 31 20 / 0.18);
+  /* Modal popup shadow */
+  --shadow-pop: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
-  /* Pressed / active state — inset (neutral black & grey-white) */
-  --shadow-inset:
-    inset 2px 2px 5px rgba(0, 0, 0, 0.16),
-    inset -1px -1px 4px rgba(255, 255, 255, 0.8);
+  /* Flat inset shadow */
+  --shadow-inset: none;
 
   --animate-dialog-in: dialog-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-in: fade-in 160ms ease-out;
@@ -132,35 +111,28 @@
     color: var(--color-ink-2);
   }
 
-  /*
-    Controls: inset shadow creates a "pressed into the canvas" feel — the
-    neumorphic inverse of the raised panel. Border is subtle, not harsh.
-  */
   .control {
     display: block;
     width: 100%;
     min-height: 2.5rem;
     border-radius: 0.5rem;
-    border: 1px solid var(--color-line);
-    background-color: var(--color-canvas);
+    border: 1px solid var(--color-line-strong);
+    background-color: var(--color-surface);
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     color: var(--color-ink);
-    box-shadow: var(--shadow-inset);
     transition: border-color 140ms, box-shadow 140ms;
   }
 
   .control:hover:not(:disabled):not([readonly]) {
-    border-color: var(--color-line-strong);
+    border-color: var(--color-ink-3);
   }
 
   .control:focus-visible {
     outline: none;
     border-color: var(--color-brand-600);
-    box-shadow:
-      var(--shadow-inset),
-      0 0 0 3px rgb(26 107 90 / 0.14);
+    box-shadow: 0 0 0 3px var(--color-brand-100);
   }
 
   .control[aria-invalid='true'] {
@@ -168,9 +140,7 @@
   }
 
   .control[aria-invalid='true']:focus-visible {
-    box-shadow:
-      var(--shadow-inset),
-      0 0 0 3px var(--color-danger-soft);
+    box-shadow: 0 0 0 3px var(--color-danger-soft);
   }
 
   .control:disabled,
@@ -187,47 +157,9 @@
     padding: 0.375rem 0.625rem;
   }
 
-  /* All select dropdowns get the cembung neumorphic format style matching pop up berkas piutang */
   select.control,
-  select,
-  .control-cembung {
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    background-color: #f0eff4;
-    border-radius: 0.75rem;
-    box-shadow:
-      4px 4px 8px rgba(0, 0, 0, 0.16),
-      -4px -4px 8px rgba(255, 255, 255, 0.9);
+  select {
     cursor: pointer;
-    transition: all 140ms ease;
-  }
-
-  select.control:hover:not(:disabled):not([readonly]),
-  select:hover:not(:disabled):not([readonly]),
-  .control-cembung:hover:not(:disabled):not([readonly]) {
-    background-color: #e6e5ea;
-    border-color: rgba(255, 255, 255, 0.8);
-    box-shadow:
-      5px 5px 10px rgba(0, 0, 0, 0.18),
-      -5px -5px 10px rgba(255, 255, 255, 0.95);
-  }
-
-  select.control:focus-visible,
-  select:focus-visible,
-  .control-cembung:focus-visible {
-    outline: none;
-    border-color: var(--color-brand-600);
-    box-shadow:
-      4px 4px 8px rgba(0, 0, 0, 0.16),
-      -4px -4px 8px rgba(255, 255, 255, 0.9),
-      0 0 0 3px rgb(26 107 90 / 0.14);
-  }
-
-  select.control:active:not(:disabled),
-  select:active:not(:disabled),
-  .control-cembung:active:not(:disabled) {
-    box-shadow:
-      inset 2px 2px 4px rgba(0, 0, 0, 0.2),
-      inset -2px -2px 4px rgba(255, 255, 255, 0.7);
   }
 
   textarea.control {
@@ -255,13 +187,13 @@
   }
 
   .tbl thead th {
-    background-color: var(--color-subtle);
-    border-bottom: 1px solid var(--color-line);
+    background-color: #fef2f2;
+    border-bottom: 1px solid #fee2e2;
     padding: 0.625rem 1rem;
     text-align: left;
     font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-ink-3);
+    font-weight: 700;
+    color: var(--color-ink);
     white-space: nowrap;
   }
 
@@ -277,8 +209,8 @@
   }
 
   .tbl tfoot td {
-    border-top: 1px solid var(--color-line-strong);
-    background-color: var(--color-subtle);
+    border-top: 1px solid #fee2e2;
+    background-color: #fef2f2;
     padding: 0.75rem 1rem;
     font-weight: 700;
     color: var(--color-ink);

@@ -90,7 +90,7 @@ export default function PembayaranTrackPanel() {
   const piutangItems = usePiutangStore((s) => s.items);
   const proyeks = useProyekStore((s) => s.items);
 
-  const PAGE_SIZE = 30;
+  const PAGE_SIZE = 20;
 
   const load = async () => { const res = await fetchApi('/pembayaran-track'); const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal memuat pembayaran'); setRows(body.data); };
   useEffect(() => {
@@ -204,7 +204,7 @@ export default function PembayaranTrackPanel() {
   const p = target?.payment;
   const targetInfo = target?.payment ? resolvePaymentInfo(target.payment) : null;
 
-  return <Panel title="Pembayaran dari PR Track" description="Verifikasi pengajuan berdasarkan tagihan, lalu periksa yang gagal validasi atau perlu ditinjau." actions={<Button disabled={busy} onClick={() => void process()}>Proses pembayaran menunggu</Button>}>
+  return <Panel title="Pembayaran dari Podorukuntrack" description="Verifikasi pengajuan berdasarkan tagihan, lalu periksa yang gagal validasi atau perlu ditinjau." actions={<Button disabled={busy} onClick={() => void process()}>Proses pembayaran menunggu</Button>}>
     {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
 
     <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end">
@@ -348,7 +348,7 @@ export default function PembayaranTrackPanel() {
                   type="button"
                   onClick={() => setPage(Number(p))}
                   aria-current={p === page ? 'page' : undefined}
-                  className={`tap-target h-8 min-w-8 rounded-lg px-2 text-[13px] font-semibold tabular-nums transition-colors cursor-pointer ${
+                  className={`tap-target h-8 min-w-8 rounded-full px-2 text-[13px] font-semibold tabular-nums transition-colors cursor-pointer ${
                     p === page ? 'bg-ink text-white' : 'text-ink-2 hover:bg-neutral-soft'
                   }`}
                 >

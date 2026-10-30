@@ -324,7 +324,7 @@ function LegalEditorBody() {
       <LegalHistoryPanel key={dokumen.id} id={dokumen.id} isFinal={isFinal} proyekId={dokumen.perumahanId} unitId={dokumen.kavlingId} assignmentId={dokumen.assignmentId} reload={fetchDokumen} />
       {/* Header bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-surface px-4 py-3 shadow-sm sm:px-6">
-        <div className="absolute inset-x-0 top-0 h-1 bg-[#0e7490]" aria-hidden />
+        <div className="absolute inset-x-0 top-0 h-1 bg-[#cf1b1a]" aria-hidden />
         <div className="flex items-center gap-3">
           <button
             type="button"

@@ -187,13 +187,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
           </Notice>
 
           <dl
-            className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/50 bg-line sm:grid-cols-4"
-            style={{
-              boxShadow: `
-                8px 8px 10px -1px rgba(0, 0, 0, 0.7),
-                -8px -8px 10px -1px rgba(255, 255, 255, 0.7)
-              `,
-            }}
+            className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line bg-line shadow-sm sm:grid-cols-4"
           >
             <div className="bg-subtle px-4 py-3">
               <dt className="text-xs font-semibold text-ink-3">Nilai SPPR</dt>
@@ -500,7 +494,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
         </Modal>
       )}
 
-      {/* Modal Detail Bukti Transaksi dengan Neumorphism Style */}
+      {/* Modal Detail Bukti Transaksi */}
       {selectedBukti && (
         <Modal
           isOpen={true}
@@ -515,11 +509,11 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
           }
         >
           <div className="space-y-5">
-            {/* Box Atas: Rincian Bukti (Cekung / Inset Emboss Shadow, Warna #f0eff4) */}
-            <div className="rounded-2xl border border-line/50 bg-[#f0eff4] p-5 shadow-[inset_4px_4px_8px_rgba(0,0,0,0.18),inset_-4px_-4px_8px_rgba(255,255,255,0.8)]">
-              <div className="flex items-center justify-between border-b border-line/60 pb-3">
+            {/* Box Atas: Rincian Bukti (Flat Card) */}
+            <div className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+              <div className="flex items-center justify-between border-b border-line pb-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0eff4] text-emerald-700 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
                     <PiReceipt className="h-5 w-5" aria-hidden />
                   </span>
                   <div className="text-left">
@@ -558,8 +552,8 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
               </div>
             </div>
 
-            {/* Box Bawah: Preview & Tombol Berkas */}
-            <div className="rounded-2xl border border-white/60 bg-[#f0eff4] p-5 text-center shadow-[6px_6px_14px_rgba(0,0,0,0.18),-6px_-6px_14px_rgba(255,255,255,0.85)]">
+            {/* Box Bawah: Preview & Tombol Berkas (Flat Card) */}
+            <div className="rounded-xl border border-line bg-surface p-5 text-center shadow-sm">
               <div className="flex flex-col items-center justify-center gap-4">
                 {(selectedBukti.bukti?.url || selectedBukti.bukti?.dataUrl) && selectedBukti.bukti.tipe === 'image' ? (
                   <img
@@ -568,13 +562,13 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                     className="max-h-56 w-auto rounded-xl object-contain shadow-sm border border-line"
                   />
                 ) : selectedBukti.bukti?.tipe === 'pdf' ? (
-                  <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-[#f0eff4] text-ink-3 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.1),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]">
+                  <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-subtle/50 text-ink-3">
                     <PiFilePdf className="h-10 w-10 text-red-500 mb-1" />
                     <p className="text-xs font-bold text-ink">{selectedBukti.bukti.namaBerkas}</p>
                     <p className="text-[11px] text-ink-3">Dokumen PDF Terverifikasi Podo Rukun Track</p>
                   </div>
                 ) : (
-                  <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-[#f0eff4] text-ink-3 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.1),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]">
+                  <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-subtle/50 text-ink-3">
                     <PiImage className="h-10 w-10 text-brand-600 mb-1" />
                     <p className="text-xs font-bold text-ink">{selectedBukti.bukti?.namaBerkas || 'bukti_pembayaran.jpg'}</p>
                     <p className="text-[11px] text-ink-3">Berkas Bukti Pembayaran Digital</p>
@@ -585,7 +579,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                   <button
                     type="button"
                     onClick={() => setFullPreviewOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/60 bg-[#f0eff4] px-3.5 py-2 text-xs font-bold text-ink shadow-[4px_4px_8px_rgba(0,0,0,0.16),-4px_-4px_8px_rgba(255,255,255,0.9)] transition-all hover:bg-[#e6e5ea] active:scale-95 active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink shadow-xs transition-colors hover:bg-neutral-soft active:bg-neutral-soft/80"
                   >
                     <PiEye className="h-4 w-4 shrink-0 text-brand-600" aria-hidden /> Lihat berkas
                   </button>
@@ -596,7 +590,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                       download={selectedBukti.bukti.namaBerkas}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/60 bg-[#f0eff4] px-3.5 py-2 text-xs font-bold text-ink shadow-[4px_4px_8px_rgba(0,0,0,0.16),-4px_-4px_8px_rgba(255,255,255,0.9)] transition-all hover:bg-[#e6e5ea] active:scale-95 active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink shadow-xs transition-colors hover:bg-neutral-soft active:bg-neutral-soft/80"
                     >
                       <PiDownloadSimple className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden /> Unduh berkas
                     </a>
@@ -636,7 +630,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                 className="h-[65vh] w-full rounded-xl border border-line shadow-sm"
               />
             ) : (
-              <div className="flex h-80 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-[#f0eff4] text-center p-6 shadow-[inset_3px_3px_6px_rgba(0,0,0,0.1)]">
+              <div className="flex h-80 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-subtle/50 text-center p-6">
                 <PiReceipt className="h-16 w-16 text-brand-600 mb-3" />
                 <h4 className="text-base font-bold text-ink mb-1">{selectedBukti.bukti?.namaBerkas || 'bukti_pembayaran_prt.pdf'}</h4>
                 <p className="text-xs text-ink-3 max-w-md">

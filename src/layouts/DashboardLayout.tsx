@@ -18,7 +18,7 @@ export default function DashboardLayout() {
 
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
 
-      <div className="flex min-h-dvh flex-col lg:pl-64">
+      <div className="flex min-h-dvh flex-col lg:pl-72">
         <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface px-3 lg:hidden">
           <Link to="/dashboard" className="flex items-center gap-2 rounded-lg">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-white">SI</span>

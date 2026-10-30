@@ -464,7 +464,7 @@ export default function DaftarAkunTab() {
           {editLocked && <Notice tone="warning">Akun ini sudah dipakai di transaksi, jadi kodenya terkunci. Akun hanya bisa dinonaktifkan, tidak dihapus.</Notice>}
 
           <Field label="Akun induk" optional>
-            <select className="control control-cembung" value={form.akunIndukId || ''} onChange={(e) => setForm({ ...form, akunIndukId: e.target.value })}>
+            <select className="control" value={form.akunIndukId || ''} onChange={(e) => setForm({ ...form, akunIndukId: e.target.value })}>
               <option value="">Tidak ada (akun level atas)</option>
               {items.map((i) => (
                 <option key={i.id} value={i.id} disabled={i.id === editId}>
@@ -493,20 +493,20 @@ export default function DaftarAkunTab() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Kategori">
-              <select className="control control-cembung" value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value as KategoriAkun })}>
+              <select className="control" value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value as KategoriAkun })}>
                 {Object.entries(KATEGORI_AKUN_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
               </select>
             </Field>
             <Field label="Saldo normal">
-              <select className="control control-cembung" value={form.tipeSaldo} onChange={(e) => setForm({ ...form, tipeSaldo: e.target.value as TipeSaldo })}>
+              <select className="control" value={form.tipeSaldo} onChange={(e) => setForm({ ...form, tipeSaldo: e.target.value as TipeSaldo })}>
                 <option value="d">Debit</option>
                 <option value="k">Kredit</option>
               </select>
             </Field>
             <Field label="Klasifikasi">
-              <select className="control control-cembung" value={form.klasifikasi} onChange={(e) => setForm({ ...form, klasifikasi: e.target.value as KlasifikasiAkun })}>
+              <select className="control" value={form.klasifikasi} onChange={(e) => setForm({ ...form, klasifikasi: e.target.value as KlasifikasiAkun })}>
                 {Object.entries(KLASIFIKASI_AKUN_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
@@ -518,7 +518,7 @@ export default function DaftarAkunTab() {
             {['hutang', 'aktiva'].includes(form.kategori as string) && (
               <Field label="Kelompok hutang / piutang" hint="Menentukan pengelompokan di halaman Hutang dan Tagihan user">
                 <select
-                  className="control control-cembung"
+                  className="control"
                   value={form.kategoriHutangPiutang || ''}
                   onChange={(e) => setForm({ ...form, kategoriHutangPiutang: (e.target.value || undefined) as KategoriHutangPiutang | undefined })}
                 >
@@ -530,7 +530,7 @@ export default function DaftarAkunTab() {
               </Field>
             )}
             <Field label="Status">
-              <select className="control control-cembung" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as StatusAkun })}>
+              <select className="control" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as StatusAkun })}>
                 <option value="aktif">Aktif</option>
                 <option value="nonaktif">Nonaktif</option>
               </select>
