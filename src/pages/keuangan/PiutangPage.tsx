@@ -22,7 +22,7 @@ const dibayarOf = (kv: KavlingTagihan) => kv.totalDibayar;
 const sisaOf = (kv: KavlingTagihan) => kv.sisa;
 
 export default function PiutangPage() {
-  const { items, fetchItems } = usePiutangStore();
+  const { items, fetchItems, isLoading, error: loadError } = usePiutangStore();
   const { items: proyeks } = useProyekStore();
 
   useEffect(() => {
@@ -35,13 +35,13 @@ export default function PiutangPage() {
   const [selectedTipe, setSelectedTipe] = useState<TipeTransaksi | ''>('');
   const [selectedKavlingId, setSelectedKavlingId] = useState<string | null>(null);
 
-  // Simulasi integrasi Podo Rukun Track sampai API tersedia
   const [apiError, setApiError] = useState(false);
   const [syncErrorMessage, setSyncErrorMessage] = useState('');
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);
 
   const periode = formatBulan(bulanIni());
+  const bastLabel = { belum_bast: 'Kavling belum serah terima', sudah_bast: 'Kavling sudah serah terima', semua: 'Semua kavling' }[selectedBast];
   const getProyekNama = (id: string) => proyeks.find((p) => p.id === id)?.nama ?? id;
 
   const filteredItems = useMemo(
@@ -86,7 +86,7 @@ export default function PiutangPage() {
     <>
       <PageHeader
         title="Tagihan user"
-        description={`Kavling belum serah terima, ${periode}`}
+        description={`${bastLabel}, posisi ${periode}`}
         actions={
           <Button variant="primary" icon={PiArrowsClockwise} loading={syncLoading} onClick={handleSinkron}>
             Sinkron Podorukuntrack
@@ -95,6 +95,19 @@ export default function PiutangPage() {
       />
 
       <PageBody>
+        {loadError && (
+          <Notice
+            tone="danger"
+            title="Data tagihan gagal dimuat"
+            action={
+              <Button size="sm" onClick={() => void fetchItems()}>
+                Muat ulang
+              </Button>
+            }
+          >
+            {loadError}. Angka di bawah bisa kosong atau belum terbaru.
+          </Notice>
+        )}
         {apiError && (
           <Notice
             tone="danger"
@@ -192,7 +205,9 @@ export default function PiutangPage() {
             />
           }
         >
-          {filteredItems.length === 0 ? (
+          {isLoading && items.length === 0 ? (
+            <p className="py-10 text-center text-sm text-ink-3">Memuat tagihan…</p>
+          ) : filteredItems.length === 0 ? (
             <EmptyState
               compact
               icon={PiReceipt}
@@ -223,7 +238,7 @@ export default function PiutangPage() {
                         aria-label={`Jadwal angsuran ${kv.namaUser}, ${kv.nomorKavling}`}
                         onClick={() => setSelectedKavlingId(kv.id)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
+                          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
                             e.preventDefault();
                             setSelectedKavlingId(kv.id);
                           }
@@ -266,7 +281,7 @@ export default function PiutangPage() {
         <PembayaranTrackPanel />
       </PageBody>
 
-      <JadwalRealisasiModal kavlingId={selectedKavlingId} isOpen={selectedKavlingId !== null} onClose={() => setSelectedKavlingId(null)} />
+      <JadwalRealisasiModal key={selectedKavlingId ?? 'tutup'} kavlingId={selectedKavlingId} isOpen={selectedKavlingId !== null} onClose={() => setSelectedKavlingId(null)} />
     </>
   );
 }

@@ -73,6 +73,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
   const selisih = pRab - pNilai;
 
   const handleClose = () => {
+    if (isSubmitting) return;
     setForm(EMPTY);
     setError('');
     onClose();
@@ -135,7 +136,9 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
         akunPersediaanId: form.akunPersediaanId,
         akunHutangId: form.akunHutangId,
       });
-      handleClose();
+      setForm(EMPTY);
+      setError('');
+      onClose();
     } catch (err: any) {
       setError(err.message || 'Gagal menyimpan kontrak');
     } finally {
@@ -154,7 +157,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
       size="lg"
       footer={
         <>
-          <Button onClick={handleClose}>Batal</Button>
+          <Button disabled={isSubmitting} onClick={handleClose}>Batal</Button>
           <Button variant="primary" type="submit" form="kontrak-form" disabled={isSubmitting}>
             {isSubmitting ? 'Menyimpan...' : 'Simpan dan buat jurnal'}
           </Button>
@@ -202,7 +205,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
                 className="control"
                 value={form.kavling}
                 onChange={(e) => set('kavling', e.target.value)}
-                placeholder="Pilih proyek terlebih dahulu"
+                placeholder={form.proyekId ? 'Ketik nomor kavling' : 'Pilih proyek terlebih dahulu'}
               />
             )}
           </Field>

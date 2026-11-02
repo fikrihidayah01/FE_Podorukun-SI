@@ -65,6 +65,8 @@ interface HutangState {
   mutasis: Record<string, MutasiHutang[]>; // key: kodePembantuId
   mutasiAntarProyek: MutasiHutang[];
   saldos: SaldoKodePembantu[];
+  /** Bulan ('YYYY-MM') yang sedang terisi di `saldos`. */
+  saldoBulan: string | null;
   isLoading: boolean;
   error: string | null;
 
@@ -91,11 +93,14 @@ interface HutangState {
   getMutasiAntarProyek: (proyekId?: string) => MutasiHutang[];
 }
 
+let saldoRequest = 0;
+
 export const useHutangStore = create<HutangState>((set, get) => ({
   kodePembantus: [],
   mutasis: {},
   mutasiAntarProyek: [],
   saldos: [],
+  saldoBulan: null,
   isLoading: false,
   error: null,
 
@@ -117,15 +122,15 @@ export const useHutangStore = create<HutangState>((set, get) => ({
 
   addKodePembantu: async (data) => {
     const res = await fetchApi('/kode-pembantu', { method: 'POST', body: JSON.stringify(data) });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message);
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.message || 'Gagal menambah pihak');
     await get().fetchKodePembantus();
     return json.data.id;
   },
 
   removeKodePembantu: async (id) => {
     const res = await fetchApi(`/kode-pembantu/${id}`, { method: 'DELETE' });
-    if (!res.ok) { const j = await res.json(); throw new Error(j.message + ' ' + JSON.stringify(j)); }
+    if (!res.ok) { const j = await res.json().catch(() => null); throw new Error(j?.message || 'Permintaan ditolak server'); }
     await get().fetchKodePembantus();
   },
 
@@ -151,23 +156,27 @@ export const useHutangStore = create<HutangState>((set, get) => ({
 
   addMutasi: async (data) => {
     const res = await fetchApi('/hutang/mutasi', { method: 'POST', body: JSON.stringify(data) });
-    if (!res.ok) { const j = await res.json(); throw new Error(j.message + ' ' + JSON.stringify(j)); }
+    if (!res.ok) { const j = await res.json().catch(() => null); throw new Error(j?.message || 'Permintaan ditolak server'); }
     // UI can call fetchMutasi/fetchSaldo directly after adding
   },
 
   removeMutasi: async (id) => {
     const res = await fetchApi(`/hutang/mutasi/${id}`, { method: 'DELETE' });
-    if (!res.ok) { const j = await res.json(); throw new Error(j.message + ' ' + JSON.stringify(j)); }
+    if (!res.ok) { const j = await res.json().catch(() => null); throw new Error(j?.message || 'Permintaan ditolak server'); }
   },
 
   fetchSaldo: async (bulan) => {
+    // Ganti periode cepat: hanya respons permintaan terakhir yang boleh mengisi tabel.
+    const token = ++saldoRequest;
     try {
       const res = await fetchApi(`/hutang/saldo?bulan=${bulan}`);
-      const json = await res.json();
-      if (res.ok) {
-        set({ saldos: json.data || [] });
-      }
-    } catch (e) {}
+      const json = await res.json().catch(() => null);
+      if (token !== saldoRequest) return;
+      if (!res.ok) throw new Error(json?.message || 'Gagal memuat saldo hutang');
+      set({ saldos: json?.data || [], saldoBulan: bulan, error: null });
+    } catch (e) {
+      if (token === saldoRequest) set({ error: e instanceof Error ? e.message : 'Gagal memuat saldo hutang' });
+    }
   },
 
   getSaldoPerKodePembantu: (_bulan, proyekId, kategori) => {

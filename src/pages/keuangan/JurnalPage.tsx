@@ -1,6 +1,6 @@
 import { useRef, useMemo, useState, useEffect } from 'react';
 import {
-  PiPlus, PiMagnifyingGlass, PiTrash, PiLockSimpleOpen, PiNotebook,
+  PiPlus, PiMagnifyingGlass, PiTrash, PiNotebook,
   PiPaperclip, PiFilePdf, PiImage, PiX, PiDownloadSimple, PiArrowSquareOut,
 } from 'react-icons/pi';
 import { useJurnalStore, type Jurnal, type JurnalRow, type JurnalStatus, type Lampiran } from '../../store/jurnalStore';
@@ -17,7 +17,7 @@ import Money from '../../components/ui/Money';
 import Notice from '../../components/ui/Notice';
 import Field from '../../components/ui/Field';
 import EmptyState from '../../components/ui/EmptyState';
-import { bulanIni, formatBulan, formatTanggal } from '../../utils/format';
+import { formatTanggal, hariIni } from '../../utils/format';
 import { useHutangStore } from '../../store/hutangStore';
 import { fetchApi } from '../../lib/api';
 
@@ -33,6 +33,9 @@ const SUMBER_LABEL: Record<string, string> = {
   pinjaman: 'Pinjaman',
   kontraktor: 'Kontraktor',
   mirror: 'Mirror',
+  pr_track: 'PR Track',
+  penjualan: 'Penjualan',
+  saldo_awal: 'Saldo awal',
 };
 
 const MAKS_UKURAN_MB = 10;
@@ -68,7 +71,7 @@ export default function JurnalPage() {
   const [detailJurnal, setDetailJurnal] = useState<Jurnal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Jurnal | null>(null);
   const [reverseOpen, setReverseOpen] = useState(false);
-  const [reverseDate, setReverseDate] = useState(new Date().toISOString().slice(0, 10));
+  const [reverseDate, setReverseDate] = useState(hariIni());
   const [reverseReason, setReverseReason] = useState('');
   const [reverseBusy, setReverseBusy] = useState(false);
   const [reverseError, setReverseError] = useState('');
@@ -86,6 +89,7 @@ export default function JurnalPage() {
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [lampiranForm, setLampiranForm] = useState<Lampiran[]>([]);
   const [uploadError, setUploadError] = useState('');
+  const [detailError, setDetailError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -105,7 +109,7 @@ export default function JurnalPage() {
         const blobUrl = URL.createObjectURL(blob);
         window.open(blobUrl, '_blank');
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Gagal membuka berkas');
+      setDetailError(error instanceof Error ? error.message : 'Gagal membuka berkas');
     } finally {
       setDownloadingId(null);
     }
@@ -134,7 +138,7 @@ export default function JurnalPage() {
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Gagal mengunduh berkas');
+      setDetailError(error instanceof Error ? error.message : 'Gagal mengunduh berkas');
     } finally {
       setDownloadingId(null);
     }
@@ -178,7 +182,7 @@ export default function JurnalPage() {
   };
 
   const openForm = () => {
-    setTanggal(new Date().toISOString().split('T')[0]);
+    setTanggal(hariIni());
     setKeterangan('');
     setFormProyekId('');
     setRows([EMPTY_ROW(), EMPTY_ROW()]);
@@ -275,7 +279,16 @@ export default function JurnalPage() {
       setFormOpen(false);
       setPage(1);
     } catch (error) {
-      setFormErrors([error instanceof Error ? error.message : 'Gagal menyimpan jurnal']);
+      const message = error instanceof Error ? error.message : 'Gagal menyimpan jurnal';
+      const jurnalId = (error as { jurnalId?: string }).jurnalId;
+      if (jurnalId) {
+        // Draft sudah ada di server: tutup formulir supaya tidak tersimpan dua kali, lanjutkan dari rinciannya.
+        setFormOpen(false);
+        setDetailJurnal(useJurnalStore.getState().items.find((j) => j.id === jurnalId) ?? null);
+        setDetailError(message);
+        return;
+      }
+      setFormErrors([message]);
     }
   };
 
@@ -330,13 +343,7 @@ export default function JurnalPage() {
     <>
       <PageHeader
         title="Jurnal umum"
-        description={`Periode ${formatBulan(bulanIni())}`}
-        status={
-          <Badge tone="positive">
-            <PiLockSimpleOpen aria-hidden />
-            Periode terbuka
-          </Badge>
-        }
+        description="Semua jurnal manual dan otomatis. Status kunci periode dikelola di halaman Hutang."
         actions={
           <Button variant="primary" icon={PiPlus} onClick={openForm}>
             Buat jurnal
@@ -412,7 +419,10 @@ export default function JurnalPage() {
             keyExtractor={(r) => r.id}
             page={page}
             onPageChange={setPage}
-            onRowClick={(r) => setDetailJurnal(r)}
+            onRowClick={(r) => {
+              setDetailError('');
+              setDetailJurnal(r);
+            }}
             rowActionLabel={(r) => `Buka jurnal ${r.nomorJurnal}`}
             empty={
               isLoading ? (
@@ -437,13 +447,13 @@ export default function JurnalPage() {
       {/* Form modal buat jurnal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => { if (!isLoading) setFormOpen(false); }}
         title="Buat jurnal umum"
         description="Mutasi tercatat di saldo berjalan sesuai akun dan kode pembantu setelah diposting"
         size="xl"
         footer={
           <>
-            <Button onClick={() => setFormOpen(false)}>Batal</Button>
+            <Button disabled={isLoading} onClick={() => setFormOpen(false)}>Batal</Button>
             <Button disabled={isLoading} onClick={() => handleSubmit('draft')}>Simpan draft</Button>
             <Button variant="primary" onClick={() => handleSubmit('diposting')} disabled={!siapPosting || isLoading}>
               Simpan dan posting
@@ -670,7 +680,10 @@ export default function JurnalPage() {
       {/* Detail jurnal */}
       <Modal
         isOpen={detailJurnal !== null}
-        onClose={() => setDetailJurnal(null)}
+        onClose={() => {
+          setDetailJurnal(null);
+          setDetailError('');
+        }}
         title={`Jurnal ${detailJurnal?.nomorJurnal ?? ''}`}
         description={detailJurnal?.keterangan}
         size="lg"
@@ -686,20 +699,20 @@ export default function JurnalPage() {
               try {
                 await useJurnalStore.getState().updateStatus(detailJurnal.id, 'diposting');
                 setDetailJurnal(useJurnalStore.getState().items.find((j) => j.id === detailJurnal.id) || null);
-              } catch (error) { setUploadError(error instanceof Error ? error.message : 'Gagal memposting jurnal'); }
+              } catch (error) { setDetailError(error instanceof Error ? error.message : 'Gagal memposting jurnal'); }
             }}>Posting draft</Button>}
-            <Button onClick={() => setDetailJurnal(null)}>Tutup</Button>
+            <Button onClick={() => { setDetailJurnal(null); setDetailError(''); }}>Tutup</Button>
           </>
         }
       >
-        {uploadError && <Notice tone="danger">{uploadError}</Notice>}
+        {detailError && <Notice tone="danger" className="mb-4">{detailError}</Notice>}
         {detailJurnal?.status === 'draft' && <Field label="Tambah bukti ke draft">
           <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={isLoading || uploading} onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
             const body = new FormData();
             body.append('file', file);
-            setUploading(true); setUploadError('');
+            setUploading(true); setDetailError('');
             try {
               const response = await fetchApi(`/lampiran?entityType=jurnal&entityId=${detailJurnal.id}`, { method: 'POST', body });
               if (!response.ok) {
@@ -708,8 +721,8 @@ export default function JurnalPage() {
               }
               await fetch();
               setDetailJurnal(useJurnalStore.getState().items.find((j) => j.id === detailJurnal.id) || null);
-              setUploadError('');
-            } catch (error) { setUploadError(error instanceof Error ? error.message : 'Gagal mengunggah bukti'); }
+              setDetailError('');
+            } catch (error) { setDetailError(error instanceof Error ? error.message : 'Gagal mengunggah bukti'); }
             finally { setUploading(false); }
           }} />
         </Field>}

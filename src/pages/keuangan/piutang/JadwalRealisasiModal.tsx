@@ -6,7 +6,6 @@ import {
   PiFilePdf,
   PiImage,
   PiDownloadSimple,
-  PiCheckCircle,
   PiReceipt,
   PiEye,
   PiArrowsClockwise,
@@ -24,7 +23,7 @@ import {
   type PeriodeAngsuran,
   type BuktiTransaksi,
 } from '../../../store/piutangStore';
-import { formatBulanPendek, formatTanggal, formatTanggalPanjang, formatRupiah } from '../../../utils/format';
+import { formatBulanPendek, formatTanggal, formatTanggalPanjang, formatRupiah, hariIni } from '../../../utils/format';
 
 interface Props {
   kavlingId: string | null;
@@ -39,15 +38,19 @@ const LAINNYA_LABEL: Record<string, string> = {
   lainnya: 'Lainnya',
 };
 
+// Bandingkan per tanggal kalender (YYYY-MM-DD), bukan timestamp: hari jatuh tempo belum terhitung terlambat.
+const tgl = (iso: string) => iso.slice(0, 10);
+const lewatJatuhTempo = (jatuhTempo: string, hari = hariIni()) => tgl(jatuhTempo) < hari;
+const rowKey = (row: PeriodeAngsuran) => row.id || row.jadwalId || row.periode;
+
 function computeStatus(row: PeriodeAngsuran): StatusPeriode {
-  const now = new Date();
-  const jt = new Date(row.tanggalJatuhTempo);
+  const jt = tgl(row.tanggalJatuhTempo);
   const isLunas = row.tagihan - row.dibayar <= 0;
-  const lewatJt = jt < now;
+  const lewatJt = lewatJatuhTempo(jt);
 
   if (!lewatJt && isLunas) return 'dibayar_dimuka';
   if (isLunas && row.tanggalBayar) {
-    const bayar = new Date(row.tanggalBayar);
+    const bayar = tgl(row.tanggalBayar);
     if (bayar < jt) return 'bayar_awal';
     if (bayar > jt) return 'terlambat';
     return 'lunas';
@@ -70,6 +73,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
   const [editJatuhTempo, setEditJatuhTempo] = useState('');
   const [editTagihan, setEditTagihan] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
   const kv = kavlingId ? getById(kavlingId) : undefined;
 
   // Modal Bukti Transaksi
@@ -93,7 +97,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
 
   const totals = rows.reduce(
     (acc, r) => {
-      const tagihanVal = editingPeriode === r.periode ? Math.max(0, Number(editTagihan) || 0) : r.tagihan;
+      const tagihanVal = editingPeriode === rowKey(r) ? Math.max(0, Number(editTagihan) || 0) : r.tagihan;
       return {
         tagihan: acc.tagihan + tagihanVal,
         dibayar: acc.dibayar + r.dibayar,
@@ -103,22 +107,22 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
     { tagihan: 0, dibayar: 0, sisa: 0 },
   );
 
-  const now = new Date();
   const tunggakan = rows
     .filter((r) => {
-      const jtStr = editingPeriode === r.periode && editJatuhTempo ? editJatuhTempo : r.tanggalJatuhTempo;
-      return new Date(jtStr) < now;
+      const jtStr = editingPeriode === rowKey(r) && editJatuhTempo ? editJatuhTempo : r.tanggalJatuhTempo;
+      return lewatJatuhTempo(jtStr);
     })
     .reduce((sum, r) => {
-      const tagihanVal = editingPeriode === r.periode ? Math.max(0, Number(editTagihan) || 0) : r.tagihan;
+      const tagihanVal = editingPeriode === rowKey(r) ? Math.max(0, Number(editTagihan) || 0) : r.tagihan;
       return sum + Math.max(0, tagihanVal - r.dibayar);
     }, 0);
 
   if (!kv) return null;
 
   const startEdit = (row: PeriodeAngsuran) => {
-    setEditingPeriode(row.periode);
-    setEditJatuhTempo(row.tanggalJatuhTempo);
+    setEditError('');
+    setEditingPeriode(rowKey(row));
+    setEditJatuhTempo(tgl(row.tanggalJatuhTempo));
     setEditTagihan(String(row.tagihan));
   };
 
@@ -129,13 +133,16 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
       const tagihanNum = Math.max(0, Number(editTagihan) || 0);
       await updateJadwalAngsuran(kavlingId, periode, tagihanNum, editJatuhTempo, jadwalId);
       setEditingPeriode(null);
+      setEditError('');
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Gagal menyimpan jadwal angsuran');
     } finally {
       setSavingEdit(false);
     }
   };
 
   const handlePindahAlokasi = async () => {
-    if (!dariJadwal || !keJadwal || !nominalPindah || Number(nominalPindah) <= 0) return;
+    if (!pindahValid) return;
     setPindahLoading(true);
     setPindahError(null);
     try {
@@ -150,6 +157,14 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
       setPindahLoading(false);
     }
   };
+
+  const buktiSrc = selectedBukti?.bukti?.url || selectedBukti?.bukti?.dataUrl || '';
+
+  const asalPindah = rows.find((r) => rowKey(r) === dariJadwal);
+  const nominalPindahNum = Number(nominalPindah);
+  const pindahMelebihi = Boolean(asalPindah) && nominalPindahNum > (asalPindah?.dibayar ?? 0);
+  const pindahValid =
+    Boolean(dariJadwal && keJadwal) && dariJadwal !== keJadwal && nominalPindahNum > 0 && !pindahMelebihi;
 
   return (
     <>
@@ -170,7 +185,8 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                 setPindahError(null);
                 const firstPaid = rows.find((r) => r.dibayar > 0);
                 if (firstPaid) {
-                  setDariJadwal(firstPaid.id || firstPaid.periode);
+                  setDariJadwal(rowKey(firstPaid));
+                  setKeJadwal('');
                   setNominalPindah(String(firstPaid.dibayar));
                 }
               }}
@@ -182,6 +198,11 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
         }
       >
         <div className="space-y-6">
+          {editError && (
+            <Notice tone="danger" title="Jadwal belum tersimpan">
+              {editError}
+            </Notice>
+          )}
           <Notice tone="info">
             Jadwal dan nominal tagihan angsuran dibentuk resmi dari Dokumen Legal SPPR. Realisasi pembayaran disinkronkan otomatis dari Podo Rukun Track.
           </Notice>
@@ -226,7 +247,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const editing = editingPeriode === row.periode;
+                  const editing = editingPeriode === rowKey(row);
                   const tagihanVal = editing ? Math.max(0, Number(editTagihan) || 0) : row.tagihan;
                   const sisa = Math.max(0, tagihanVal - row.dibayar);
                   const status = computeStatus({
@@ -237,7 +258,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                   const effectiveBukti = getEffectiveBukti(row);
 
                   return (
-                    <tr key={row.periode} className={editing ? '[&>td]:bg-brand-50/40' : undefined}>
+                    <tr key={rowKey(row)} className={editing ? '[&>td]:bg-brand-50/40' : undefined}>
                       <td className="whitespace-nowrap font-semibold text-ink text-left">{formatBulanPendek(row.periode)}</td>
 
                       {/* Jatuh tempo: BISA DIEDIT (RATA KIRI) */}
@@ -330,14 +351,17 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                               icon={PiCheck}
                               label="Simpan perubahan"
                               disabled={savingEdit}
-                              onClick={() => void saveEdit(row.periode, row.id || row.jadwalId)}
+                              onClick={() => void saveEdit(row.periode, row.jadwalId || row.id)}
                               className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
                             />
                             <IconButton
                               icon={PiX}
                               label="Batal perubahan"
                               disabled={savingEdit}
-                              onClick={() => setEditingPeriode(null)}
+                              onClick={() => {
+                                setEditingPeriode(null);
+                                setEditError('');
+                              }}
                               tone="danger"
                             />
                           </div>
@@ -346,6 +370,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                             <IconButton
                               icon={PiPencilSimple}
                               label={`Edit jadwal ${formatBulanPendek(row.periode)}`}
+                              disabled={editingPeriode !== null}
                               onClick={() => startEdit(row)}
                             />
                           </div>
@@ -413,7 +438,7 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
               <Button
                 variant="primary"
                 loading={pindahLoading}
-                disabled={!dariJadwal || !keJadwal || !nominalPindah || Number(nominalPindah) <= 0}
+                disabled={!pindahValid}
                 onClick={handlePindahAlokasi}
               >
                 Simpan Alokasi
@@ -438,15 +463,16 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                 onChange={(e) => {
                   const val = e.target.value;
                   setDariJadwal(val);
-                  const selectedRow = rows.find((r) => (r.id || r.periode) === val);
+                  const selectedRow = rows.find((r) => rowKey(r) === val);
                   if (selectedRow) setNominalPindah(String(selectedRow.dibayar));
+                  if (keJadwal === val) setKeJadwal('');
                 }}
               >
                 <option value="">-- Pilih Periode Asal --</option>
                 {rows
                   .filter((r) => r.dibayar > 0)
                   .map((r) => (
-                    <option key={r.id || r.periode} value={r.id || r.periode}>
+                    <option key={rowKey(r)} value={rowKey(r)}>
                       {formatBulanPendek(r.periode)} (Dibayar: {formatRupiah(r.dibayar)})
                     </option>
                   ))}
@@ -464,9 +490,9 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
               >
                 <option value="">-- Pilih Periode Tujuan --</option>
                 {rows
-                  .filter((r) => (r.id || r.periode) !== dariJadwal)
+                  .filter((r) => rowKey(r) !== dariJadwal)
                   .map((r) => (
-                    <option key={r.id || r.periode} value={r.id || r.periode}>
+                    <option key={rowKey(r)} value={rowKey(r)}>
                       {formatBulanPendek(r.periode)} (Tagihan: {formatRupiah(r.tagihan)}, Sisa: {formatRupiah(Math.max(0, r.tagihan - r.dibayar))})
                     </option>
                   ))}
@@ -485,6 +511,11 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
                 onChange={(e) => setNominalPindah(e.target.value)}
                 placeholder="Contoh: 1500000"
               />
+              {pindahMelebihi && (
+                <p className="mt-1 text-xs font-medium text-danger">
+                  Melebihi pembayaran di periode asal ({formatRupiah(asalPindah?.dibayar ?? 0)}).
+                </p>
+              )}
             </div>
 
             <p className="text-xs text-ink-3">
@@ -509,134 +540,100 @@ export default function JadwalRealisasiModal({ kavlingId, isOpen, onClose }: Pro
           }
         >
           <div className="space-y-5">
-            {/* Box Atas: Rincian Bukti (Flat Card) */}
             <div className="rounded-xl border border-line bg-surface p-5 shadow-sm">
-              <div className="flex items-center justify-between border-b border-line pb-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
-                    <PiReceipt className="h-5 w-5" aria-hidden />
-                  </span>
-                  <div className="text-left">
-                    <p className="text-xs text-ink-3 font-medium">No. Bukti / Reff Track</p>
-                    <p className="font-bold text-ink">
-                      {selectedBukti.bukti?.nomorBukti || selectedBukti.row.prTrackPaymentId || 'TRX/PRT/202401'}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-2.5 border-b border-line pb-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-700">
+                  <PiReceipt className="h-5 w-5" aria-hidden />
+                </span>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-ink-3">No. bukti / ref PR Track</p>
+                  <p className="font-bold text-ink">
+                    {selectedBukti.bukti?.nomorBukti || selectedBukti.row.prTrackPaymentId || <span className="text-ink-3">-</span>}
+                  </p>
                 </div>
-                <Badge tone="positive">
-                  <span className="flex items-center gap-1 font-semibold">
-                    <PiCheckCircle className="h-3.5 w-3.5" /> Terverifikasi
-                  </span>
-                </Badge>
               </div>
 
-              <div className="mt-3.5 grid grid-cols-2 gap-3 text-xs text-left">
+              <dl className="mt-3.5 grid grid-cols-2 gap-3 text-left text-xs">
                 <div>
-                  <span className="text-ink-3 font-medium">Tanggal Bayar:</span>
-                  <p className="mt-0.5 font-bold text-ink">
-                    {formatTanggalPanjang(selectedBukti.row.tanggalBayar || selectedBukti.row.tanggalJatuhTempo)}
-                  </p>
+                  <dt className="font-medium text-ink-3">Tanggal bayar</dt>
+                  <dd className="mt-0.5 font-bold text-ink">
+                    {selectedBukti.row.tanggalBayar ? formatTanggalPanjang(selectedBukti.row.tanggalBayar) : <span className="text-ink-3">-</span>}
+                  </dd>
                 </div>
                 <div>
-                  <span className="text-ink-3 font-medium">Nominal Dibayar:</span>
-                  <p className="mt-0.5 text-sm font-extrabold text-emerald-700">
+                  <dt className="font-medium text-ink-3">Nominal dibayar</dt>
+                  <dd className="mt-0.5 text-sm font-extrabold text-emerald-700">
                     <Money value={selectedBukti.row.dibayar} />
-                  </p>
+                  </dd>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-ink-3 font-medium">Keterangan:</span>
-                  <p className="mt-0.5 font-medium text-ink-2">
-                    {selectedBukti.bukti?.keterangan || 'Tersinkronisasi dari Podo Rukun Track'}
-                  </p>
+                  <dt className="font-medium text-ink-3">Keterangan</dt>
+                  <dd className="mt-0.5 font-medium text-ink-2">{selectedBukti.bukti?.keterangan || <span className="text-ink-3">-</span>}</dd>
                 </div>
-              </div>
+              </dl>
             </div>
 
-            {/* Box Bawah: Preview & Tombol Berkas (Flat Card) */}
             <div className="rounded-xl border border-line bg-surface p-5 text-center shadow-sm">
-              <div className="flex flex-col items-center justify-center gap-4">
-                {(selectedBukti.bukti?.url || selectedBukti.bukti?.dataUrl) && selectedBukti.bukti.tipe === 'image' ? (
-                  <img
-                    src={selectedBukti.bukti.url || selectedBukti.bukti.dataUrl}
-                    alt={selectedBukti.bukti.namaBerkas}
-                    className="max-h-56 w-auto rounded-xl object-contain shadow-sm border border-line"
-                  />
-                ) : selectedBukti.bukti?.tipe === 'pdf' ? (
-                  <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-subtle/50 text-ink-3">
-                    <PiFilePdf className="h-10 w-10 text-red-500 mb-1" />
-                    <p className="text-xs font-bold text-ink">{selectedBukti.bukti.namaBerkas}</p>
-                    <p className="text-[11px] text-ink-3">Dokumen PDF Terverifikasi Podo Rukun Track</p>
-                  </div>
-                ) : (
-                  <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-subtle/50 text-ink-3">
-                    <PiImage className="h-10 w-10 text-brand-600 mb-1" />
-                    <p className="text-xs font-bold text-ink">{selectedBukti.bukti?.namaBerkas || 'bukti_pembayaran.jpg'}</p>
-                    <p className="text-[11px] text-ink-3">Berkas Bukti Pembayaran Digital</p>
-                  </div>
-                )}
+              {buktiSrc ? (
+                <div className="flex flex-col items-center justify-center gap-4">
+                  {selectedBukti.bukti?.tipe === 'image' ? (
+                    <img
+                      src={buktiSrc}
+                      alt={selectedBukti.bukti.namaBerkas}
+                      className="max-h-56 w-auto rounded-xl border border-line object-contain shadow-sm"
+                    />
+                  ) : (
+                    <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-subtle/50 text-ink-3">
+                      <PiFilePdf className="mb-1 h-10 w-10 text-red-500" aria-hidden />
+                      <p className="text-xs font-bold text-ink">{selectedBukti.bukti?.namaBerkas}</p>
+                    </div>
+                  )}
 
-                <div className="flex flex-wrap items-center justify-center gap-3 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setFullPreviewOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink shadow-xs transition-colors hover:bg-neutral-soft active:bg-neutral-soft/80"
-                  >
-                    <PiEye className="h-4 w-4 shrink-0 text-brand-600" aria-hidden /> Lihat berkas
-                  </button>
-
-                  {selectedBukti.bukti && (selectedBukti.bukti.url || selectedBukti.bukti.dataUrl) && (
+                  <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFullPreviewOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink shadow-xs transition-colors hover:bg-neutral-soft active:bg-neutral-soft/80"
+                    >
+                      <PiEye className="h-4 w-4 shrink-0 text-brand-600" aria-hidden /> Lihat berkas
+                    </button>
                     <a
-                      href={selectedBukti.bukti.url || selectedBukti.bukti.dataUrl}
-                      download={selectedBukti.bukti.namaBerkas}
+                      href={buktiSrc}
+                      download={selectedBukti.bukti?.namaBerkas}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink shadow-xs transition-colors hover:bg-neutral-soft active:bg-neutral-soft/80"
                     >
                       <PiDownloadSimple className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden /> Unduh berkas
                     </a>
-                  )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-subtle/50 text-ink-3">
+                  <PiImage className="mb-1 h-10 w-10" aria-hidden />
+                  <p className="text-xs font-semibold text-ink-2">Berkas bukti tidak tersedia</p>
+                  <p className="text-[11px]">PR Track belum mengirim berkas untuk pembayaran ini.</p>
+                </div>
+              )}
             </div>
           </div>
         </Modal>
       )}
 
-      {/* Modal Full Preview */}
-      {fullPreviewOpen && selectedBukti && (
+      {fullPreviewOpen && selectedBukti && buktiSrc && (
         <Modal
           isOpen={true}
           onClose={() => setFullPreviewOpen(false)}
-          title={`Preview: ${selectedBukti.bukti?.namaBerkas || 'Bukti Transaksi'}`}
-          description={`${kv.nomorKavling} · ${selectedBukti.bukti?.nomorBukti || 'PRT'}`}
+          title={selectedBukti.bukti?.namaBerkas || 'Bukti transaksi'}
+          description={`${kv.nomorKavling}${selectedBukti.bukti?.nomorBukti ? ` · ${selectedBukti.bukti.nomorBukti}` : ''}`}
           size="xl"
-          footer={
-            <Button onClick={() => setFullPreviewOpen(false)}>
-              Tutup Preview
-            </Button>
-          }
+          footer={<Button onClick={() => setFullPreviewOpen(false)}>Tutup</Button>}
         >
           <div className="flex flex-col items-center justify-center p-4">
-            {(selectedBukti.bukti?.url || selectedBukti.bukti?.dataUrl) && selectedBukti.bukti.tipe === 'image' ? (
-              <img
-                src={selectedBukti.bukti.url || selectedBukti.bukti.dataUrl}
-                alt={selectedBukti.bukti.namaBerkas}
-                className="max-h-[70vh] w-auto rounded-xl object-contain shadow-lg"
-              />
-            ) : (selectedBukti.bukti?.url || selectedBukti.bukti?.dataUrl) && selectedBukti.bukti.tipe === 'pdf' ? (
-              <iframe
-                src={selectedBukti.bukti.url || selectedBukti.bukti.dataUrl}
-                title={selectedBukti.bukti.namaBerkas}
-                className="h-[65vh] w-full rounded-xl border border-line shadow-sm"
-              />
+            {selectedBukti.bukti?.tipe === 'image' ? (
+              <img src={buktiSrc} alt={selectedBukti.bukti.namaBerkas} className="max-h-[70vh] w-auto rounded-xl object-contain shadow-lg" />
             ) : (
-              <div className="flex h-80 w-full flex-col items-center justify-center rounded-xl border border-dashed border-line bg-subtle/50 text-center p-6">
-                <PiReceipt className="h-16 w-16 text-brand-600 mb-3" />
-                <h4 className="text-base font-bold text-ink mb-1">{selectedBukti.bukti?.namaBerkas || 'bukti_pembayaran_prt.pdf'}</h4>
-                <p className="text-xs text-ink-3 max-w-md">
-                  Dokumen bukti transaksi pembayaran Podo Rukun Track terverifikasi secara digital.
-                </p>
-              </div>
+              <iframe src={buktiSrc} title={selectedBukti.bukti?.namaBerkas || 'Bukti transaksi'} className="h-[65vh] w-full rounded-xl border border-line shadow-sm" />
             )}
           </div>
         </Modal>

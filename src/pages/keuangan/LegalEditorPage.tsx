@@ -261,30 +261,21 @@ function LegalEditorBody() {
 
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || nominal <= 0) return [];
 
-    let current = new Date(start);
     const baris: BarisJadwal[] = [];
-    let no = 1;
-
-    // Set tanggal sesuai acuan di bulan mulai, atau biarkan jika bulan pertama ingin beda
-    // Rencana: generate bulan demi bulan sampai end date
-    while (current <= end) {
-      const targetYear = current.getFullYear();
-      const targetMonth = current.getMonth();
-      const maxDays = getDaysInMonth(targetYear, targetMonth);
-      const targetDate = Math.min(acuan, maxDays);
-
-      // Format tanggal lokal langsung; toISOString() menggeser ke UTC (WIB jadi mundur sehari).
+    // Iterasi per bulan dari tanggal 1, lalu pasang tanggal acuan. Menambah bulan dari tanggal 29-31
+    // dengan setMonth() meluap ke bulan berikutnya (31 Jan -> 3 Mar) dan melewatkan Februari.
+    const akhir = jadwalForm.jatuhTempoTerakhir.slice(0, 10);
+    const tahunMulai = Number(jadwalForm.tanggalMulai.slice(0, 4));
+    const bulanMulai = Number(jadwalForm.tanggalMulai.slice(5, 7)) - 1;
+    for (let i = 0, no = 1; i < 600; i++) {
+      const awalBulan = new Date(tahunMulai, bulanMulai + i, 1);
+      const targetYear = awalBulan.getFullYear();
+      const targetMonth = awalBulan.getMonth();
+      const targetDate = Math.min(acuan, getDaysInMonth(targetYear, targetMonth));
       const tanggal = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(targetDate).padStart(2, '0')}`;
-
-      baris.push({
-        id: crypto.randomUUID(),
-        tanggal,
-        jumlah: nominal,
-        keterangan: `DP ${no}`,
-      });
-
+      if (tanggal > akhir) break;
+      baris.push({ id: crypto.randomUUID(), tanggal, jumlah: nominal, keterangan: `DP ${no}` });
       no++;
-      current.setMonth(current.getMonth() + 1);
     }
     return baris;
   };

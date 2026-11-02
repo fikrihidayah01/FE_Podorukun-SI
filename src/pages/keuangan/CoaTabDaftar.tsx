@@ -35,6 +35,7 @@ import {
 import { useJurnalStore } from '../../store/jurnalStore';
 import { useSaldoAwalStore } from '../../store/saldoAwalStore';
 import { useAuthStore } from '../../store/authStore';
+import { useProyekStore } from '../../store/proyekStore';
 
 const EMPTY_FORM: Partial<Akun> = {
   kodeAkun: '',
@@ -90,7 +91,30 @@ export default function DaftarAkunTab() {
   }, [items]);
 
 
+  // Pemakaian akun dibaca dari jurnal dan saldo awal. Selama data itu belum termuat, anggap akun sudah dipakai
+  // supaya kode akun tidak bisa diubah atau dihapus berdasarkan data yang belum lengkap.
+  const [pemakaianSiap, setPemakaianSiap] = useState(false);
+  useEffect(() => {
+    let batal = false;
+    void (async () => {
+      try {
+        const tugas: Promise<unknown>[] = [useJurnalStore.getState().fetch()];
+        await useProyekStore.getState().fetch();
+        for (const p of useProyekStore.getState().items) {
+          tugas.push(useSaldoAwalStore.getState().fetchSaldoAwal(p.id).catch(() => null));
+        }
+        await Promise.all(tugas);
+      } finally {
+        if (!batal && !useJurnalStore.getState().error) setPemakaianSiap(true);
+      }
+    })();
+    return () => {
+      batal = true;
+    };
+  }, []);
+
   const hasTransactions = (akunId: string) =>
+    !pemakaianSiap ||
     jurnals.some((j) => j.rows.some((r) => r.akunId === akunId)) ||
     Object.values(periodes).some((p) => p.saldo.some((s) => s.akunId === akunId && (s.debit > 0 || s.kredit > 0)));
 
@@ -143,7 +167,9 @@ export default function DaftarAkunTab() {
         if (matchesFilter(a)) {
           keepIds.add(a.id);
           let currentParentId = a.akunIndukId;
-          while (currentParentId) {
+          const dilewati = new Set<string>();
+          while (currentParentId && !dilewati.has(currentParentId)) {
+            dilewati.add(currentParentId);
             keepIds.add(currentParentId);
             autoExpandIds.add(currentParentId);
             const parentItem = items.find((i) => i.id === currentParentId);
@@ -199,8 +225,9 @@ export default function DaftarAkunTab() {
     const e: Record<string, string> = {};
     const kode = form.kodeAkun?.trim() ?? '';
     if (!kode) e.kodeAkun = 'Kode akun wajib diisi.';
-    else if (kode.length !== 6) e.kodeAkun = 'Kode akun harus 6 digit.';
-    else if (!editId && items.some((a) => a.kodeAkun.toLowerCase() === kode.toLowerCase())) e.kodeAkun = 'Kode akun ini sudah dipakai.';
+    else if (!/^\d{6}$/.test(kode)) e.kodeAkun = 'Kode akun harus 6 digit angka.';
+    else if (items.some((a) => a.id !== editId && a.kodeAkun === kode)) e.kodeAkun = 'Kode akun ini sudah dipakai.';
+    if (editId && form.akunIndukId && turunan.has(form.akunIndukId)) e.akunIndukId = 'Akun induk tidak boleh turunan dari akun ini.';
     
     if (!form.namaAkun?.trim()) e.namaAkun = 'Nama akun wajib diisi.';
     
@@ -243,6 +270,22 @@ export default function DaftarAkunTab() {
   };
 
   const editLocked = editId ? hasTransactions(editId) : false;
+  // Akun turunan dari akun yang sedang diedit tidak boleh dipilih sebagai induk (mencegah siklus).
+  const turunan = (() => {
+    const hasil = new Set<string>();
+    if (!editId) return hasil;
+    const antre = [editId];
+    while (antre.length) {
+      const id = antre.pop()!;
+      for (const anak of childrenMap.get(id) ?? []) {
+        if (!hasil.has(anak.id)) {
+          hasil.add(anak.id);
+          antre.push(anak.id);
+        }
+      }
+    }
+    return hasil;
+  })();
   const riwayatAkun = items.find((i) => i.id === riwayatId);
   const riwayatRows = riwayat
     .filter((r) => r.akunId === riwayatId)
@@ -461,13 +504,19 @@ export default function DaftarAkunTab() {
       >
         <div className="space-y-4">
           {errors.submit && <Notice tone="danger">{errors.submit}</Notice>}
-          {editLocked && <Notice tone="warning">Akun ini sudah dipakai di transaksi, jadi kodenya terkunci. Akun hanya bisa dinonaktifkan, tidak dihapus.</Notice>}
+          {editLocked && (
+            <Notice tone="warning">
+              {pemakaianSiap
+                ? 'Akun ini sudah dipakai di transaksi, jadi kode, kategori, dan saldo normalnya terkunci. Akun hanya bisa dinonaktifkan, tidak dihapus.'
+                : 'Sedang memeriksa pemakaian akun di jurnal dan saldo awal. Kode, kategori, dan saldo normal dikunci sampai pemeriksaan selesai.'}
+            </Notice>
+          )}
 
-          <Field label="Akun induk" optional>
+          <Field label="Akun induk" optional error={errors.akunIndukId}>
             <select className="control" value={form.akunIndukId || ''} onChange={(e) => setForm({ ...form, akunIndukId: e.target.value })}>
               <option value="">Tidak ada (akun level atas)</option>
               {items.map((i) => (
-                <option key={i.id} value={i.id} disabled={i.id === editId}>
+                <option key={i.id} value={i.id} disabled={i.id === editId || turunan.has(i.id)}>
                   {i.kodeAkun} - {i.namaAkun}
                 </option>
               ))}
@@ -493,14 +542,14 @@ export default function DaftarAkunTab() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Kategori">
-              <select className="control" value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value as KategoriAkun })}>
+              <select className="control" disabled={editLocked} value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value as KategoriAkun })}>
                 {Object.entries(KATEGORI_AKUN_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
               </select>
             </Field>
             <Field label="Saldo normal">
-              <select className="control" value={form.tipeSaldo} onChange={(e) => setForm({ ...form, tipeSaldo: e.target.value as TipeSaldo })}>
+              <select className="control" disabled={editLocked} value={form.tipeSaldo} onChange={(e) => setForm({ ...form, tipeSaldo: e.target.value as TipeSaldo })}>
                 <option value="d">Debit</option>
                 <option value="k">Kredit</option>
               </select>

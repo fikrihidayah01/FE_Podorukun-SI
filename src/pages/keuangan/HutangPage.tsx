@@ -8,6 +8,8 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Money from '../../components/ui/Money';
 import EmptyState from '../../components/ui/EmptyState';
+import Notice from '../../components/ui/Notice';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { StatGrid, StatTile } from '../../components/ui/StatTile';
 import ExportButton from '../../components/ui/ExportButton';
 import {
@@ -40,7 +42,7 @@ const TABS = [
 ];
 
 export default function HutangPage() {
-  const { getSaldoPerKodePembantu } = useHutangStore();
+  const { getSaldoPerKodePembantu, error: hutangError } = useHutangStore();
   const { items: proyeks } = useProyekStore();
   const { getDueReminders } = usePinjamanBankStore();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,7 +50,9 @@ export default function HutangPage() {
   const [selectedProyek, setSelectedProyek] = useState('');
   const [selectedKategori, setSelectedKategori] = useState<KategoriHutang | ''>('');
   const [selectedBulan, setSelectedBulan] = useState(bulanIni());
-const { periodes, tutupPeriode } = usePeriodeStore();
+  const { periodes, tutupPeriode } = usePeriodeStore();
+  const [kunciOpen, setKunciOpen] = useState(false);
+  const [kunciInfo, setKunciInfo] = useState<{ tone: 'info' | 'positive' | 'warning'; text: string } | null>(null);
   const { items: pts } = useMasterPtStore();
 
   const currentPt = useMemo(() => {
@@ -65,27 +69,27 @@ const { periodes, tutupPeriode } = usePeriodeStore();
     return periodes.some((p) => p.ptId === currentPtId && p.bulan === selectedBulan && p.status === 'terkunci');
   }, [periodes, currentPtId, selectedBulan]);
 
-  const handleToggleKunci = async () => {
+  const handleToggleKunci = () => {
     if (!selectedProyek) {
-      alert('Pilih proyek spesifik terlebih dahulu sebelum mengunci periode buku.');
+      setKunciInfo({ tone: 'info', text: 'Pilih proyek spesifik terlebih dahulu untuk melihat atau mengunci periode buku.' });
       return;
     }
     if (!currentPtId) {
-      alert('Proyek yang dipilih belum terhubung ke Master PT. Hubungkan proyek ke PT di pengaturan sebelum mengunci periode.');
+      setKunciInfo({ tone: 'warning', text: 'Proyek ini belum terhubung ke Master PT. Hubungkan proyek ke PT sebelum mengunci periode.' });
       return;
     }
     if (isPeriodeTerkunci) {
-      alert(`Periode ${periodeLabel} untuk ${currentPt?.namaPt || 'PT ini'} sudah terkunci dan tidak dapat dibuka kembali.`);
+      setKunciInfo({ tone: 'info', text: `Periode ${periodeLabel} untuk ${currentPt?.namaPt || 'PT ini'} sudah terkunci dan tidak dapat dibuka kembali.` });
       return;
     }
-    const confirm = window.confirm(`Kunci periode ${periodeLabel} untuk ${currentPt?.namaPt}? Ditolak jika masih ada jurnal draft di bulan ini.`);
-    if (!confirm) return;
-    try {
-      await tutupPeriode(currentPtId, selectedBulan);
-      alert(`Periode ${periodeLabel} berhasil ditutup dan dikunci.`);
-    } catch (err: any) {
-      alert(err.message || 'Gagal menutup periode');
-    }
+    setKunciInfo(null);
+    setKunciOpen(true);
+  };
+
+  const kunciPeriode = async () => {
+    if (!currentPtId) return;
+    await tutupPeriode(currentPtId, selectedBulan);
+    setKunciInfo({ tone: 'positive', text: `Periode ${periodeLabel} untuk ${currentPt?.namaPt} berhasil dikunci.` });
   };
 
   useEffect(() => {
@@ -140,12 +144,16 @@ const { periodes, tutupPeriode } = usePeriodeStore();
             type="button"
             onClick={handleToggleKunci}
             aria-pressed={isPeriodeTerkunci}
-            title="Klik untuk mengunci periode melalui backend"
+            title={currentPtId && !isPeriodeTerkunci ? 'Kunci periode ini' : undefined}
             className="rounded-md"
           >
-            <Badge tone={isPeriodeTerkunci ? 'warning' : 'positive'}>
+            <Badge tone={!currentPtId ? 'neutral' : isPeriodeTerkunci ? 'warning' : 'positive'}>
               {isPeriodeTerkunci ? <PiLockSimple aria-hidden /> : <PiLockSimpleOpen aria-hidden />}
-              {isPeriodeTerkunci ? 'Periode terkunci' : 'Periode terbuka'}
+              {!currentPtId
+                ? 'Status periode: pilih proyek'
+                : isPeriodeTerkunci
+                ? 'Periode terkunci'
+                : 'Periode terbuka · kunci'}
             </Badge>
           </button>
         }
@@ -158,10 +166,16 @@ const { periodes, tutupPeriode } = usePeriodeStore();
       />
 
       <PageBody>
+        {hutangError && (
+          <Notice tone="danger" title="Data hutang gagal dimuat">
+            {hutangError}. Angka di bawah bisa kosong atau belum terbaru.
+          </Notice>
+        )}
+        {kunciInfo && <Notice tone={kunciInfo.tone}>{kunciInfo.text}</Notice>}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-3xl">
           <div>
             <label htmlFor="f-proyek" className="field-label">Proyek</label>
-            <select id="f-proyek" className="control" value={selectedProyek} onChange={(e) => setSelectedProyek(e.target.value)}>
+            <select id="f-proyek" className="control" value={selectedProyek} onChange={(e) => { setSelectedProyek(e.target.value); setKunciInfo(null); }}>
               <option value="">Semua proyek</option>
               {proyeks.map((p) => (
                 <option key={p.id} value={p.id}>{p.nama}</option>
@@ -379,7 +393,16 @@ const { periodes, tutupPeriode } = usePeriodeStore();
         </TabPanel>
       </PageBody>
 
-      <InputMutasiModal isOpen={inputOpen} onClose={() => setInputOpen(false)} />
+      <ConfirmDialog
+        isOpen={kunciOpen}
+        onClose={() => setKunciOpen(false)}
+        onConfirm={kunciPeriode}
+        title="Kunci periode buku"
+        message={`Kunci periode ${periodeLabel} untuk ${currentPt?.namaPt ?? ''}? Periode yang dikunci tidak bisa dibuka kembali, dan penguncian ditolak jika masih ada jurnal draft di bulan ini.`}
+        confirmLabel="Kunci periode"
+      />
+
+      <InputMutasiModal isOpen={inputOpen} onClose={() => setInputOpen(false)} bulan={selectedBulan} />
 
       <SaldoBerjalanDetailModal
         isOpen={selectedJurnalRow !== null}

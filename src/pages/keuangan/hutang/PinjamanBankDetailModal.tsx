@@ -55,6 +55,9 @@ const POLA_NOTE: Record<PinjamanBank['pola'], string> = {
 
 const JENIS_LABEL = { pokok: 'Pokok', bunga: 'Bunga', gabungan: 'Satu transfer' } as const;
 
+// Bandingkan dalam sen agar 0,1 + 0,2 tetap dianggap sama dengan 0,3.
+const samaRupiah = (a: number, b: number) => Math.round(a * 100) === Math.round(b * 100);
+
 const akunLabel = (a: Akun | undefined, fallback: string) => (a ? `${a.kodeAkun} - ${a.namaAkun}` : fallback);
 
 interface PinjamanBankDetailModalProps {
@@ -66,7 +69,7 @@ interface PinjamanBankDetailModalProps {
 export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: PinjamanBankDetailModalProps) {
   const { pinjamans, getEntriesByPinjaman, fetchEntries, addEntry, addTopUp } = usePinjamanBankStore();
   const akuns = useCoaStore((s) => s.items);
-  const kasBankAkuns = useMemo(() => akuns.filter((a) => a.isKasBank), [akuns]);
+  const kasBankAkuns = useMemo(() => akuns.filter((a) => a.isKasBank && a.status === 'aktif'), [akuns]);
 
   const [payForm, setPayForm] = useState<PaymentForm>(() => emptyPayment(pinjaman?.pola ?? 'terpisah'));
   const [payError, setPayError] = useState('');
@@ -104,11 +107,11 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
   const pNominal = Number(payForm.nominal) || 0;
   const pPokok = Number(payForm.nominalPokok) || 0;
   const pBunga = Number(payForm.nominalBunga) || 0;
-  const rincianCocok = jenis === 'gabungan' && pNominal > 0 && pPokok + pBunga === pNominal;
+  const rincianCocok = jenis === 'gabungan' && pNominal > 0 && samaRupiah(pPokok + pBunga, pNominal);
 
   const saveRincian = async () => {
     const entry = entries.find((e) => e.id === rincianId);
-    if (!entry || Number(rincianPokok) + Number(rincianBunga) !== entry.nominal) { setPayError('Jumlah pokok dan bunga harus sama dengan nominal transfer.'); return; }
+    if (!entry || !samaRupiah(Number(rincianPokok) + Number(rincianBunga), entry.nominal)) { setPayError('Jumlah pokok dan bunga harus sama dengan nominal transfer.'); return; }
     setSaving(true); setPayError('');
     try {
       const res = await fetchApi(`/pinjaman/transaksi/${rincianId}/rincian`, { method: 'PATCH', body: JSON.stringify({ nominalPokok: Number(rincianPokok), nominalBunga: Number(rincianBunga) }) });
@@ -122,7 +125,7 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
     if (!payForm.tanggal) return setPayError('Tanggal pembayaran wajib diisi.');
     if (!payForm.akunKasId) return setPayError('Pilih akun kas atau bank.');
     if (pNominal <= 0) return setPayError('Nominal pembayaran harus lebih dari 0.');
-    if (jenis === 'gabungan' && statusRincian !== 'menunggu_rincian' && pPokok + pBunga !== pNominal) {
+    if (jenis === 'gabungan' && statusRincian !== 'menunggu_rincian' && !samaRupiah(pPokok + pBunga, pNominal)) {
       return setPayError('Porsi pokok dan bunga belum sama dengan total transfer.');
     }
 
