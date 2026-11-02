@@ -180,8 +180,21 @@ export default function LegalPage() {
     const pt = pts.find((p) => p.id === formPtId);
     const ptSingkatan = pt?.namaPt.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 4) ?? 'DOK';
 
+    // Pasal dibaca dari pustaka. Bila pustaka belum termuat, dokumen akan tersimpan tanpa pasal,
+    // jadi muat ulang dulu dan tolak simpan bila masih ada pasal template yang tidak ditemukan.
+    const pasalIds = templateAktif?.pasalIds ?? [];
+    const pasalHilang = () => pasalIds.filter((id) => !usePustakaPasalStore.getState().items.some((item) => item.id === id));
+    if (pasalHilang().length > 0) await usePustakaPasalStore.getState().fetch();
+    const hilang = pasalHilang();
+    if (hilang.length > 0) {
+      setFormError(
+        `${hilang.length} dari ${pasalIds.length} pasal template tidak ditemukan di Pustaka Pasal (gagal dimuat atau sudah dihapus). ` +
+          'Muat ulang halaman atau perbaiki template sebelum menyimpan, agar dokumen tidak tersimpan tanpa pasal.',
+      );
+      return;
+    }
     const pustakaStore = usePustakaPasalStore.getState();
-    const pasalDokumen = (templateAktif?.pasalIds ?? []).map((pasalId) => {
+    const pasalDokumen = pasalIds.map((pasalId) => {
       const p = pustakaStore.items.find((item) => item.id === pasalId);
       if (!p) return null;
       return {

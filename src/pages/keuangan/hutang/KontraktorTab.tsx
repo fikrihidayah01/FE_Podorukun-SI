@@ -1,7 +1,6 @@
 import { Fragment, useMemo, useState, useEffect } from 'react';
 import { PiCaretRight, PiPlus, PiHardHat, PiFileText, PiCheckCircle, PiHandCoins } from 'react-icons/pi';
 import { useKontrakStore, type Kontrak } from '../../../store/kontrakStore';
-import { useProyekStore } from '../../../store/proyekStore';
 import Panel, { TableScroll } from '../../../components/ui/Panel';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
@@ -14,15 +13,15 @@ import KontrakFormModal from './KontrakFormModal';
 import AdendumFormModal from './AdendumFormModal';
 import CatatPembayaranKontrakModal from './CatatPembayaranKontrakModal';
 
-export default function KontraktorTab() {
+export default function KontraktorTab({ selectedProyekId = '' }: { selectedProyekId?: string }) {
   const { kontraks, adendums, pembayarans, fetch: fetchKontrak, fetchDetail, cancelKontrak } = useKontrakStore();
-  const proyeks = useProyekStore((s) => s.items);
 
   useEffect(() => {
     fetchKontrak();
   }, [fetchKontrak]);
 
-  const [selectedProyek, setSelectedProyek] = useState('');
+  // Filter proyek memakai filter di atas halaman Hutang, bukan filter terpisah.
+  const selectedProyek = selectedProyekId;
   const [selectedKontraktor, setSelectedKontraktor] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
@@ -82,15 +81,6 @@ export default function KontraktorTab() {
         }
       >
         <div className="grid grid-cols-1 gap-3 border-b border-line px-4 py-3.5 sm:grid-cols-2 sm:px-5 lg:max-w-2xl">
-          <div>
-            <label htmlFor="f-k-proyek" className="field-label">Proyek</label>
-            <select id="f-k-proyek" className="control" value={selectedProyek} onChange={(e) => setSelectedProyek(e.target.value)}>
-              <option value="">Semua proyek</option>
-              {proyeks.map((p) => (
-                <option key={p.id} value={p.id}>{p.nama}</option>
-              ))}
-            </select>
-          </div>
           <div>
             <label htmlFor="f-k-kontraktor" className="field-label">Kontraktor</label>
             <select id="f-k-kontraktor" className="control" value={selectedKontraktor} onChange={(e) => setSelectedKontraktor(e.target.value)}>

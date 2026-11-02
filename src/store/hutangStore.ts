@@ -46,8 +46,17 @@ export interface MutasiHutang {
   lampiran?: string;
   proyekLawanId?: string;
   mirrorMutasiId?: string;
-  createdAt: string;
+  /** 'saldo_awal' untuk baris saldo awal yang dikirim backend sebagai mutasi pertama. */
+  sumber?: string;
+  jurnalId?: string | null;
+  nomorJurnal?: string | null;
+  /** Baris berstatus 'draft' dikirim backend tetapi belum masuk saldo. */
+  jurnalStatus?: string | null;
+  createdAt: string | null;
 }
+
+/** Mutasi yang sudah terbuku (masuk saldo). Draft ditampilkan, tetapi tidak dihitung. */
+export const mutasiTerbuku = (m: Pick<MutasiHutang, 'jurnalStatus'>) => m.jurnalStatus !== 'draft';
 
 // ── Saldo computed view ──────────────────────────────────────
 export interface SaldoKodePembantu {

@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import Money from '../../components/ui/Money';
 import Panel, { TableScroll } from '../../components/ui/Panel';
 import EmptyState from '../../components/ui/EmptyState';
-import { awalBulanIni, formatTanggal, hariIni } from '../../utils/format';
+import { awalBulanIni, formatRupiah, formatTanggal, hariIni } from '../../utils/format';
 import Notice from '../../components/ui/Notice';
 import ExportButton from '../../components/ui/ExportButton';
 import { fetchApi } from '../../lib/api';
@@ -26,6 +26,8 @@ const NUMERIC_COLS = new Set([
   'mutasiDebit',
   'mutasiKredit',
   'saldo',
+  'saldoAkhirDebit',
+  'saldoAkhirKredit',
   'debit',
   'kredit',
   'saldoAwal',
@@ -41,6 +43,8 @@ const LABELS: Record<string, string> = {
   mutasiDebit: 'Mutasi debit',
   mutasiKredit: 'Mutasi kredit',
   saldo: 'Saldo',
+  saldoAkhirDebit: 'Akhir debit',
+  saldoAkhirKredit: 'Akhir kredit',
   tanggal: 'Tanggal',
   nomorJurnal: 'Nomor jurnal',
   keterangan: 'Keterangan',
@@ -52,6 +56,22 @@ const LABELS: Record<string, string> = {
   mutasiBulan: 'Mutasi bulan',
   saldoAkhir: 'Saldo akhir',
 };
+
+/** Pecah saldo bertanda (positif = sisi normal akun) ke kolom debit/kredit agar neraca saldo bisa dicek seimbang. */
+function sisiSaldoAkhir(row: ReportRow): ReportRow {
+  const saldo = Number(row.saldo) || 0;
+  const normalDebit = row.tipeSaldo !== 'kredit';
+  const keDebit = normalDebit ? saldo >= 0 : saldo < 0;
+  return { ...row, saldoAkhirDebit: keDebit ? Math.abs(saldo) : 0, saldoAkhirKredit: keDebit ? 0 : Math.abs(saldo) };
+}
+
+const SALDO_AKUN_PASANGAN: [string, string, string][] = [
+  ['Saldo awal', 'saldoAwalDebit', 'saldoAwalKredit'],
+  ['Mutasi', 'mutasiDebit', 'mutasiKredit'],
+  ['Saldo akhir', 'saldoAkhirDebit', 'saldoAkhirKredit'],
+];
+
+const jumlah = (rows: ReportRow[], kolom: string) => rows.reduce((s, r) => s + (Number(r[kolom]) || 0), 0);
 
 export default function LaporanPage() {
   const { items: akuns, fetch: fetchAkuns } = useCoaStore();
@@ -115,6 +135,8 @@ export default function LaporanPage() {
                 nama: row.kodePembantu.nama,
               }),
             )
+          : jenis === 'saldo-akun'
+          ? body.data.map(sisiSaldoAkhir)
           : body.data,
       );
       setMeta(body.meta || {});
@@ -127,7 +149,7 @@ export default function LaporanPage() {
 
   const columns =
     jenis === 'saldo-akun'
-      ? ['kodeAkun', 'namaAkun', 'saldoAwalDebit', 'saldoAwalKredit', 'mutasiDebit', 'mutasiKredit', 'saldo']
+      ? ['kodeAkun', 'namaAkun', 'saldoAwalDebit', 'saldoAwalKredit', 'mutasiDebit', 'mutasiKredit', 'saldoAkhirDebit', 'saldoAkhirKredit']
       : jenis === 'buku-besar'
       ? ['tanggal', 'nomorJurnal', 'keterangan', 'debit', 'kredit', 'saldo']
       : ['kode', 'nama', 'saldoAwal', 'mutasiBulan', 'saldoAkhir'];
@@ -309,6 +331,23 @@ export default function LaporanPage() {
               />
             }
           >
+            {jenis === 'saldo-akun' && rows.length > 0 && (() => {
+              // Dibandingkan dalam sen agar pembulatan desimal tidak membuat selisih palsu.
+              const selisih = SALDO_AKUN_PASANGAN.map(([label, d, k]) => ({
+                label,
+                nilai: (Math.round(jumlah(rows, d) * 100) - Math.round(jumlah(rows, k) * 100)) / 100,
+              })).filter((x) => x.nilai !== 0);
+              return selisih.length === 0 ? (
+                <Notice tone="positive" className="m-4 sm:mx-5">
+                  Neraca saldo seimbang: total debit sama dengan total kredit pada saldo awal, mutasi, dan saldo akhir.
+                </Notice>
+              ) : (
+                <Notice tone="danger" title="Neraca saldo tidak seimbang" className="m-4 sm:mx-5">
+                  {selisih.map((x) => `${x.label} selisih ${formatRupiah(x.nilai)} (debit dikurangi kredit)`).join('; ')}.
+                  {proyekId ? ' Filter proyek bisa memisahkan jurnal antar proyek; coba tampilkan semua proyek.' : ' Periksa saldo awal dan jurnal yang belum seimbang.'}
+                </Notice>
+              );
+            })()}
             {rows.length === 0 ? (
               <EmptyState
                 compact
@@ -358,46 +397,11 @@ export default function LaporanPage() {
                       {jenis === 'saldo-akun' && (
                         <>
                           <td colSpan={2}>Total</td>
-                          <td className="num">
-                            <Money
-                              value={rows.reduce(
-                                (s, r) => s + (Number(r.saldoAwalDebit) || 0),
-                                0,
-                              )}
-                            />
-                          </td>
-                          <td className="num">
-                            <Money
-                              value={rows.reduce(
-                                (s, r) => s + (Number(r.saldoAwalKredit) || 0),
-                                0,
-                              )}
-                            />
-                          </td>
-                          <td className="num">
-                            <Money
-                              value={rows.reduce(
-                                (s, r) => s + (Number(r.mutasiDebit) || 0),
-                                0,
-                              )}
-                            />
-                          </td>
-                          <td className="num">
-                            <Money
-                              value={rows.reduce(
-                                (s, r) => s + (Number(r.mutasiKredit) || 0),
-                                0,
-                              )}
-                            />
-                          </td>
-                          <td className="num font-bold">
-                            <Money
-                              value={rows.reduce(
-                                (s, r) => s + (Number(r.saldo) || 0),
-                                0,
-                              )}
-                            />
-                          </td>
+                          {SALDO_AKUN_PASANGAN.flatMap(([, d, k]) => [d, k]).map((c) => (
+                            <td key={c} className={`num${c.startsWith('saldoAkhir') ? ' font-bold' : ''}`}>
+                              <Money value={jumlah(rows, c)} />
+                            </td>
+                          ))}
                         </>
                       )}
                       {jenis === 'buku-besar' && (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { PiClockCounterClockwise, PiMagnifyingGlass } from 'react-icons/pi';
-import { useHutangStore, KATEGORI_HUTANG_LABELS } from '../../../store/hutangStore';
+import { useHutangStore, KATEGORI_HUTANG_LABELS, mutasiTerbuku } from '../../../store/hutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import PageHeader, { PageBody } from '../../../components/ui/PageHeader';
 import Panel, { TableScroll } from '../../../components/ui/Panel';
@@ -68,7 +68,9 @@ export default function DetailKodePembantuPage() {
     .sort((a, b) => (a.tanggal ?? '').localeCompare(b.tanggal ?? '') || (a.createdAt ?? '').localeCompare(b.createdAt ?? ''))
     .reduce<((typeof mutasis)[number] & { saldo: number })[]>((acc, m) => {
     const prev = acc.length ? acc[acc.length - 1].saldo : 0;
-    acc.push({ ...m, saldo: prev + (m.jenisMutasi === 'kredit' ? m.nominal : -m.nominal) });
+    // Draft ditampilkan agar terlihat, tetapi saldo berjalan hanya dari baris yang sudah terbuku.
+    const delta = !mutasiTerbuku(m) ? 0 : m.jenisMutasi === 'kredit' ? m.nominal : -m.nominal;
+    acc.push({ ...m, saldo: prev + delta });
     return acc;
   }, []);
   const running = rows.length ? rows[rows.length - 1].saldo : 0;
@@ -95,7 +97,7 @@ export default function DetailKodePembantuPage() {
       <PageBody>
         <Panel
           title="Riwayat mutasi"
-          description="Debit mengurangi hutang, kredit menambah hutang. Tanggal dalam format dd/mm/yyyy."
+          description="Debit mengurangi hutang, kredit menambah hutang. Baris draft belum masuk saldo sampai jurnalnya diposting."
           flush
           actions={
             <ExportButton
@@ -109,7 +111,7 @@ export default function DetailKodePembantuPage() {
               getData={() =>
                 rows.map((r) => ({
                   tanggal: formatTanggal(r.tanggal),
-                  uraian: r.uraian,
+                  uraian: mutasiTerbuku(r) ? r.uraian : `[Draft] ${r.uraian}`,
                   debit: r.jenisMutasi === 'debit' ? r.nominal : null,
                   kredit: r.jenisMutasi === 'kredit' ? r.nominal : null,
                   saldo: r.saldo,
@@ -139,9 +141,17 @@ export default function DetailKodePembantuPage() {
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id}>
+                    <tr key={row.id} className={mutasiTerbuku(row) ? undefined : 'text-ink-3'}>
                       <td className="whitespace-nowrap tabular-nums">{formatTanggal(row.tanggal)}</td>
-                      <td className="text-ink">{row.uraian}</td>
+                      <td className="text-ink">
+                        {row.uraian}
+                        {row.sumber === 'saldo_awal' && <Badge className="ml-2">Saldo awal</Badge>}
+                        {!mutasiTerbuku(row) && (
+                          <Badge tone="warning" className="ml-2">
+                            Draft{row.nomorJurnal ? ` ${row.nomorJurnal}` : ''}, belum masuk saldo
+                          </Badge>
+                        )}
+                      </td>
                       <td className="num">{row.jenisMutasi === 'debit' ? <Money value={row.nominal} /> : <span className="text-ink-3">-</span>}</td>
                       <td className="num">{row.jenisMutasi === 'kredit' ? <Money value={row.nominal} /> : <span className="text-ink-3">-</span>}</td>
                       <td className="num font-semibold text-ink"><Money value={row.saldo} /></td>
