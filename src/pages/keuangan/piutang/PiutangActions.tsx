@@ -13,6 +13,8 @@ import { usePiutangStore, type KavlingTagihan } from '../../../store/piutangStor
 import { useCoaStore } from '../../../store/coaStore';
 import Button from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
+import { hariIni } from '../../../utils/format';
+import Notice from '../../../components/ui/Notice';
 import TagihanModal from './TagihanModal';
 
 export default function PiutangActions({ item }: { item: KavlingTagihan }) {
@@ -21,7 +23,7 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const [action, setAction] = useState('');
-  const [tanggal, setTanggal] = useState(new Date().toISOString().slice(0, 10));
+  const [tanggal, setTanggal] = useState(hariIni());
   const [nominal, setNominal] = useState('0');
   const [alasan, setAlasan] = useState('');
   const [akunKasId, setAkunKasId] = useState('');
@@ -85,7 +87,23 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
     }
   };
 
+  const isKpr = ['cashback', 'admin'].includes(action);
+  const nominalNum = Number(nominal);
+  const validasi = (() => {
+    if (!tanggal) return 'Tanggal wajib diisi.';
+    if (nominal === '' || Number.isNaN(nominalNum) || nominalNum < 0) return 'Nominal tidak valid.';
+    if (action === 'bast' && nominalNum <= 0) return 'Nilai HPP harus lebih dari 0.';
+    if (isKpr && nominalNum <= 0) return 'Nominal harus lebih dari 0.';
+    if (isKpr && !akunKasId) return 'Pilih akun kas/bank.';
+    if (action === 'batal' && !alasan.trim()) return 'Alasan pembatalan wajib diisi.';
+    return '';
+  })();
+
   const submit = async () => {
+    if (validasi) {
+      setError(validasi);
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -94,14 +112,14 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
         action === 'bast'
           ? { tanggal, nilaiHpp: Number(nominal) }
           : action === 'batal'
-          ? { tanggal, potongan: Number(nominal), alasan }
+          ? { tanggal, potongan: Number(nominal), alasan: alasan.trim() }
           : { jenis: action, tanggal, nominal: Number(nominal), akunKasId, noBukti };
       const res = await fetchApi(`/piutang/${item.id}/${kpr ? 'biaya-kpr' : action}`, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message || 'Gagal menyimpan');
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message || 'Gagal menyimpan');
       await usePiutangStore.getState().fetchItems();
       setAction('');
     } catch (err) {
@@ -115,7 +133,11 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
     setMenuOpen(false);
     setAction(key);
     setError('');
-    setNominal('0');
+    setTanggal(hariIni());
+    setNominal('');
+    setAlasan('');
+    setAkunKasId('');
+    setNoBukti('');
     void useCoaStore.getState().fetch();
   };
 
@@ -123,7 +145,6 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
     <div
       ref={menuRef}
       onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
       className="relative inline-block text-left"
     >
       {/* Kebab trigger button */}
@@ -172,7 +193,7 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
 
           {item.status !== 'batal' && (
             <>
-              {/* Action: BAST */}
+              {item.statusBast !== 'sudah_bast' && (
               <button
                 type="button"
                 onClick={() => handleActionClick('bast')}
@@ -182,8 +203,10 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
                 <PiCheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
                 <span>Catat BAST</span>
               </button>
+              )}
 
-              {/* Actions: KPR (Cashback & Admin) */}
+              {item.tipeTransaksi === 'kpr' && (
+              <>
               <button
                 type="button"
                 onClick={() => handleActionClick('cashback')}
@@ -202,6 +225,8 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
                 <PiPercent className="h-4 w-4 text-blue-600 shrink-0" />
                 <span>Admin KPR</span>
               </button>
+              </>
+              )}
 
               {/* Action: Batalkan Penjualan */}
               <div className="my-1 border-t border-line" />
@@ -253,11 +278,7 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
         }
       >
         <div className="space-y-4">
-          {error && (
-            <p role="alert" className="text-red-600">
-              {error}
-            </p>
-          )}
+          {error && <Notice tone="danger">{error}</Notice>}
           <label className="block">
             Tanggal
             <input
@@ -279,6 +300,7 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
               type="number"
               min="0"
               step="0.01"
+              placeholder="0"
               value={nominal}
               onChange={(e) => setNominal(e.target.value)}
             />

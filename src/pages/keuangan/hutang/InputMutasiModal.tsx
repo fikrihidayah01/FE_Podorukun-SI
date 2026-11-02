@@ -10,6 +10,8 @@ import Notice from '../../../components/ui/Notice';
 interface InputMutasiModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Periode yang sedang dilihat di halaman Hutang ('YYYY-MM'); saldo dimuat ulang untuk periode ini. */
+  bulan: string;
 }
 
 const EMPTY_FORM = {
@@ -28,7 +30,7 @@ const EMPTY_FORM = {
 
 type FormErrors = Partial<Record<keyof typeof EMPTY_FORM, string>>;
 
-export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalProps) {
+export default function InputMutasiModal({ isOpen, onClose, bulan }: InputMutasiModalProps) {
   const { kodePembantus, addMutasi } = useHutangStore();
   const { items: proyeks } = useProyekStore();
   const { items: akuns } = useCoaStore();
@@ -55,11 +57,15 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
     }
   }, [isOpen]);
 
-  const handleClose = () => {
+  const resetAndClose = () => {
     setForm(EMPTY_FORM);
+    setSaveError('');
     setErrors({});
     setCreateNewKp(false);
     onClose();
+  };
+  const handleClose = () => {
+    if (!saving) resetAndClose();
   };
 
   const validate = () => {
@@ -99,13 +105,11 @@ export default function InputMutasiModal({ isOpen, onClose }: InputMutasiModalPr
         proyekLawanId: isAntarProyek ? form.proyekLawanId : undefined,
       });
 
-      const d = new Date();
-      const currentMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-      useHutangStore.getState().fetchSaldo(currentMonth);
+      useHutangStore.getState().fetchSaldo(bulan);
       useHutangStore.getState().fetchMutasiAntarProyek();
       if (kpId) useHutangStore.getState().fetchMutasiByKodePembantu(kpId);
 
-      handleClose();
+      resetAndClose();
     } catch (err: any) {
       setSaveError(err.message || 'Gagal menyimpan mutasi');
     } finally { setSaving(false); }

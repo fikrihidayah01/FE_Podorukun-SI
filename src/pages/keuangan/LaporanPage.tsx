@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button';
 import Money from '../../components/ui/Money';
 import Panel, { TableScroll } from '../../components/ui/Panel';
 import EmptyState from '../../components/ui/EmptyState';
+import { awalBulanIni, formatTanggal, hariIni } from '../../utils/format';
 import Notice from '../../components/ui/Notice';
 import ExportButton from '../../components/ui/ExportButton';
 import { fetchApi } from '../../lib/api';
@@ -58,12 +59,18 @@ export default function LaporanPage() {
   const [jenis, setJenis] = useState('saldo-akun');
   const [proyekId, setProyekId] = useState('');
   const [akunId, setAkunId] = useState('');
-  const [dari, setDari] = useState(new Date().toISOString().slice(0, 8) + '01');
-  const [sampai, setSampai] = useState(new Date().toISOString().slice(0, 10));
+  const [dari, setDari] = useState(awalBulanIni());
+  const [sampai, setSampai] = useState(hariIni());
   const [rows, setRows] = useState<ReportRow[] | null>(null);
   const [meta, setMeta] = useState<{ saldoAwal?: number; saldoAkhir?: number }>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Hasil lama dibuang setiap filter berubah, supaya tabel dan judul export selalu sesuai filter yang tampil.
+  const ubahFilter = <T,>(setter: (v: T) => void) => (v: T) => {
+    setter(v);
+    setRows(null);
+    setMeta({});
+  };
 
   useEffect(() => {
     void fetchAkuns();
@@ -172,7 +179,7 @@ export default function LaporanPage() {
               className="control"
               aria-label="Proyek"
               value={proyekId}
-              onChange={(e) => setProyekId(e.target.value)}
+              onChange={(e) => ubahFilter(setProyekId)(e.target.value)}
             >
               <option value="">Semua proyek</option>
               {proyeks.map((p) => (
@@ -195,7 +202,7 @@ export default function LaporanPage() {
                   aria-label="Akun"
                   required
                   value={akunId}
-                  onChange={(e) => setAkunId(e.target.value)}
+                  onChange={(e) => ubahFilter(setAkunId)(e.target.value)}
                 >
                   <option value="">Pilih akun</option>
                   {akuns.map((a) => (
@@ -216,7 +223,7 @@ export default function LaporanPage() {
                   type="date"
                   required
                   value={dari}
-                  onChange={(e) => setDari(e.target.value)}
+                  onChange={(e) => ubahFilter(setDari)(e.target.value)}
                 />
               </div>
             </>
@@ -233,7 +240,7 @@ export default function LaporanPage() {
               type={jenis === 'saldo-kode-pembantu' ? 'month' : 'date'}
               value={jenis === 'saldo-kode-pembantu' ? sampai.slice(0, 7) : sampai}
               onChange={(e) =>
-                setSampai(jenis === 'saldo-kode-pembantu' ? e.target.value + '-01' : e.target.value)
+                ubahFilter(setSampai)(jenis === 'saldo-kode-pembantu' ? e.target.value + '-01' : e.target.value)
               }
             />
           </div>
@@ -281,12 +288,14 @@ export default function LaporanPage() {
               <ExportButton
                 opts={{
                   namaLaporan: reportTitle,
-                  filenameBase: `laporan_${jenis}`,
+                  filenameBase: `laporan_${jenis}_${sampai}`,
                   proyek: selectedProyek?.nama ?? 'Semua Proyek',
                   periode:
                     jenis === 'saldo-kode-pembantu'
                       ? sampai.slice(0, 7)
-                      : `${dari} s/d ${sampai}`,
+                      : jenis === 'buku-besar'
+                      ? `${formatTanggal(dari)} s/d ${formatTanggal(sampai)}`
+                      : `Per ${formatTanggal(sampai)}`,
                 }}
                 getColumns={() =>
                   columns.map((c) => ({
@@ -296,7 +305,7 @@ export default function LaporanPage() {
                     width: NUMERIC_COLS.has(c) ? 18 : 22,
                   }))
                 }
-                getData={() => rows}
+                getData={() => rows.map((r) => (r.tanggal ? { ...r, tanggal: formatTanggal(String(r.tanggal)) } : r))}
               />
             }
           >
@@ -333,6 +342,8 @@ export default function LaporanPage() {
                             <td key={c} className={isNum ? 'num' : ''}>
                               {typeof val === 'number' ? (
                                 <Money value={val} />
+                              ) : c === 'tanggal' && val ? (
+                                formatTanggal(String(val))
                               ) : (
                                 String(val ?? '—')
                               )}

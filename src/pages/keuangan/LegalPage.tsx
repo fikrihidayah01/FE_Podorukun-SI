@@ -17,7 +17,7 @@ import Money from '../../components/ui/Money';
 import Field from '../../components/ui/Field';
 import Notice from '../../components/ui/Notice';
 import EmptyState from '../../components/ui/EmptyState';
-import { formatTanggal } from '../../utils/format';
+import { formatTanggal, hariIni } from '../../utils/format';
 
 const STATUS: Record<StatusDokumen, { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -87,7 +87,7 @@ export default function LegalPage() {
   const [bphtb, setBphtb] = useState('');
   const [ajbBbn, setAjbBbn] = useState('');
   const [uangMuka, setUangMuka] = useState('');
-  const [tanggalPerjanjian, setTanggalPerjanjian] = useState(new Date().toISOString().split('T')[0]);
+  const [tanggalPerjanjian, setTanggalPerjanjian] = useState(hariIni());
 
   useEffect(() => {
     if (formPerumahanId) {
@@ -134,7 +134,7 @@ export default function LegalPage() {
     setBphtb('');
     setAjbBbn('');
     setUangMuka('');
-    setTanggalPerjanjian(new Date().toISOString().split('T')[0]);
+    setTanggalPerjanjian(hariIni());
     setBuatOpen(true);
   };
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { PiClockCounterClockwise, PiMagnifyingGlass } from 'react-icons/pi';
 import { useHutangStore, KATEGORI_HUTANG_LABELS } from '../../../store/hutangStore';
@@ -17,12 +17,15 @@ export default function DetailKodePembantuPage() {
   const { kodePembantuId } = useParams<{ kodePembantuId: string }>();
   const { kodePembantus, getMutasiByKodePembantu, fetchKodePembantus, fetchMutasiByKodePembantu, isLoading } = useHutangStore();
 
+  // Mulai dalam status memuat agar halaman tidak sempat menampilkan "tidak ditemukan" sebelum data datang.
+  const [memuat, setMemuat] = useState(true);
   useEffect(() => {
     useProyekStore.getState().fetch();
-    fetchKodePembantus();
-    if (kodePembantuId) {
-      fetchMutasiByKodePembantu(kodePembantuId);
-    }
+    void Promise.all([
+      fetchKodePembantus(),
+      kodePembantuId ? fetchMutasiByKodePembantu(kodePembantuId) : Promise.resolve(),
+    ]).finally(() => setMemuat(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kodePembantuId]);
   const { items: proyeks } = useProyekStore();
 
@@ -31,7 +34,7 @@ export default function DetailKodePembantuPage() {
   const proyekNama = proyeks.find((p) => p.id === kp?.proyekId)?.nama ?? '-';
   const back = { to: '/keuangan/hutang', label: 'Hutang' };
 
-  if (isLoading) {
+  if (memuat || isLoading) {
     return (
       <>
         <PageHeader title="Kode pembantu" back={back} />
@@ -61,7 +64,9 @@ export default function DetailKodePembantuPage() {
     );
   }
 
-  const rows = mutasis.reduce<((typeof mutasis)[number] & { saldo: number })[]>((acc, m) => {
+  const rows = [...mutasis]
+    .sort((a, b) => (a.tanggal ?? '').localeCompare(b.tanggal ?? '') || (a.createdAt ?? '').localeCompare(b.createdAt ?? ''))
+    .reduce<((typeof mutasis)[number] & { saldo: number })[]>((acc, m) => {
     const prev = acc.length ? acc[acc.length - 1].saldo : 0;
     acc.push({ ...m, saldo: prev + (m.jenisMutasi === 'kredit' ? m.nominal : -m.nominal) });
     return acc;

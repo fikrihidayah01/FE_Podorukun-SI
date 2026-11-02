@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchApi } from '../../lib/api';
 import Button from '../../components/ui/Button';
+import { hariIni } from '../../utils/format';
 import Modal from '../../components/ui/Modal';
 interface Entry { id: string; noDokumen: string; jenis: string; status: string; berlaku: boolean; alasan: string | null }
 interface Assignment { assignmentId?: string; id: string; kavlingId?: string; unitId?: string; namaPembeli?: string }
@@ -13,7 +14,7 @@ export default function LegalHistoryPanel({ id, isFinal, proyekId, unitId, assig
   const [open, setOpen] = useState(false);
   const [alasan, setAlasan] = useState('');
   const [biaya, setBiaya] = useState('0');
-  const [tanggal, setTanggal] = useState(new Date().toISOString().slice(0, 10));
+  const [tanggal, setTanggal] = useState(hariIni());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {

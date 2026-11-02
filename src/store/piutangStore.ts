@@ -141,7 +141,14 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
       const response = await fetchApi('/piutang');
       if (!response.ok) throw new Error('Gagal mengambil data piutang');
       const data = await response.json();
-      set({ items: (data?.data || []).map((item: KavlingTagihan) => ({ ...item, periodeAngsuran: item.periodeAngsuran.map((row) => ({ ...row, id: row.jadwalId || row.id })) })), isLoading: false });
+      set({
+        items: (data?.data || []).map((item: KavlingTagihan) => ({
+          ...item,
+          periodeAngsuran: (item.periodeAngsuran ?? []).map((row) => ({ ...row, id: row.jadwalId || row.id })),
+          pembayaranLainnya: item.pembayaranLainnya ?? [],
+        })),
+        isLoading: false,
+      });
     } catch (err: any) {
       set({ error: err.message, isLoading: false });
     }
@@ -180,44 +187,15 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
     await get().fetchItems();
   },
   
+  // Tidak ada fallback lokal: bila server menolak, UI harus tetap menampilkan angka lama dan pesan galat.
   updateJadwalAngsuran: async (kavlingId, periode, tagihan, tanggalJatuhTempo, jadwalId) => {
-    try {
-      const response = await fetchApi(`/piutang/${kavlingId}/jadwal`, {
-        method: 'PUT',
-        body: JSON.stringify({ periode, tagihan, tanggalJatuhTempo, jadwalId }),
-      });
-      if (response.ok) {
-        const updated = await response.json().catch(() => null);
-        if (updated?.data) {
-          set((state) => ({
-            items: state.items.map((k) => (k.id === kavlingId ? updated.data : k)),
-          }));
-          return;
-        }
-      }
-    } catch {}
-
-    set((state) => ({
-      items: state.items.map((k) => {
-        if (k.id !== kavlingId) return k;
-        const updatedPeriode = k.periodeAngsuran.map((p) =>
-          p.periode === periode || (jadwalId && p.id === jadwalId)
-            ? { ...p, tagihan, tanggalJatuhTempo }
-            : p
-        );
-        const totalTagihan = updatedPeriode.reduce((sum, p) => sum + p.tagihan, 0);
-        const totalLainnya = (k.pembayaranLainnya || []).reduce((sum, p) => sum + p.nominal, 0);
-        const totalDibayar = updatedPeriode.reduce((sum, p) => sum + p.dibayar, 0);
-        const nilaiSppr = totalTagihan + totalLainnya;
-        return {
-          ...k,
-          nilaiSppr,
-          totalDibayar,
-          sisa: Math.max(0, nilaiSppr - totalDibayar),
-          periodeAngsuran: updatedPeriode,
-        };
-      }),
-    }));
+    const response = await fetchApi(`/piutang/${kavlingId}/jadwal`, {
+      method: 'PUT',
+      body: JSON.stringify({ periode, tagihan, tanggalJatuhTempo, jadwalId }),
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(body?.message || 'Gagal menyimpan jadwal angsuran');
+    await get().fetchItems();
   },
 
   addFromLegal: async (_legalData: any) => {

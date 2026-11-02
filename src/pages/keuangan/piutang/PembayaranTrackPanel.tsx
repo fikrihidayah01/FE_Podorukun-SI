@@ -10,6 +10,7 @@ import Money from '../../../components/ui/Money';
 import Modal from '../../../components/ui/Modal';
 import Notice from '../../../components/ui/Notice';
 import Badge, { type Tone } from '../../../components/ui/Badge';
+import { formatTanggal } from '../../../utils/format';
 
 interface Payment {
   id: string; tanggal: string; jenis: string; nominal: number; statusProses: string; alasan: string | null;
@@ -92,12 +93,17 @@ export default function PembayaranTrackPanel() {
 
   const PAGE_SIZE = 20;
 
-  const load = async () => { const res = await fetchApi('/pembayaran-track'); const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal memuat pembayaran'); setRows(body.data); };
+  const load = async () => {
+    const res = await fetchApi('/pembayaran-track');
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(body?.message || 'Gagal memuat pembayaran');
+    setRows(body?.data ?? []);
+  };
+  // Proyek dan piutang sudah dimuat oleh PiutangPage; panel ini cukup memuat pembayaran sekali saat tampil.
   useEffect(() => {
-    void load().catch((err) => setError(err.message));
-    if (proyeks.length === 0) void useProyekStore.getState().fetch();
-    if (piutangItems.length === 0) void usePiutangStore.getState().fetchItems();
-  }, [proyeks.length, piutangItems.length]);
+    void load().catch((err) => setError(err instanceof Error ? err.message : 'Gagal memuat pembayaran'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const refresh = async () => {
     await load();
     await usePiutangStore.getState().fetchItems();
@@ -145,16 +151,20 @@ export default function PembayaranTrackPanel() {
   };
 
   const filteredRows = useMemo(() => {
-    return rows.filter((r) => {
-      const matchStatus = !status || r.statusProses === status;
-      const tgl = (r.tanggal || '').slice(0, 10);
-      const matchStart = !startDate || tgl >= startDate;
-      const matchEnd = !endDate || tgl <= endDate;
-      return matchStatus && matchStart && matchEnd;
-    });
+    return rows
+      .filter((r) => {
+        const matchStatus = !status || r.statusProses === status;
+        const tgl = (r.tanggal || '').slice(0, 10);
+        const matchStart = !startDate || tgl >= startDate;
+        const matchEnd = !endDate || tgl <= endDate;
+        return matchStatus && matchStart && matchEnd;
+      })
+      .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
   }, [rows, status, startDate, endDate]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  // Setelah verifikasi, baris bisa keluar dari filter; jangan biarkan halaman aktif melewati halaman terakhir.
+  if (page > totalPages) setPage(totalPages);
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     return filteredRows.slice(start, start + PAGE_SIZE);
@@ -181,7 +191,7 @@ export default function PembayaranTrackPanel() {
 
   const process = async (id?: string) => {
     setBusy(true); setError('');
-    try { const res = await fetchApi(`/pembayaran-track/${id ? id + '/proses' : 'proses'}`, { method: 'POST' }); const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal memproses pembayaran'); await refresh(); }
+    try { const res = await fetchApi(`/pembayaran-track/${id ? id + '/proses' : 'proses'}`, { method: 'POST' }); const body = await res.json().catch(() => null); if (!res.ok) throw new Error(body?.message || 'Gagal memproses pembayaran'); await refresh(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Gagal memproses pembayaran'); }
     finally { setBusy(false); }
   };
@@ -194,7 +204,7 @@ export default function PembayaranTrackPanel() {
     try {
       const payload = { keputusan: target.keputusan, ...(alasan.trim() ? { alasan: alasan.trim() } : {}) };
       const res = await fetchApi(`/pembayaran-track/${target.payment.id}/verifikasi`, { method: 'POST', body: JSON.stringify(payload) });
-      const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal menyimpan keputusan');
+      const body = await res.json().catch(() => null); if (!res.ok) throw new Error(body?.message || 'Gagal menyimpan keputusan');
       setTarget(null); await refresh();
     } catch (err) { setDialogError(err instanceof Error ? err.message : 'Gagal menyimpan keputusan'); }
     finally { setBusy(false); }
@@ -205,7 +215,7 @@ export default function PembayaranTrackPanel() {
   const targetInfo = target?.payment ? resolvePaymentInfo(target.payment) : null;
 
   return <Panel title="Pembayaran dari Podorukuntrack" description="Verifikasi pengajuan berdasarkan tagihan, lalu periksa yang gagal validasi atau perlu ditinjau." actions={<Button disabled={busy} onClick={() => void process()}>Proses pembayaran menunggu</Button>}>
-    {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
+    {error && <Notice tone="danger" className="mb-4">{error}</Notice>}
 
     <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end">
       <div>
@@ -265,7 +275,7 @@ export default function PembayaranTrackPanel() {
             <th>Nama pemilik</th>
             <th>Nama perumahan</th>
             <th>Jenis</th>
-            <th>Nominal</th>
+            <th className="num">Nominal</th>
             <th>Status</th>
             <th>Keterangan</th>
             <th>Aksi</th>
@@ -276,12 +286,12 @@ export default function PembayaranTrackPanel() {
             const info = resolvePaymentInfo(r);
             return (
               <tr key={r.id}>
-                <td className="whitespace-nowrap">{r.tanggal}</td>
+                <td className="whitespace-nowrap tabular-nums">{formatTanggal(r.tanggal)}</td>
                 <td className="font-semibold text-ink whitespace-nowrap">{info.unit}</td>
                 <td>{info.pemilik}</td>
                 <td>{info.perumahan}</td>
                 <td>{label(r.jenis)}<span className="block text-xs text-ink-3">{r.siJadwalId ? 'Berdasarkan tagihan' : 'Legacy'}</span></td>
-                <td className="whitespace-nowrap"><Money value={r.nominal} /></td>
+                <td className="num whitespace-nowrap"><Money value={r.nominal} /></td>
                 <td><Badge tone={STATUS_TONE[r.statusProses] ?? 'neutral'}>{label(r.statusProses)}</Badge>{r.keputusanSi && <span className="mt-1 block text-xs text-ink-3">Keputusan SI: {r.keputusanSi}</span>}</td>
                 <td>{r.alasan || '—'}{r.jurnalId && <Link className="block underline" to="/keuangan/jurnal">{r.nomorJurnal} ({r.jurnalStatus})</Link>}{r.siJadwalId && terkunci(r) && <span className="block text-xs text-ink-3">Untuk mengubah keputusan, balik jurnal ini dulu.</span>}</td>
                 <td>
@@ -291,7 +301,7 @@ export default function PembayaranTrackPanel() {
                         <Button size="sm" variant="primary" disabled={busy} onClick={() => openVerifikasi(r, 'terima')}>Terima</Button>
                         <Button size="sm" variant="danger-ghost" disabled={busy} onClick={() => openVerifikasi(r, 'tolak')}>Tolak</Button>
                       </>
-                    ) : !r.siJadwalId && (
+                    ) : !r.siJadwalId && !['dijurnal', 'historis'].includes(r.statusProses) && (
                       <Button size="sm" disabled={busy} onClick={() => void process(r.id)}>Proses ulang</Button>
                     )}
                   </div>
@@ -367,7 +377,7 @@ export default function PembayaranTrackPanel() {
       </nav>
     )}
 
-    <Modal isOpen={target !== null} onClose={closeVerifikasi} title={tolak ? 'Tolak pembayaran' : 'Terima pembayaran'} description={p ? `${p.tanggal}${targetInfo?.unit && targetInfo.unit !== '—' ? ` · ${targetInfo.unit}` : ''} · ${label(p.jenis)}` : undefined}
+    <Modal isOpen={target !== null} onClose={closeVerifikasi} title={tolak ? 'Tolak pembayaran' : 'Terima pembayaran'} description={p ? `${formatTanggal(p.tanggal)}${targetInfo?.unit && targetInfo.unit !== '—' ? ` · ${targetInfo.unit}` : ''} · ${label(p.jenis)}` : undefined}
       footer={<><Button disabled={busy} onClick={closeVerifikasi}>Batal</Button><Button variant={tolak ? 'danger' : 'primary'} disabled={busy || (tolak && !alasan.trim())} onClick={() => void submitVerifikasi()}>{busy ? 'Menyimpan…' : tolak ? 'Tolak pembayaran' : 'Terima dan buat jurnal'}</Button></>}>
       {p && <div className="space-y-4">
         {dialogError && <Notice tone="danger">{dialogError}</Notice>}
@@ -376,7 +386,7 @@ export default function PembayaranTrackPanel() {
           <dt className="text-ink-3">Unit</dt><dd className="font-semibold text-ink">{targetInfo?.unit || '—'}</dd>
           <dt className="text-ink-3">Nama pemilik</dt><dd>{targetInfo?.pemilik || '—'}</dd>
           <dt className="text-ink-3">Nama perumahan</dt><dd>{targetInfo?.perumahan || '—'}</dd>
-          <dt className="text-ink-3">Tagihan</dt><dd>{p.tagihan ? <>Ke-{p.tagihan.noUrut} · {label(p.tagihan.jenis)}{p.tagihan.keterangan && ` · ${p.tagihan.keterangan}`}<span className="block text-xs text-ink-3">Tenggat {p.tagihan.tanggal}{!p.tagihan.aktif && ' · nonaktif'}</span></> : '—'}</dd>
+          <dt className="text-ink-3">Tagihan</dt><dd>{p.tagihan ? <>Ke-{p.tagihan.noUrut} · {label(p.tagihan.jenis)}{p.tagihan.keterangan && ` · ${p.tagihan.keterangan}`}<span className="block text-xs text-ink-3">Tenggat {formatTanggal(p.tagihan.tanggal)}{!p.tagihan.aktif && ' · nonaktif'}</span></> : '—'}</dd>
           {p.tagihan && <>
             <dt className="text-ink-3">Nilai tagihan</dt><dd><Money value={p.tagihan.jumlah} /></dd>
             <dt className="text-ink-3">Sudah dibayar</dt><dd><Money value={p.tagihan.terpakai} /></dd>

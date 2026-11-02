@@ -53,6 +53,16 @@ export function formatBulanPendek(bulan: string) {
   return `${BULAN_PENDEK[Number(m) - 1]} ${y}`;
 }
 
+/** 'YYYY-MM-DD' menurut jam lokal. toISOString() memakai UTC, jadi sebelum 07:00 WIB hasilnya tanggal kemarin. */
+export function hariIni(d: Date = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Tanggal 1 bulan berjalan, 'YYYY-MM-01'. */
+export function awalBulanIni() {
+  return `${bulanIni()}-01`;
+}
+
 export function bulanIni() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

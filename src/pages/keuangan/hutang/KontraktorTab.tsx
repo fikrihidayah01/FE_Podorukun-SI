@@ -56,7 +56,9 @@ export default function KontraktorTab() {
     [kontraks, adendums, pembayarans, selectedProyek, selectedKontraktor],
   );
 
-  const total = rows.reduce(
+  // Kontrak batal tetap tampil di tabel, tetapi tidak lagi menjadi kewajiban yang harus dibayar.
+  const rowsAktif = rows.filter((r) => r.status !== 'batal');
+  const total = rowsAktif.reduce(
     (acc, r) => ({ nilai: acc.nilai + r.nilaiTerkini, terbayar: acc.terbayar + r.terbayar, sisa: acc.sisa + r.sisa }),
     { nilai: 0, terbayar: 0, sisa: 0 },
   );
@@ -64,7 +66,7 @@ export default function KontraktorTab() {
   return (
     <>
       <StatGrid columns={3}>
-        <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak" value={formatRupiah(total.nilai)} hint={`${rows.length} kontrak`} />
+        <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak" value={formatRupiah(total.nilai)} hint={`${rowsAktif.length} kontrak aktif`} />
         <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar (kas bon)" value={formatRupiah(total.terbayar)} />
         <StatTile emphasis color="#c2410c" icon={PiHandCoins} label="Sisa yang harus dibayar" value={formatRupiah(total.sisa)} />
       </StatGrid>
@@ -146,7 +148,9 @@ export default function KontraktorTab() {
                         </td>
                         <td className="num font-semibold text-ink"><Money value={row.nilaiTerkini} /></td>
                         <td className="num"><Money value={row.terbayar} /></td>
-                        <td className="num font-semibold text-ink"><Money value={row.sisa} /></td>
+                        <td className="num font-semibold text-ink">
+                          {row.status === 'batal' ? <span className="text-ink-3">-</span> : <Money value={row.sisa} />}
+                        </td>
                         <td className="max-w-[240px] truncate" title={row.keterangan}>{row.keterangan || '-'}</td>
                       </tr>
 
@@ -205,7 +209,7 @@ export default function KontraktorTab() {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={3}>Total</td>
+                  <td colSpan={3}>Total (tanpa kontrak batal)</td>
                   <td className="num"><Money value={total.nilai} /></td>
                   <td className="num"><Money value={total.terbayar} /></td>
                   <td className="num"><Money value={total.sisa} /></td>

@@ -71,6 +71,7 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
     add: async (data) => {
     set({ isLoading: true, error: null });
     let createdId: string | undefined;
+    let createdNomor: string | undefined;
     try {
       const { lampiran, ...jurnalData } = data;
       const res = await fetchApi('/jurnal', {
@@ -85,6 +86,7 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
       const resData = await res.json();
       const newItem = resData.data || resData;
       createdId = newItem.id;
+      createdNomor = newItem.nomorJurnal;
 
       if (lampiran && lampiran.length > 0) {
         for (const l of lampiran) {
@@ -110,17 +112,20 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
         try {
           await get().updateStatus(newItem.id, 'diposting');
         } catch (error) {
-          throw new Error(`Draft ${newItem.nomorJurnal || newItem.id} tersimpan, tetapi belum diposting: ${error instanceof Error ? error.message : 'Posting gagal'}. Buka draft untuk melanjutkan.`);
+          throw new Error(`posting gagal: ${error instanceof Error ? error.message : 'alasan tidak diketahui'}`);
         }
       }
       await get().fetch();
     } catch (err: any) {
       if (createdId) await get().fetch();
       const message = createdId
-        ? `Jurnal ${createdId} sudah tersimpan. ${err.message || 'Proses belum selesai'}. Buka jurnal tersebut untuk melanjutkan, jangan membuat ulang.`
+        ? `Jurnal ${createdNomor || ''} sudah tersimpan sebagai draft, tetapi ${err.message || 'prosesnya belum selesai'}. Lanjutkan dari rincian draft ini, jangan membuat jurnal ulang.`.replace('Jurnal  ', 'Jurnal ')
         : err.message || 'Terjadi kesalahan';
-      set({ error: message, isLoading: false });
-      throw new Error(message);
+      // Galat simpan ditampilkan di formulir/rincian, bukan sebagai galat muat di atas halaman.
+      set({ isLoading: false });
+      const error = new Error(message) as Error & { jurnalId?: string };
+      error.jurnalId = createdId;
+      throw error;
     }
   },
 

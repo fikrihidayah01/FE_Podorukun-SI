@@ -4,6 +4,7 @@ import { usePiutangStore, type KavlingTagihan } from '../../../store/piutangStor
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import Money from '../../../components/ui/Money';
+import { formatTanggal, hariIni } from '../../../utils/format';
 import Notice from '../../../components/ui/Notice';
 import Field from '../../../components/ui/Field';
 import Badge from '../../../components/ui/Badge';
@@ -15,7 +16,7 @@ interface DaftarTagihan { billingEnabled: boolean; spprFinal: boolean; statusPen
 interface Form { id?: string; noUrut: string; tanggal: string; jumlah: string; jenis: Jenis; keterangan: string; aktif: boolean }
 
 const JENIS: Record<Jenis, string> = { booking_fee: 'Booking fee', uang_muka: 'Uang muka', angsuran: 'Angsuran', pencairan_kpr: 'Pencairan KPR' };
-const today = () => new Date().toISOString().slice(0, 10);
+
 
 /** Keuangan menetapkan nominal dan tenggat tagihan; PR Track hanya memilih tagihan ini saat mencatat pembayaran. */
 export default function TagihanModal({ item, isOpen, onClose }: { item: KavlingTagihan; isOpen: boolean; onClose: () => void }) {
@@ -27,8 +28,8 @@ export default function TagihanModal({ item, isOpen, onClose }: { item: KavlingT
 
   const load = async () => {
     const res = await fetchApi(`/piutang/${item.id}/tagihan`);
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.message || 'Gagal memuat tagihan');
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(body?.message || 'Gagal memuat tagihan');
     setData(body.data);
   };
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function TagihanModal({ item, isOpen, onClose }: { item: KavlingT
 
   const bisaUbah = Boolean(data?.billingEnabled && data.spprFinal && data.statusPenjualan === 'aktif');
   const nextNoUrut = () => String(Math.max(0, ...(data?.items ?? []).map((t) => t.noUrut)) + 1);
-  const openNew = () => { setFormError(''); setForm({ noUrut: nextNoUrut(), tanggal: today(), jumlah: '', jenis: 'angsuran', keterangan: '', aktif: true }); };
+  const openNew = () => { setFormError(''); setForm({ noUrut: nextNoUrut(), tanggal: hariIni(), jumlah: '', jenis: 'angsuran', keterangan: '', aktif: true }); };
   const openEdit = (t: Tagihan) => { setFormError(''); setForm({ id: t.id, noUrut: String(t.noUrut), tanggal: t.tanggal, jumlah: String(t.jumlah), jenis: t.jenis, keterangan: t.keterangan ?? '', aktif: t.aktif }); };
 
   // Plafon yang tersisa bila form ini disimpan: tagihan yang sedang diedit tidak dihitung dua kali.
@@ -59,7 +60,7 @@ export default function TagihanModal({ item, isOpen, onClose }: { item: KavlingT
         keterangan: payload.keterangan.trim() || undefined, aktif: payload.aktif,
       };
       const res = await fetchApi(`/piutang/${item.id}/tagihan`, { method: 'PUT', body: JSON.stringify(body) });
-      const resBody = await res.json(); if (!res.ok) throw new Error(resBody.message || 'Gagal menyimpan tagihan');
+      const resBody = await res.json().catch(() => null); if (!res.ok) throw new Error(resBody?.message || 'Gagal menyimpan tagihan');
       setForm(null);
       await load();
       await usePiutangStore.getState().fetchItems();
@@ -87,14 +88,14 @@ export default function TagihanModal({ item, isOpen, onClose }: { item: KavlingT
         <div><dt className="text-ink-3">Sisa plafon</dt><dd className="font-semibold"><Money value={data.sisaPlafon} /></dd></div>
       </dl>}
 
-      {data && <TableScroll label="Daftar tagihan"><table className="tbl"><thead><tr><th>No.</th><th>Jenis</th><th>Tenggat</th><th>Nominal</th><th>Dibayar</th><th>Sisa</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
+      {data && <TableScroll label="Daftar tagihan"><table className="tbl"><thead><tr><th scope="col">No.</th><th scope="col">Jenis</th><th scope="col">Tenggat</th><th scope="col" className="num">Nominal</th><th scope="col" className="num">Dibayar</th><th scope="col" className="num">Sisa</th><th scope="col">Status</th><th scope="col">Aksi</th></tr></thead><tbody>
         {data.items.map((t) => <tr key={t.id} className={t.aktif ? '' : 'text-ink-3'}>
           <td>{t.noUrut}</td>
           <td>{JENIS[t.jenis] ?? t.jenis}{t.keterangan && <span className="block text-xs text-ink-3">{t.keterangan}</span>}</td>
-          <td>{t.tanggal}</td>
-          <td><Money value={t.jumlah} /></td>
-          <td><Money value={t.dibayar} /></td>
-          <td><Money value={t.sisa} /></td>
+          <td className="whitespace-nowrap tabular-nums">{formatTanggal(t.tanggal)}</td>
+          <td className="num"><Money value={t.jumlah} /></td>
+          <td className="num"><Money value={t.dibayar} /></td>
+          <td className="num"><Money value={t.sisa} /></td>
           <td><div className="flex flex-wrap gap-1">
             <Badge tone={!t.aktif ? 'neutral' : t.sisa <= 0 ? 'positive' : 'brand'}>{!t.aktif ? 'Nonaktif' : t.sisa <= 0 ? 'Lunas' : 'Aktif'}</Badge>
             {t.terkunci && <Badge tone="warning">Ada pembayaran</Badge>}

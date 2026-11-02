@@ -98,11 +98,12 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
       !form.tanggalJatuhTempoPokok ||
       !nominal ||
       nominal <= 0 ||
+      form.tanggalJatuhTempoPokok < form.tanggalPencairanAwal ||
       !acuanBunga ||
       acuanBunga < 1 ||
       acuanBunga > 31
     ) {
-      setFormError('Lengkapi semua kolom wajib. Nominal harus lebih dari 0 dan tanggal acuan bunga antara 1 dan 31.');
+      setFormError('Lengkapi semua kolom wajib. Nominal harus lebih dari 0, tanggal acuan bunga antara 1 dan 31, dan jatuh tempo pokok tidak sebelum tanggal pencairan.');
       return;
     }
 
@@ -267,14 +268,14 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
 
       <Modal
         isOpen={showAdd}
-        onClose={() => setShowAdd(false)}
+        onClose={() => { if (!saving) setShowAdd(false); }}
         title="Tambah pinjaman bank"
         size="lg"
         footer={
           <>
-            <Button onClick={() => setShowAdd(false)}>Batal</Button>
+            <Button disabled={saving} onClick={() => setShowAdd(false)}>Batal</Button>
             <Button disabled={saving} variant="primary" onClick={handleSubmit}>
-              Simpan pinjaman
+              {saving ? 'Menyimpan…' : 'Simpan pinjaman'}
             </Button>
           </>
         }
@@ -294,7 +295,7 @@ export default function PinjamanBankTab({ selectedProyekId, selectedBulan }: Pin
             <Field label="Rekening penerima pencairan" required>
               <select className="control" value={form.akunKasId} onChange={(e) => set('akunKasId', e.target.value)}>
                 <option value="">Pilih kas / bank</option>
-                {akuns.filter((a) => a.isKasBank).map((a) => <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>)}
+                {akuns.filter((a) => a.isKasBank && a.status === 'aktif').map((a) => <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>)}
               </select>
             </Field>
             <Field label="Nama bank" required>

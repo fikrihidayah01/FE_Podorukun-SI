@@ -6,6 +6,7 @@ import Field from '../../../components/ui/Field';
 import Notice from '../../../components/ui/Notice';
 import Money from '../../../components/ui/Money';
 import JurnalPreview from './JurnalPreview';
+import { formatRupiah } from '../../../utils/format';
 
 interface AdendumFormModalProps {
   kontrak: Kontrak;
@@ -20,6 +21,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
   const [error, setError] = useState('');
 
   const nilaiLama = kontrak.nilaiTerkini ?? kontrak.nilaiKontrak;
+  const totalDibayar = kontrak.totalDibayar ?? 0;
   const [saving, setSaving] = useState(false);
   const pNilaiBaru = Number(form.nilaiBaru) || 0;
   const selisih = pNilaiBaru - nilaiLama;
@@ -30,6 +32,7 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
     if (!form.tanggal) return setError('Tanggal adendum wajib diisi.');
     if (pNilaiBaru <= 0) return setError('Nilai baru harus lebih dari 0.');
     if (selisih === 0) return setError('Nilai baru sama dengan nilai lama, jadi tidak ada yang perlu diadendum.');
+    if (pNilaiBaru < totalDibayar) return setError(`Nilai baru tidak boleh di bawah total yang sudah dibayar (${formatRupiah(totalDibayar)}).`);
     if (!form.alasan.trim()) return setError('Tuliskan alasan perubahan kontrak.');
 
     setSaving(true); setError('');
@@ -53,15 +56,15 @@ export default function AdendumFormModal({ kontrak, isOpen, onClose }: AdendumFo
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => { if (!saving) onClose(); }}
       title="Adendum kontrak"
       description={`${kontrak.noSpk}, kavling ${kontrak.kavling}`}
       size="lg"
       footer={
         <>
-          <Button onClick={onClose}>Batal</Button>
+          <Button disabled={saving} onClick={onClose}>Batal</Button>
           <Button disabled={saving} variant="primary" type="submit" form="adendum-form">
-            Simpan adendum
+            {saving ? 'Menyimpan…' : 'Simpan adendum'}
           </Button>
         </>
       }

@@ -18,7 +18,7 @@ interface CatatPembayaranKontrakModalProps {
 export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }: CatatPembayaranKontrakModalProps) {
   const { addPembayaran } = useKontrakStore();
   const akuns = useCoaStore((s) => s.items);
-  const kasBankAkuns = useMemo(() => akuns.filter((a) => a.isKasBank), [akuns]);
+  const kasBankAkuns = useMemo(() => akuns.filter((a) => a.isKasBank && a.status === 'aktif'), [akuns]);
 
   const [form, setForm] = useState({ tanggal: '', nominal: '', akunKasId: '', noBukti: '', keterangan: '' });
   const [error, setError] = useState('');
@@ -57,15 +57,15 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => { if (!saving) onClose(); }}
       title="Catat pembayaran termin"
       description={`${kontrak.namaKontraktor}, kavling ${kontrak.kavling}`}
       size="lg"
       footer={
         <>
-          <Button onClick={onClose}>Batal</Button>
+          <Button disabled={saving} onClick={onClose}>Batal</Button>
           <Button disabled={saving} variant="primary" type="submit" form="bayar-kontrak-form">
-            Simpan pembayaran
+            {saving ? 'Menyimpan…' : 'Simpan pembayaran'}
           </Button>
         </>
       }
