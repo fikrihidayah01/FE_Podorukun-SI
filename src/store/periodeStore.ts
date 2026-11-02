@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError, errorMessage, notifyError } from '../lib/errors';
 
 export interface Periode {
   id: string;
@@ -34,8 +35,9 @@ export const usePeriodeStore = create<PeriodeState>((set, get) => ({
       } else {
         set({ isLoading: false });
       }
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (err) {
+      set({ error: errorMessage(err), isLoading: false });
+      notifyError(err);
     }
   },
 
@@ -46,10 +48,7 @@ export const usePeriodeStore = create<PeriodeState>((set, get) => ({
         method: 'POST',
         body: JSON.stringify({ ptId, bulan }),
       });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.message || 'Gagal menutup periode');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal menutup periode');
       await get().fetch(ptId);
       return true;
     } catch (err: any) {

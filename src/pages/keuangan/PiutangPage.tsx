@@ -17,6 +17,7 @@ import { bulanIni, formatBulan, formatRupiah } from '../../utils/format';
 import PiutangActions from './piutang/PiutangActions';
 import PembayaranTrackPanel from './piutang/PembayaranTrackPanel';
 import JadwalRealisasiModal from './piutang/JadwalRealisasiModal';
+import { apiError as toApiError } from '../../lib/errors';
 
 const dibayarOf = (kv: KavlingTagihan) => kv.totalDibayar;
 const sisaOf = (kv: KavlingTagihan) => kv.sisa;
@@ -67,10 +68,7 @@ export default function PiutangPage() {
     setSyncErrorMessage('');
     try {
       const res = await fetchApi('/sinkron/jalankan', { method: 'POST' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || 'Gagal sinkronisasi');
-      }
+      if (!res.ok) throw toApiError(res, 'Gagal sinkronisasi');
 
       await fetchItems();
       setSyncedAt(new Date());

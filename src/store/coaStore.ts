@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError } from '../lib/errors';
 
 export type KategoriAkun = 'aktiva' | 'hutang' | 'modal' | 'pendapatan' | 'beban' | 'hpp';
 export type KlasifikasiAkun = 'neraca' | 'laba_rugi';
@@ -58,7 +59,7 @@ export const useCoaStore = create<CoaState>()((set) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await fetchApi('/akun');
-      if (!res.ok) throw new Error('Gagal memuat data akun');
+      if (!res.ok) throw apiError(res, 'Gagal memuat data akun');
       const data = await res.json();
       set({ items: data.data || data, isLoading: false });
     } catch (err: any) {
@@ -84,7 +85,7 @@ export const useCoaStore = create<CoaState>()((set) => ({
         method: 'POST',
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Gagal menambah akun');
+      if (!res.ok) throw apiError(res, 'Gagal menambah akun');
       const json = await res.json();
       set((state) => ({ items: [...state.items, json.data || json] }));
     } catch (err: any) {
@@ -98,7 +99,7 @@ export const useCoaStore = create<CoaState>()((set) => ({
         method: 'PATCH',
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Gagal mengubah akun');
+      if (!res.ok) throw apiError(res, 'Gagal mengubah akun');
       const json = await res.json();
       set((state) => ({
         items: state.items.map((item) => (item.id === id ? { ...item, ...(json.data || json) } : item)),
@@ -113,7 +114,7 @@ export const useCoaStore = create<CoaState>()((set) => ({
       const res = await fetchApi(`/akun/${id}`, {
         method: 'DELETE',
       });
-      if (!res.ok) throw new Error('Gagal menghapus akun');
+      if (!res.ok) throw apiError(res, 'Gagal menghapus akun');
       set((state) => ({
         items: state.items.filter((item) => item.id !== id),
       }));

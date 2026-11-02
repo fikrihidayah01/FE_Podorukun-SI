@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError, notifyError } from '../lib/errors';
 
 export type BerlakuPasal = 'semua' | 'cash' | 'kpr' | 'in_house';
 
@@ -37,13 +38,13 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
   fetch: async () => {
     try {
       const res = await fetchApi('/pasal');
-      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
+      if (!res.ok) throw apiError(res, 'Gagal memuat pustaka pasal');
       if (res.ok) {
         const json = await res.json();
         set({ items: json.data || [] });
       }
     } catch (error) {
-      console.error('Failed to fetch pasal:', error);
+      notifyError(error);
     }
   },
 
@@ -53,7 +54,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         method: 'POST',
         body: JSON.stringify(data),
       });
-      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
+      if (!res.ok) throw apiError(res, 'Gagal menambah pasal');
       if (res.ok) {
         const json = await res.json();
         const newItem = json.data;
@@ -72,7 +73,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         method: 'PATCH',
         body: JSON.stringify(data),
       });
-      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
+      if (!res.ok) throw apiError(res, 'Gagal mengubah pasal');
       if (res.ok) {
         const json = await res.json();
         const updatedItem = json.data;
@@ -91,7 +92,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         method: 'PATCH',
         body: JSON.stringify({ aktif: false }),
       });
-      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
+      if (!res.ok) throw apiError(res, 'Gagal menonaktifkan pasal');
       if (res.ok) {
         set((state) => ({
           items: state.items.map((item) => (item.id === id ? { ...item, aktif: false } : item)),
@@ -108,7 +109,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
         method: 'PATCH',
         body: JSON.stringify({ aktif: true }),
       });
-      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
+      if (!res.ok) throw apiError(res, 'Gagal mengaktifkan pasal');
       if (res.ok) {
         set((state) => ({
           items: state.items.map((item) => (item.id === id ? { ...item, aktif: true } : item)),
@@ -124,7 +125,7 @@ export const usePustakaPasalStore = create<PustakaPasalState>()((set) => ({
       const res = await fetchApi(`/pasal/${id}`, {
         method: 'DELETE',
       });
-      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || 'Permintaan ditolak backend'); }
+      if (!res.ok) throw apiError(res, 'Gagal menghapus pasal');
       if (res.ok) {
         set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
       }

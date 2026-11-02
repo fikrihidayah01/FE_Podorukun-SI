@@ -11,11 +11,16 @@ async function load(path, replacements = {}) {
   return { module: await import(url), url };
 }
 
-globalThis.window = { location: { origin: 'https://frontend.example' } };
+globalThis.window = { location: { origin: 'https://frontend.example' }, dispatchEvent: () => true };
 const values = new Map();
 globalThis.localStorage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: (key) => values.delete(key) };
-const api = await load('../src/lib/api.ts', { 'import.meta.env.VITE_API_BASE_URL': "'https://api.example/api/v1'" });
-const replacements = { "'../lib/api'": JSON.stringify(api.url), "'zustand'": JSON.stringify(import.meta.resolve('zustand')) };
+// Stub sonner: catat toast supaya bisa diperiksa tanpa DOM.
+const toasts = [];
+globalThis.__toasts = toasts;
+const sonnerStub = `data:text/javascript,${encodeURIComponent("const t = (kind) => (message, opts = {}) => globalThis.__toasts.push({ kind, message, ...opts }); export const toast = { error: t('error'), success: t('success') };")}`;
+const errors = await load('../src/lib/errors.ts', { "'sonner'": JSON.stringify(sonnerStub) });
+const api = await load('../src/lib/api.ts', { 'import.meta.env.VITE_API_BASE_URL': "'https://api.example/api/v1'", "'./errors'": JSON.stringify(errors.url) });
+const replacements = { "'../lib/api'": JSON.stringify(api.url), "'../lib/errors'": JSON.stringify(errors.url), "'zustand'": JSON.stringify(import.meta.resolve('zustand')) };
 const journal = (await load('../src/store/jurnalStore.ts', replacements)).module.useJurnalStore;
 const legal = (await load('../src/store/dokumenLegalStore.ts', replacements)).module.useDokumenLegalStore;
 const ok = (data) => Response.json({ data });
@@ -89,4 +94,53 @@ test('journal loads beyond backend default pagination', async () => {
   await journal.getState().fetch();
   assert.deepEqual(visited, [1, 2]);
   assert.equal(journal.getState().items.length, 201);
+});
+
+const coa = (await load('../src/store/coaStore.ts', replacements)).module.useCoaStore;
+
+test('validation errors keep server message, context, and field details', async () => {
+  toasts.length = 0;
+  globalThis.fetch = async () => Response.json({
+    success: false, code: 'VALIDATION', message: 'Data yang Anda masukkan tidak valid (2 kesalahan).',
+    errors: [{ field: 'kode', message: "Kolom 'kode': Wajib diisi." }, { field: 'nama', message: "Kolom 'nama': Wajib diisi." }],
+    requestId: 'req-1',
+  }, { status: 400 });
+  const err = await coa.getState().add({}).then(() => null, (e) => e);
+  assert.ok(err instanceof errors.module.ApiError);
+  assert.equal(err.status, 400);
+  assert.equal(err.code, 'VALIDATION');
+  assert.match(err.message, /^Gagal menambah akun: Data yang Anda masukkan tidak valid/);
+  assert.match(err.message, /Kolom 'kode': Wajib diisi\.; Kolom 'nama': Wajib diisi\./);
+  assert.equal(toasts.length, 0, 'galat isian ditampilkan oleh form, bukan toast global');
+});
+
+test('legacy string error details are still readable', async () => {
+  globalThis.fetch = async () => Response.json({ message: 'Saldo awal tidak valid.', errors: ['Akun 1101 tidak ditemukan.'] }, { status: 422 });
+  const res = await api.module.fetchApi('/saldo-awal/x', { method: 'PUT', body: '{}' });
+  const body = await res.json();
+  assert.equal(body.message, 'Saldo awal tidak valid. Akun 1101 tidak ditemukan.');
+  assert.deepEqual(body.errors, [{ message: 'Akun 1101 tidak ditemukan.' }]);
+});
+
+test('non-JSON gateway errors become a helpful message and a single toast with reference', async () => {
+  toasts.length = 0;
+  globalThis.fetch = async () => new Response('<html>502 Bad Gateway</html>', { status: 502, headers: { 'x-request-id': 'abc-123' } });
+  coa.setState({ error: null });
+  await coa.getState().fetch();
+  assert.match(coa.getState().error, /^Gagal memuat data akun: Server sedang tidak tersedia/);
+  assert.equal(toasts.length, 1);
+  assert.equal(toasts[0].kind, 'error');
+  assert.match(toasts[0].description, /Kode referensi: abc-123/);
+});
+
+test('network failures throw ApiError status 0 and notify once', async () => {
+  toasts.length = 0;
+  globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
+  const err = await api.module.fetchApi('/akun').then(() => null, (e) => e);
+  assert.equal(err.status, 0);
+  assert.match(err.message, /Tidak dapat terhubung ke server/);
+  assert.equal(toasts.length, 1);
+  const silent = await api.module.fetchApi('/akun', { silent: true }).then(() => null, (e) => e);
+  assert.equal(silent.status, 0);
+  assert.equal(toasts.length, 1, 'silent tidak memunculkan toast');
 });

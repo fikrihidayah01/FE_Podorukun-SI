@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
 import type { TipeTransaksi } from './templateDokumenStore';
+import { apiError, notifyError } from '../lib/errors';
 
 export type StatusDokumen = 'draft' | 'final' | 'ditandatangani';
 
@@ -110,16 +111,13 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
   fetch: async () => {
     try {
       const res = await fetchApi('/dokumen');
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal memuat dokumen legal');
       if (res.ok) {
         const json = await res.json();
         set({ items: json.data || [] });
       }
     } catch (error) {
-      console.error('Gagal memuat dokumen:', error);
+      notifyError(error);
     }
   },
 
@@ -127,16 +125,13 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
     try {
       const url = proyekId ? `/dokumen/penjualan-tersedia?proyekId=${proyekId}` : '/dokumen/penjualan-tersedia';
       const res = await fetchApi(url);
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal memuat daftar penjualan');
       if (res.ok) {
         const json = await res.json();
         return json.data || [];
       }
     } catch (error) {
-      console.error('Gagal memuat dokumen:', error);
+      notifyError(error);
     }
     return [];
   },
@@ -161,10 +156,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menambahkan dokumen legal');
     if (res.ok) {
       const json = await res.json();
       const newDoc = json.data;
@@ -182,10 +174,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
       method: 'PATCH',
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menyimpan dokumen legal');
     if (res.ok) {
       const json = await res.json();
       const updatedItem = json.data;
@@ -225,10 +214,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
     const res = await fetchApi(`/dokumen/${id}`, {
       method: 'DELETE',
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menghapus dokumen legal');
     if (res.ok) {
       set((state) => ({ items: state.items.filter((doc) => doc.id !== id) }));
     }
@@ -248,10 +234,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menambah pasal');
     if (res.ok) {
       const json = await res.json();
       const updatedDoc = json.data;
@@ -267,10 +250,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
       method: 'PATCH',
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menyimpan pasal');
     if (res.ok) {
       const json = await res.json();
       const updatedDoc = json.data;
@@ -286,10 +266,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
       method: 'PATCH',
       body: JSON.stringify({ fieldValues: { [fieldKey]: nilai } }),
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menyimpan isian pasal');
     if (res.ok) {
       const json = await res.json();
       const updatedDoc = json.data;
@@ -304,10 +281,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
     const res = await fetchApi(`/dokumen/${docId}/pasal/${pasalId}`, {
       method: 'DELETE',
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menghapus pasal');
     if (res.ok) {
       const json = await res.json();
       const updatedDoc = json.data;
@@ -330,10 +304,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
       method: 'PUT',
       body: JSON.stringify({ pasalIds }),
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal mengubah urutan pasal');
     if (res.ok) {
       const json = await res.json();
       const updatedDoc = json.data;
@@ -350,10 +321,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
       method: 'PUT',
       body: JSON.stringify(jadwal),
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menyimpan jadwal pembayaran');
     if (res.ok) {
       const json = await res.json();
       const updatedDoc = json.data;
@@ -369,10 +337,7 @@ export const useDokumenLegalStore = create<DokumenLegalState>()((set, get) => ({
       method: 'PATCH',
       body: JSON.stringify({ jumlah }),
     });
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.message || 'Gagal menyimpan perubahan dokumen');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menyimpan baris jadwal');
     if (res.ok) {
       const json = await res.json();
       const updatedDoc = json.data;

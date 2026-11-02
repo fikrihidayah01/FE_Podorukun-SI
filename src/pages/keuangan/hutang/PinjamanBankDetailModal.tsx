@@ -11,6 +11,7 @@ import Notice from '../../../components/ui/Notice';
 import Field from '../../../components/ui/Field';
 import { formatTanggal } from '../../../utils/format';
 import JurnalPreview from './JurnalPreview';
+import { apiError } from '../../../lib/errors';
 
 interface PaymentForm {
   jenis: JenisPembayaran | 'gabungan';
@@ -115,7 +116,7 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
     setSaving(true); setPayError('');
     try {
       const res = await fetchApi(`/pinjaman/transaksi/${rincianId}/rincian`, { method: 'PATCH', body: JSON.stringify({ nominalPokok: Number(rincianPokok), nominalBunga: Number(rincianBunga) }) });
-      const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal menyimpan rincian');
+      if (!res.ok) throw apiError(res, 'Gagal menyimpan rincian');
       await fetchEntries(fresh.id); await usePinjamanBankStore.getState().fetch(); setRincianId('');
     } catch (err) { setPayError(err instanceof Error ? err.message : 'Gagal menyimpan rincian'); }
     finally { setSaving(false); }

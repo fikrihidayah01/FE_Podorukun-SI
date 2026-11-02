@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PiMicrosoftExcelLogo, PiFilePdf, PiCircleNotch } from 'react-icons/pi';
 import { exportExcel, exportPDF, type ExportColumn, type ExportOptions } from '../../utils/exportUtils';
+import { errorMessage } from '../../lib/errors';
 
 interface ExportButtonProps {
   getColumns: () => ExportColumn[];
@@ -25,7 +26,7 @@ export default function ExportButton({ getColumns, getData, opts, className = ''
       if (format === 'excel') await exportExcel(getColumns(), getData(), exportOpts);
       else await exportPDF(getColumns(), getData(), exportOpts);
     } catch (e) {
-      setError('Ekspor gagal. Coba lagi.');
+      setError(`Ekspor gagal: ${errorMessage(e, 'alasan tidak diketahui')}. Coba lagi.`);
       console.error(e);
     } finally {
       setLoading(null);

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError } from '../lib/errors';
 
 export type JurnalStatus = 'draft' | 'diposting' | 'dikoreksi' | 'balik';
 
@@ -56,7 +57,7 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
       const items: Jurnal[] = [];
       for (let page = 1; ; page++) {
         const res = await fetchApi(`/jurnal?page=${page}&limit=200`);
-        if (!res.ok) throw new Error('Gagal memuat jurnal');
+        if (!res.ok) throw apiError(res, 'Gagal memuat jurnal');
         const data = await res.json();
         const rows = Array.isArray(data.data) ? data.data : [];
         items.push(...rows);
@@ -100,10 +101,7 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
               method: 'POST',
               body: formData,
             });
-            if (!upRes.ok) {
-              const err = await upRes.json().catch(() => ({}));
-              throw new Error(err.message || 'Gagal mengunggah berkas lampiran jurnal');
-            }
+            if (!upRes.ok) throw apiError(upRes, 'Gagal mengunggah berkas lampiran jurnal');
           }
         }
       }
@@ -138,16 +136,13 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
       
       if (endpoint) {
         const res = await fetchApi(endpoint, { method: 'POST' });
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error(j.message || 'Gagal mengubah status jurnal');
-        }
+        if (!res.ok) throw apiError(res, 'Gagal mengubah status jurnal');
       } else {
         const res = await fetchApi(`/jurnal/${id}`, {
           method: 'PUT',
           body: JSON.stringify({ status }),
         });
-        if (!res.ok) throw new Error('Gagal mengubah status jurnal');
+        if (!res.ok) throw apiError(res, 'Gagal mengubah status jurnal');
       }
       
       // refetch to get updated data
@@ -173,10 +168,7 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
               method: 'POST',
               body: formData,
             });
-            if (!upRes.ok) {
-              const err = await upRes.json().catch(() => ({}));
-              throw new Error(err.message || 'Gagal memperbarui berkas lampiran jurnal');
-            }
+            if (!upRes.ok) throw apiError(upRes, 'Gagal memperbarui berkas lampiran jurnal');
           }
         }
       }
@@ -194,7 +186,7 @@ export const useJurnalStore = create<JurnalState>((set, get) => ({
       const res = await fetchApi(`/jurnal/${id}`, {
         method: 'DELETE',
       });
-      if (!res.ok) throw new Error('Gagal menghapus jurnal');
+      if (!res.ok) throw apiError(res, 'Gagal menghapus jurnal');
       
       set((state) => ({
         items: state.items.filter((item) => item.id !== id),

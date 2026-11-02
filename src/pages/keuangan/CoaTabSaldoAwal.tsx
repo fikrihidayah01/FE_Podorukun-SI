@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button';
 import Money from '../../components/ui/Money';
 import Notice from '../../components/ui/Notice';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import { apiError } from '../../lib/errors';
 
 export default function CoaTabSaldoAwal() {
   const { items: proyeks, fetch: fetchProyeks } = useProyekStore();
@@ -41,7 +42,7 @@ export default function CoaTabSaldoAwal() {
     setBusy(true); setError('');
     try {
       const res = await fetchApi(`/saldo-awal/${proyekId}`, { method: 'PUT', body: JSON.stringify({ tanggalMulai: tanggal, saldo: rows }) });
-      const body = await res.json(); if (!res.ok) throw new Error(body.errors?.join(' ') || body.message || 'Gagal menyimpan saldo awal');
+      if (!res.ok) throw apiError(res, 'Gagal menyimpan saldo awal');
       const data = await fetchSaldoAwal(proyekId); setRows(data.saldo); setDirty(false);
     } catch (err) { setError(err instanceof Error ? err.message : 'Gagal menyimpan'); }
     finally { setBusy(false); }

@@ -4,6 +4,7 @@ import { fetchApi } from '../../lib/api';
 import Button from '../../components/ui/Button';
 import { hariIni } from '../../utils/format';
 import Modal from '../../components/ui/Modal';
+import { apiError } from '../../lib/errors';
 interface Entry { id: string; noDokumen: string; jenis: string; status: string; berlaku: boolean; alasan: string | null }
 interface Assignment { assignmentId?: string; id: string; kavlingId?: string; unitId?: string; namaPembeli?: string }
 export default function LegalHistoryPanel({ id, isFinal, proyekId, unitId, assignmentId, reload }: { id: string; isFinal: boolean; proyekId: string; unitId: string; assignmentId?: string; reload: () => Promise<void> }) {
@@ -21,9 +22,9 @@ export default function LegalHistoryPanel({ id, isFinal, proyekId, unitId, assig
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetchApi(`/dokumen/${id}/riwayat`); const body = await res.json(); if (!res.ok) throw new Error(body.message); if (!cancelled) setHistory(body.data);
+        const res = await fetchApi(`/dokumen/${id}/riwayat`); const body = await res.json(); if (!res.ok) throw apiError(res, 'Gagal memuat riwayat dokumen'); if (!cancelled) setHistory(body.data);
         if (!assignmentId && !isFinal) {
-          const result = await fetchApi(`/dokumen/penjualan-tersedia?proyekId=${proyekId}`); const data = await result.json(); if (!result.ok) throw new Error(data.message); if (!cancelled) setAssignments(data.data);
+          const result = await fetchApi(`/dokumen/penjualan-tersedia?proyekId=${proyekId}`); const data = await result.json(); if (!result.ok) throw apiError(result, 'Gagal memuat daftar penjualan'); if (!cancelled) setAssignments(data.data);
         }
       } catch (err) { if (!cancelled) setError(err instanceof Error ? err.message : 'Gagal memuat riwayat'); }
     })();
@@ -33,7 +34,7 @@ export default function LegalHistoryPanel({ id, isFinal, proyekId, unitId, assig
     setBusy(true); setError('');
     try {
       const res = await fetchApi(`/dokumen/${id}${adendum ? '/adendum' : ''}`, { method: adendum ? 'POST' : 'PATCH', body: JSON.stringify(adendum ? { alasan, biayaPindah: Number(biaya), tanggal } : { assignmentId: selected }) });
-      const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal menyimpan');
+      const body = await res.json(); if (!res.ok) throw apiError(res, 'Gagal menyimpan dokumen');
       await reload(); setOpen(false); if (adendum) navigate(`/keuangan/legal/${body.data.id}`);
     } catch (err) { setError(err instanceof Error ? err.message : 'Gagal menyimpan'); }
     finally { setBusy(false); }

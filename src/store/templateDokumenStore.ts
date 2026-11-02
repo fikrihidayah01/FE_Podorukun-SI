@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError, notifyError } from '../lib/errors';
 
 export type TipeTransaksi = 'Cash' | 'KPR' | 'In House';
 
@@ -118,10 +119,7 @@ export const useTemplateDokumenStore = create<TemplateDokumenState>()((set) => (
   fetch: async () => {
     try {
       const res = await fetchApi('/template-dokumen');
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || 'Permintaan ditolak backend');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal memuat template dokumen');
       if (res.ok) {
         const json = await res.json();
         const displayMap = getLocalTemplateDisplayMap();
@@ -134,7 +132,7 @@ export const useTemplateDokumenStore = create<TemplateDokumenState>()((set) => (
         set({ items });
       }
     } catch (error) {
-      console.error('Failed to fetch template dokumen:', error);
+      notifyError(error);
     }
   },
 
@@ -148,10 +146,7 @@ export const useTemplateDokumenStore = create<TemplateDokumenState>()((set) => (
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || 'Permintaan ditolak backend');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal menambah template dokumen');
       if (res.ok) {
         const json = await res.json();
         const newItem = json.data;
@@ -178,10 +173,7 @@ export const useTemplateDokumenStore = create<TemplateDokumenState>()((set) => (
         method: 'PATCH',
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || 'Permintaan ditolak backend');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal mengubah template dokumen');
       if (res.ok) {
         const json = await res.json();
         const updatedItem = json.data || {};
@@ -204,10 +196,7 @@ export const useTemplateDokumenStore = create<TemplateDokumenState>()((set) => (
       const res = await fetchApi(`/template-dokumen/${id}/duplikat`, {
         method: 'POST',
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || 'Permintaan ditolak backend');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal menduplikasi template dokumen');
       if (res.ok) {
         const json = await res.json();
         const newItem = json.data;
@@ -225,10 +214,7 @@ export const useTemplateDokumenStore = create<TemplateDokumenState>()((set) => (
       const res = await fetchApi(`/template-dokumen/${id}`, {
         method: 'DELETE',
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || 'Permintaan ditolak backend');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal menghapus template dokumen');
       if (res.ok) {
         removeLocalTemplateDisplay(id);
         set((state) => ({ items: state.items.filter((item) => item.id !== id) }));

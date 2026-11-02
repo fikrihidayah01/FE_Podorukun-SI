@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { errorMessage, notifyError } from '../lib/errors';
 
 export interface Proyek {
   id: string;
@@ -45,8 +46,9 @@ export const useProyekStore = create<ProyekState>((set, get) => ({
       } else {
         set({ error: json.message || 'Gagal memuat Proyek', isLoading: false });
       }
-    } catch {
-      set({ error: 'Terjadi kesalahan jaringan', isLoading: false });
+    } catch (err) {
+      set({ error: errorMessage(err), isLoading: false });
+      notifyError(err);
     }
   },
 
@@ -68,7 +70,7 @@ export const useProyekStore = create<ProyekState>((set, get) => ({
         return list;
       }
     } catch (error) {
-      console.error('Failed to fetch kavling for proyek:', proyekId, error);
+      notifyError(error);
     }
     return get().kavlingsByProyek[proyekId] || [];
   },

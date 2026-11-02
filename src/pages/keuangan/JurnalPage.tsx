@@ -20,6 +20,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { formatTanggal, hariIni, opsiBulan } from '../../utils/format';
 import { useHutangStore } from '../../store/hutangStore';
 import { fetchApi } from '../../lib/api';
+import { apiError } from '../../lib/errors';
 
 const STATUS: Record<JurnalStatus, { label: string; tone: Tone }> = {
   draft: { label: 'Draft', tone: 'warning' },
@@ -107,7 +108,7 @@ export default function JurnalPage() {
     setDownloadingId(l.id);
     try {
         const res = await fetchApi(l.url);
-        if (!res.ok) throw new Error('Gagal membuka berkas');
+        if (!res.ok) throw apiError(res, 'Gagal membuka berkas');
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
         window.open(blobUrl, '_blank');
@@ -130,7 +131,7 @@ export default function JurnalPage() {
     setDownloadingId(l.id);
     try {
         const res = await fetchApi(l.url);
-        if (!res.ok) throw new Error('Gagal mengunduh berkas');
+        if (!res.ok) throw apiError(res, 'Gagal mengunduh berkas');
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -757,10 +758,7 @@ export default function JurnalPage() {
             setUploading(true); setDetailError('');
             try {
               const response = await fetchApi(`/lampiran?entityType=jurnal&entityId=${detailJurnal.id}`, { method: 'POST', body });
-              if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(error.message || 'Gagal mengunggah bukti');
-              }
+              if (!response.ok) throw apiError(response, 'Gagal mengunggah bukti');
               await fetch();
               setDetailJurnal(useJurnalStore.getState().items.find((j) => j.id === detailJurnal.id) || null);
               setDetailError('');
@@ -870,7 +868,7 @@ export default function JurnalPage() {
         setReverseBusy(true); setReverseError('');
         try {
           const res = await fetchApi(`/jurnal/${detailJurnal.id}/balik`, { method: 'POST', body: JSON.stringify({ tanggal: reverseDate, keterangan: reverseReason }) });
-          const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal membuat jurnal balik');
+          if (!res.ok) throw apiError(res, 'Gagal membuat jurnal balik');
           await fetch(); setDetailJurnal(null); setReverseOpen(false);
         } catch (err) { setReverseError(err instanceof Error ? err.message : 'Gagal membuat jurnal balik'); }
         finally { setReverseBusy(false); }

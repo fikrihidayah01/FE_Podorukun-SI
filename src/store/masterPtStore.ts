@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError, errorMessage, notifyError } from '../lib/errors';
 
 export interface MasterPt {
   id: string;
@@ -75,7 +76,8 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
         set({ error: json.message || 'Gagal memuat PT', isLoading: false });
       }
     } catch (err) {
-      set({ error: 'Terjadi kesalahan jaringan', isLoading: false });
+      set({ error: errorMessage(err), isLoading: false });
+      notifyError(err);
     }
   },
 
@@ -85,7 +87,7 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
       body: JSON.stringify(data),
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json.message || 'Gagal menambah PT');
+    if (!res.ok) throw apiError(res, 'Gagal menambah PT');
     
     const newId = json.data?.id || '';
     if (newId && data.perumahanIds) {
@@ -102,8 +104,7 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
       method: 'PATCH',
       body: JSON.stringify(data),
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || 'Gagal mengubah PT');
+    if (!res.ok) throw apiError(res, 'Gagal mengubah PT');
     
     if (data.perumahanIds) {
       saveLocalPtPerumahan(id, data.perumahanIds);
@@ -119,8 +120,7 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
     const res = await fetchApi(`/master-pt/${id}`, {
       method: 'DELETE',
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || 'Gagal menghapus PT');
+    if (!res.ok) throw apiError(res, 'Gagal menghapus PT');
     
     removeLocalPtPerumahan(id);
 

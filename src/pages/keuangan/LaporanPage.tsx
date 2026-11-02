@@ -11,6 +11,7 @@ import ExportButton from '../../components/ui/ExportButton';
 import { fetchApi } from '../../lib/api';
 import { useCoaStore } from '../../store/coaStore';
 import { useProyekStore } from '../../store/proyekStore';
+import { apiError } from '../../lib/errors';
 
 type ReportRow = Record<string, string | number | null>;
 
@@ -120,7 +121,7 @@ export default function LaporanPage() {
       }
       const res = await fetchApi(`/laporan/${jenis}?${query}`);
       const body = await res.json();
-      if (!res.ok) throw new Error(body.message || 'Gagal memuat laporan');
+      if (!res.ok) throw apiError(res, 'Gagal memuat laporan');
       setRows(
         jenis === 'saldo-kode-pembantu'
           ? body.data.map(

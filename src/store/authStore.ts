@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { fetchApi, setTokens, clearTokens, tryRefresh, getRefreshToken } from '../lib/api';
+import { fetchApi, setTokens, clearTokens, tryRefresh, getRefreshToken, SESSION_EXPIRED_EVENT } from '../lib/api';
+import { errorMessage } from '../lib/errors';
 
 export type UserRole = 'admin' | 'keuangan' | 'teknisi' | 'marketing' | 'kontraktor';
 
@@ -31,7 +32,7 @@ interface AuthState {
 
 async function fetchMe(): Promise<AuthUser | null> {
   try {
-    const res = await fetchApi('/auth/me');
+    const res = await fetchApi('/auth/me', { silent: true });
     if (res.ok) {
       const json = await res.json();
       return json.data as AuthUser;
@@ -74,6 +75,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const res = await fetchApi('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
+        silent: true, // galat login ditampilkan inline di form
       });
 
       const json = await res.json();
@@ -93,8 +95,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         set({ error: json.message || 'Login gagal. Periksa email dan password.' });
       }
-    } catch {
-      set({ error: 'Terjadi kesalahan jaringan. Coba lagi.' });
+    } catch (err) {
+      set({ error: errorMessage(err, 'Login gagal. Coba lagi.') });
     }
   },
 
@@ -114,10 +116,21 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     try {
       const refreshToken = getRefreshToken();
-      await fetchApi('/auth/logout', { method: 'POST', body: JSON.stringify(refreshToken ? { refreshToken } : {}) });
+      await fetchApi('/auth/logout', { method: 'POST', body: JSON.stringify(refreshToken ? { refreshToken } : {}), silent: true });
+    } catch {
+      // Logout lokal tetap dijalankan walau server tidak terjangkau.
     } finally {
       clearTokens();
       set({ user: null, isAuthenticated: false });
     }
   },
 }));
+
+// fetchApi memancarkan event ini saat refresh token gagal: keluarkan pengguna supaya RoleGuard mengarahkan ke /login.
+if (typeof window !== 'undefined') {
+  window.addEventListener(SESSION_EXPIRED_EVENT, () => {
+    const { isAuthenticated, user } = useAuthStore.getState();
+    // devLogin (mode pengembangan tanpa token) tidak ikut dikeluarkan.
+    if (isAuthenticated && user?.id !== 'dev-user-1') useAuthStore.setState({ user: null, isAuthenticated: false });
+  });
+}

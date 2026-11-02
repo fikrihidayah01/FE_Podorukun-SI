@@ -3,6 +3,7 @@ import { fetchApi } from '../../lib/api';
 import { useCoaStore } from '../../store/coaStore';
 import Button from '../../components/ui/Button';
 import Panel from '../../components/ui/Panel';
+import { apiError } from '../../lib/errors';
 interface Mapping { kunci: string; label: string; akunId: string | null }
 export default function CoaTabAkunSistem() {
   const akuns = useCoaStore((s) => s.items);
@@ -12,7 +13,7 @@ export default function CoaTabAkunSistem() {
   const [saved, setSaved] = useState('');
   useEffect(() => {
     void (async () => {
-      try { const res = await fetchApi('/akun-sistem'); const body = await res.json(); if (!res.ok) throw new Error(body.message); setRows(body.data); }
+      try { const res = await fetchApi('/akun-sistem'); const body = await res.json(); if (!res.ok) throw apiError(res, 'Gagal memuat akun sistem'); setRows(body.data); }
       catch (err) { setError(err instanceof Error ? err.message : 'Gagal memuat akun sistem'); }
     })();
   }, []);
@@ -21,7 +22,7 @@ export default function CoaTabAkunSistem() {
     setBusy(row.kunci); setError(''); setSaved('');
     try {
       const res = await fetchApi(`/akun-sistem/${row.kunci}`, { method: 'PUT', body: JSON.stringify({ akunId: row.akunId }) });
-      const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal menyimpan akun sistem');
+      if (!res.ok) throw apiError(res, 'Gagal menyimpan akun sistem');
       setSaved(row.label + ' berhasil disimpan.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Gagal menyimpan'); }
     finally { setBusy(''); }

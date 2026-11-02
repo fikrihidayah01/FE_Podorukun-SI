@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
 import type { Tone } from '../components/ui/Badge';
+import { apiError, errorMessage, notifyError } from '../lib/errors';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -139,7 +140,7 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await fetchApi('/piutang');
-      if (!response.ok) throw new Error('Gagal mengambil data piutang');
+      if (!response.ok) throw apiError(response, 'Gagal mengambil data piutang');
       const data = await response.json();
       set({
         items: (data?.data || []).map((item: KavlingTagihan) => ({
@@ -149,8 +150,9 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
         })),
         isLoading: false,
       });
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (err) {
+      set({ error: errorMessage(err), isLoading: false });
+      notifyError(err);
     }
   },
 
@@ -180,10 +182,7 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
       method: 'POST',
       body: JSON.stringify({ dariJadwalId, keJadwalId, nominal }),
     });
-    if (!response.ok) {
-      const errData = await response.json().catch(() => null);
-      throw new Error(errData?.message || 'Gagal memindahkan alokasi pembayaran');
-    }
+    if (!response.ok) throw apiError(response, 'Gagal memindahkan alokasi pembayaran');
     await get().fetchItems();
   },
   
@@ -193,8 +192,7 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
       method: 'PUT',
       body: JSON.stringify({ periode, tagihan, tanggalJatuhTempo, jadwalId }),
     });
-    const body = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(body?.message || 'Gagal menyimpan jadwal angsuran');
+    if (!response.ok) throw apiError(response, 'Gagal menyimpan jadwal angsuran');
     await get().fetchItems();
   },
 

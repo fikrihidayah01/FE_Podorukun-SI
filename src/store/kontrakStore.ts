@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError, errorMessage, notifyError } from '../lib/errors';
 
 export interface Kontrak {
   id: string;
@@ -74,7 +75,7 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await fetchApi('/kontrak');
-      if (!res.ok) throw new Error('Gagal memuat data kontrak');
+      if (!res.ok) throw apiError(res, 'Gagal memuat data kontrak');
       const json = await res.json();
       const list: Kontrak[] = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
 
@@ -82,8 +83,9 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
         kontraks: list,
         isLoading: false,
       });
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (err) {
+      set({ error: errorMessage(err), isLoading: false });
+      notifyError(err);
     }
   },
 
@@ -117,7 +119,7 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
         ],
       }));
     } catch (err) {
-      console.error('Failed to fetch detail kontrak:', id, err);
+      notifyError(err);
     }
   },
 
@@ -142,10 +144,7 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal menyimpan kontrak ke server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menyimpan kontrak ke server');
 
     const json = await res.json();
     const created = json.data;
@@ -164,10 +163,7 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
       }),
     });
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal menyimpan adendum ke server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menyimpan adendum ke server');
 
     const json = await res.json();
     const created = json.data;
@@ -187,10 +183,7 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
       }),
     });
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal mencatat pembayaran kontrak ke server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal mencatat pembayaran kontrak ke server');
 
     const json = await res.json();
     const created = json.data;
@@ -204,20 +197,14 @@ export const useKontrakStore = create<KontrakState>((set, get) => ({
       body: JSON.stringify({ alasan: alasan || 'Dibatalkan oleh pengguna' }),
     });
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal membatalkan kontrak di server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal membatalkan kontrak di server');
 
     await get().fetch();
   },
 
   removePembayaran: async (id) => {
     const res = await fetchApi(`/kontrak/pembayaran/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal menghapus pembayaran di server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menghapus pembayaran di server');
     set((state) => ({
       pembayarans: state.pembayarans.filter((p) => p.id !== id),
     }));

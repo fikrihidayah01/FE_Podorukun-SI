@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError, errorMessage, notifyError } from '../lib/errors';
 
 export type StatusPinjaman = 'aktif' | 'lunas';
 export type JenisPembayaran = 'pokok' | 'bunga' | 'gabungan';
@@ -109,7 +110,8 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
         set({ error: json.message || 'Gagal memuat pinjaman', isLoading: false });
       }
     } catch (err) {
-      set({ error: 'Terjadi kesalahan jaringan', isLoading: false });
+      set({ error: errorMessage(err), isLoading: false });
+      notifyError(err);
     }
   },
 
@@ -118,7 +120,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
       const res = await fetchApi(`/pinjaman/jatuh-tempo?hari=${hari}`);
       const json = await res.json();
       if (res.ok) set({ reminders: json.data || [] });
-    } catch (err) {}
+    } catch (err) { notifyError(err); }
   },
 
   fetchEntries: async (pinjamanId) => {
@@ -133,7 +135,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
           ] 
         }));
       }
-    } catch (err) {}
+    } catch (err) { notifyError(err); }
   },
 
   addPinjaman: async (data) => {
@@ -141,7 +143,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error((await res.json()).message || 'Gagal menambah');
+    if (!res.ok) throw apiError(res, 'Gagal menambah pinjaman');
     await get().fetch();
   },
 
@@ -150,7 +152,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error((await res.json()).message || 'Gagal top-up');
+    if (!res.ok) throw apiError(res, 'Gagal top-up pinjaman');
     await get().fetch();
   },
 
@@ -159,7 +161,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
       method: 'PATCH',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error((await res.json()).message || 'Gagal mengubah');
+    if (!res.ok) throw apiError(res, 'Gagal mengubah pinjaman');
     await get().fetch();
   },
 
@@ -167,7 +169,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
     const res = await fetchApi(`/pinjaman/${id}`, {
       method: 'DELETE',
     });
-    if (!res.ok) throw new Error((await res.json()).message || 'Gagal menghapus');
+    if (!res.ok) throw apiError(res, 'Gagal menghapus pinjaman');
     await get().fetch();
   },
 
@@ -176,7 +178,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error((await res.json()).message || 'Gagal mencatat pembayaran');
+    if (!res.ok) throw apiError(res, 'Gagal mencatat pembayaran pinjaman');
     await get().fetch();
     await get().fetchEntries(pinjamanId);
   },
@@ -185,7 +187,7 @@ export const usePinjamanBankStore = create<PinjamanBankState>((set, get) => ({
     const res = await fetchApi(`/pinjaman/transaksi/${id}`, {
       method: 'DELETE',
     });
-    if (!res.ok) throw new Error((await res.json()).message || 'Gagal menghapus pembayaran');
+    if (!res.ok) throw apiError(res, 'Gagal menghapus pembayaran pinjaman');
     await get().fetch();
     await get().fetchEntries(pinjamanId);
   },

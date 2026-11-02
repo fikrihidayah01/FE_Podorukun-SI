@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
+import { apiError } from '../lib/errors';
 
 export interface SaldoAkun {
   akunId: string;
@@ -35,7 +36,7 @@ export const useSaldoAwalStore = create<SaldoAwalState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await fetchApi(`/saldo-awal/${proyekId}`);
-      if (!res.ok) throw new Error('Gagal memuat saldo awal');
+      if (!res.ok) throw apiError(res, 'Gagal memuat saldo awal');
       const json = await res.json();
       
       const periode: PeriodeSaldoAwal = json.data;
@@ -58,7 +59,7 @@ export const useSaldoAwalStore = create<SaldoAwalState>((set, get) => ({
         method: 'PUT',
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Gagal menyimpan saldo awal');
+      if (!res.ok) throw apiError(res, 'Gagal menyimpan saldo awal');
       
       // refetch to ensure consistency
       await get().fetchSaldoAwal(proyekId);
@@ -72,10 +73,7 @@ export const useSaldoAwalStore = create<SaldoAwalState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await fetchApi(`/saldo-awal/${proyekId}/kunci`, { method: 'POST' });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.message || 'Gagal mengunci saldo awal');
-      }
+      if (!res.ok) throw apiError(res, 'Gagal mengunci saldo awal');
       
       // refetch
       await get().fetchSaldoAwal(proyekId);

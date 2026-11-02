@@ -16,6 +16,7 @@ import Modal from '../../../components/ui/Modal';
 import { hariIni } from '../../../utils/format';
 import Notice from '../../../components/ui/Notice';
 import TagihanModal from './TagihanModal';
+import { apiError } from '../../../lib/errors';
 
 export default function PiutangActions({ item }: { item: KavlingTagihan }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -118,8 +119,7 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.message || 'Gagal menyimpan');
+      if (!res.ok) throw apiError(res, 'Gagal menyimpan transaksi piutang');
       await usePiutangStore.getState().fetchItems();
       setAction('');
     } catch (err) {

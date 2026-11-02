@@ -9,6 +9,7 @@ import Notice from '../../../components/ui/Notice';
 import Field from '../../../components/ui/Field';
 import Badge from '../../../components/ui/Badge';
 import { TableScroll } from '../../../components/ui/Panel';
+import { apiError } from '../../../lib/errors';
 
 type Jenis = 'booking_fee' | 'uang_muka' | 'angsuran' | 'pencairan_kpr';
 interface Tagihan { id: string; noUrut: number; tanggal: string; jumlah: number; jenis: Jenis; keterangan: string | null; aktif: boolean; dibayar: number; sisa: number; terkunci: boolean }
@@ -29,7 +30,7 @@ export default function TagihanModal({ item, isOpen, onClose }: { item: KavlingT
   const load = async () => {
     const res = await fetchApi(`/piutang/${item.id}/tagihan`);
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(body?.message || 'Gagal memuat tagihan');
+    if (!res.ok) throw apiError(res, 'Gagal memuat tagihan');
     setData(body.data);
   };
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function TagihanModal({ item, isOpen, onClose }: { item: KavlingT
         keterangan: payload.keterangan.trim() || undefined, aktif: payload.aktif,
       };
       const res = await fetchApi(`/piutang/${item.id}/tagihan`, { method: 'PUT', body: JSON.stringify(body) });
-      const resBody = await res.json().catch(() => null); if (!res.ok) throw new Error(resBody?.message || 'Gagal menyimpan tagihan');
+      if (!res.ok) throw apiError(res, 'Gagal menyimpan tagihan');
       setForm(null);
       await load();
       await usePiutangStore.getState().fetchItems();

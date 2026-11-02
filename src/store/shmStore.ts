@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { fetchApi } from '../lib/api';
 import type { Tone } from '../components/ui/Badge';
+import { apiError, errorMessage, notifyError } from '../lib/errors';
 
 export type StatusShm =
   | 'di_notaris'
@@ -111,12 +112,13 @@ export const useShmStore = create<ShmState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await fetchApi('/shm');
-      if (!res.ok) throw new Error('Gagal memuat data SHM');
+      if (!res.ok) throw apiError(res, 'Gagal memuat data SHM');
       const json = await res.json();
       const list = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
       set({ shms: list, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (err) {
+      set({ error: errorMessage(err), isLoading: false });
+      notifyError(err);
     }
   },
 
@@ -138,10 +140,7 @@ export const useShmStore = create<ShmState>((set, get) => ({
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal menyimpan SHM ke server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menyimpan SHM ke server');
 
     await get().fetch();
     return true;
@@ -149,10 +148,7 @@ export const useShmStore = create<ShmState>((set, get) => ({
 
   removeShm: async (id) => {
     const res = await fetchApi(`/shm/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal menghapus SHM di server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal menghapus SHM di server');
     await get().fetch();
   },
 
@@ -168,10 +164,7 @@ export const useShmStore = create<ShmState>((set, get) => ({
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal mengubah status SHM di server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal mengubah status SHM di server');
     await get().fetch();
   },
 
@@ -185,10 +178,7 @@ export const useShmStore = create<ShmState>((set, get) => ({
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Gagal memperbarui PBG di server');
-    }
+    if (!res.ok) throw apiError(res, 'Gagal memperbarui PBG di server');
     await get().fetch();
   },
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Button from '../../components/ui/Button';
 import { fetchApi } from '../../lib/api';
+import { apiError } from '../../lib/errors';
 
 interface Attachment { id: string; nama: string }
 export interface LegalExportBlock { text: string; heading?: boolean }
@@ -16,7 +17,7 @@ export default function LegalExports({ id, nomor, blocks }: { id: string; nomor:
   const [error, setError] = useState('');
   const load = async () => {
     const res = await fetchApi(`/lampiran?entityType=dokumen&entityId=${id}`);
-    const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal memuat scan');
+    const body = await res.json(); if (!res.ok) throw apiError(res, 'Gagal memuat scan');
     setFiles(body.data || []);
   };
   useEffect(() => { void load().catch((err: Error) => setError(err.message)); }, [id]);
@@ -54,12 +55,12 @@ export default function LegalExports({ id, nomor, blocks }: { id: string; nomor:
       void run(async () => {
         const data = new FormData(); data.append('file', file);
         const res = await fetchApi(`/lampiran?entityType=dokumen&entityId=${id}`, { method: 'POST', body: data });
-        const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal mengunggah scan');
+        if (!res.ok) throw apiError(res, 'Gagal mengunggah scan');
         await load();
       });
     }} /><span className="mt-1 block text-sm text-ink-3">PDF, JPG, PNG, atau WEBP; maksimal 10 MB.</span></label>
     <ul className="mt-3 space-y-2">{files.map((file) => <li key={file.id}><Button disabled={busy} onClick={() => void run(async () => {
-      const res = await fetchApi(`/lampiran/${file.id}/unduh`); if (!res.ok) throw new Error('Gagal mengunduh scan');
+      const res = await fetchApi(`/lampiran/${file.id}/unduh`); if (!res.ok) throw apiError(res, 'Gagal mengunduh scan');
       download(await res.blob(), file.nama);
     })}>{file.nama}</Button></li>)}</ul>
     {busy && <p role="status" className="mt-2 text-sm text-ink-3">Memproses dokumen…</p>}

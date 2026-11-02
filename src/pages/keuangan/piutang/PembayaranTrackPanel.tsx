@@ -11,6 +11,7 @@ import Modal from '../../../components/ui/Modal';
 import Notice from '../../../components/ui/Notice';
 import Badge, { type Tone } from '../../../components/ui/Badge';
 import { formatTanggal } from '../../../utils/format';
+import { apiError } from '../../../lib/errors';
 
 interface Payment {
   id: string; tanggal: string; jenis: string; nominal: number; statusProses: string; alasan: string | null;
@@ -96,7 +97,7 @@ export default function PembayaranTrackPanel() {
   const load = async () => {
     const res = await fetchApi('/pembayaran-track');
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(body?.message || 'Gagal memuat pembayaran');
+    if (!res.ok) throw apiError(res, 'Gagal memuat pembayaran');
     setRows(body?.data ?? []);
   };
   // Proyek dan piutang sudah dimuat oleh PiutangPage; panel ini cukup memuat pembayaran sekali saat tampil.
@@ -191,7 +192,7 @@ export default function PembayaranTrackPanel() {
 
   const process = async (id?: string) => {
     setBusy(true); setError('');
-    try { const res = await fetchApi(`/pembayaran-track/${id ? id + '/proses' : 'proses'}`, { method: 'POST' }); const body = await res.json().catch(() => null); if (!res.ok) throw new Error(body?.message || 'Gagal memproses pembayaran'); await refresh(); }
+    try { const res = await fetchApi(`/pembayaran-track/${id ? id + '/proses' : 'proses'}`, { method: 'POST' }); if (!res.ok) throw apiError(res, 'Gagal memproses pembayaran'); await refresh(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Gagal memproses pembayaran'); }
     finally { setBusy(false); }
   };
@@ -204,7 +205,7 @@ export default function PembayaranTrackPanel() {
     try {
       const payload = { keputusan: target.keputusan, ...(alasan.trim() ? { alasan: alasan.trim() } : {}) };
       const res = await fetchApi(`/pembayaran-track/${target.payment.id}/verifikasi`, { method: 'POST', body: JSON.stringify(payload) });
-      const body = await res.json().catch(() => null); if (!res.ok) throw new Error(body?.message || 'Gagal menyimpan keputusan');
+      if (!res.ok) throw apiError(res, 'Gagal menyimpan keputusan');
       setTarget(null); await refresh();
     } catch (err) { setDialogError(err instanceof Error ? err.message : 'Gagal menyimpan keputusan'); }
     finally { setBusy(false); }
