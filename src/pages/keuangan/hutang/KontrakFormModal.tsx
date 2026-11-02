@@ -15,6 +15,9 @@ interface KontrakFormModalProps {
   onClose: () => void;
 }
 
+/** Nilai select untuk mengetik kontraktor yang belum ada di daftar rekanan. */
+const BARU = '__baru__';
+
 const EMPTY = {
   proyekId: '',
   unitId: '',
@@ -41,6 +44,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
   const [error, setError] = useState('');
   const [kavlingList, setKavlingList] = useState<KavlingUnit[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [kontraktorBaru, setKontraktorBaru] = useState(false);
 
   const set = (key: keyof typeof EMPTY, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -75,6 +79,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
   const handleClose = () => {
     if (isSubmitting) return;
     setForm(EMPTY);
+    setKontraktorBaru(false);
     setError('');
     onClose();
   };
@@ -93,6 +98,8 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
     }
   };
 
+  const pakaiInputNama = kontraktorList.length === 0 || kontraktorBaru;
+
   const handleKontraktorChange = (selectedId: string) => {
     const kp = kontraktorList.find((item) => item.id === selectedId);
     if (kp) {
@@ -101,8 +108,11 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
         kontraktorId: kp.id,
         namaKontraktor: kp.nama,
       }));
+      setKontraktorBaru(false);
     } else {
-      setForm((f) => ({ ...f, kontraktorId: selectedId }));
+      // Pilihan "kontraktor baru": backend membuat kode pembantu baru dari nama yang diketik.
+      setForm((f) => ({ ...f, kontraktorId: '', namaKontraktor: '' }));
+      setKontraktorBaru(selectedId === BARU);
     }
   };
 
@@ -137,6 +147,7 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
         akunHutangId: form.akunHutangId,
       });
       setForm(EMPTY);
+      setKontraktorBaru(false);
       setError('');
       onClose();
     } catch (err: any) {
@@ -177,6 +188,8 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
                 set('proyekId', e.target.value);
                 set('unitId', '');
                 set('kavling', '');
+                // Rekanan terdaftar per proyek; pilihan dari proyek lama tidak berlaku lagi.
+                if (form.kontraktorId) setForm((f) => ({ ...f, kontraktorId: '', namaKontraktor: '' }));
               }}
             >
               <option value="">Pilih proyek</option>
@@ -211,27 +224,33 @@ export default function KontrakFormModal({ isOpen, onClose }: KontrakFormModalPr
           </Field>
 
           <Field label="Kontraktor" required>
+            <div>
             {kontraktorList.length > 0 ? (
               <div className="space-y-1.5">
                 <select
+                  aria-label="Kontraktor"
                   className="control"
-                  value={form.kontraktorId}
+                  value={kontraktorBaru ? BARU : form.kontraktorId}
                   onChange={(e) => handleKontraktorChange(e.target.value)}
                 >
                   <option value="">Pilih dari daftar rekanan</option>
                   {kontraktorList.map((kp) => (
                     <option key={kp.id} value={kp.id}>{kp.nama}</option>
                   ))}
+                  <option value={BARU}>+ Kontraktor baru</option>
                 </select>
               </div>
-            ) : (
+            ) : null}
+            {pakaiInputNama && (
               <input
-                className="control"
+                aria-label="Nama kontraktor baru"
                 value={form.namaKontraktor}
                 onChange={(e) => set('namaKontraktor', e.target.value)}
                 placeholder="Contoh: CV Karya Mandiri"
+                className={kontraktorList.length > 0 ? 'control mt-1.5' : 'control'}
               />
             )}
+            </div>
           </Field>
 
           <Field label="No. SPK" required>

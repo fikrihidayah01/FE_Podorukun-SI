@@ -4,7 +4,7 @@ import {
   PiPaperclip, PiFilePdf, PiImage, PiX, PiDownloadSimple, PiArrowSquareOut,
 } from 'react-icons/pi';
 import { useJurnalStore, type Jurnal, type JurnalRow, type JurnalStatus, type Lampiran } from '../../store/jurnalStore';
-import { useCoaStore } from '../../store/coaStore';
+import { useCoaStore, KATEGORI_AKUN_LABELS, type KategoriAkun } from '../../store/coaStore';
 import { useProyekStore } from '../../store/proyekStore';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
 import Panel from '../../components/ui/Panel';
@@ -17,7 +17,7 @@ import Money from '../../components/ui/Money';
 import Notice from '../../components/ui/Notice';
 import Field from '../../components/ui/Field';
 import EmptyState from '../../components/ui/EmptyState';
-import { formatTanggal, hariIni } from '../../utils/format';
+import { formatTanggal, hariIni, opsiBulan } from '../../utils/format';
 import { useHutangStore } from '../../store/hutangStore';
 import { fetchApi } from '../../lib/api';
 
@@ -80,7 +80,10 @@ export default function JurnalPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSumber, setFilterSumber] = useState('all');
   const [filterLampiran, setFilterLampiran] = useState('all');
+  const [filterBulan, setFilterBulan] = useState('all');
+  const [filterAkun, setFilterAkun] = useState('all');
   const [search, setSearch] = useState('');
+  const opsiPeriode = useMemo(() => opsiBulan(24).reverse(), []);
 
   const [tanggal, setTanggal] = useState('');
   const [keterangan, setKeterangan] = useState('');
@@ -151,6 +154,17 @@ export default function JurnalPage() {
 
   const getAkun = (id: string) => akuns.find((a) => a.id === id);
   const leafAkuns = akuns.filter((a) => a.status === 'aktif' && !akuns.some((c) => c.akunIndukId === a.id));
+  // Dikelompokkan per kategori dan diurutkan per kode, agar akun mudah dicari di daftar panjang.
+  const kelompokAkun = (list: typeof akuns) =>
+    (Object.keys(KATEGORI_AKUN_LABELS) as KategoriAkun[])
+      .map((kat) => ({
+        kat,
+        akuns: list.filter((a) => a.kategori === kat).sort((a, b) => a.kodeAkun.localeCompare(b.kodeAkun)),
+      }))
+      .filter((g) => g.akuns.length > 0);
+  const kelompokLeaf = kelompokAkun(leafAkuns);
+  // Filter daftar memakai semua akun daun, termasuk yang sudah nonaktif, karena jurnal lama tetap memakainya.
+  const kelompokFilter = kelompokAkun(akuns.filter((a) => !akuns.some((c) => c.akunIndukId === a.id)));
   const hasEmptyWajibKodePembantu = rows.some((r) => getAkun(r.akunId)?.wajibKodePembantu && !r.kodePembantuId);
 
   // Cek apakah ada akun kas/bank di baris
@@ -166,6 +180,8 @@ export default function JurnalPage() {
         (item) =>
           (item.nomorJurnal.toLowerCase().includes(q) || item.keterangan.toLowerCase().includes(q)) &&
           (filterProyek === 'all' || item.proyekId === filterProyek) &&
+          (filterBulan === 'all' || item.tanggal?.startsWith(filterBulan)) &&
+          (filterAkun === 'all' || item.rows?.some((r) => r.akunId === filterAkun)) &&
           (filterStatus === 'all' || item.status === filterStatus) &&
           (filterSumber === 'all' || item.sumber === filterSumber) &&
           (filterLampiran === 'all' ||
@@ -173,7 +189,7 @@ export default function JurnalPage() {
             (filterLampiran === 'tidak_ada' && (item.lampiran?.length ?? 0) === 0)),
       )
       .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
-  }, [items, search, filterProyek, filterStatus, filterSumber, filterLampiran]);
+  }, [items, search, filterProyek, filterBulan, filterAkun, filterStatus, filterSumber, filterLampiran]);
 
   const getProyekName = (id?: string) => (id ? (proyeks.find((p) => p.id === id)?.nama ?? 'Proyek tidak dikenal') : '-');
   const getAkunLabel = (id: string) => {
@@ -337,7 +353,7 @@ export default function JurnalPage() {
     },
   ];
 
-  const hasFilter = search || filterProyek !== 'all' || filterStatus !== 'all' || filterSumber !== 'all' || filterLampiran !== 'all';
+  const hasFilter = search || filterProyek !== 'all' || filterBulan !== 'all' || filterAkun !== 'all' || filterStatus !== 'all' || filterSumber !== 'all' || filterLampiran !== 'all';
 
   return (
     <>
@@ -360,7 +376,7 @@ export default function JurnalPage() {
           </div>
         )}
         <Panel title="Daftar jurnal" description={`${items.length} jurnal tercatat. Klik baris untuk melihat rinciannya.`} flush>
-          <div className="grid grid-cols-1 gap-3 border-b border-line px-4 py-3.5 sm:grid-cols-2 sm:px-5 xl:grid-cols-[minmax(0,1.5fr)_1fr_1fr_1fr_1fr]">
+          <div className="grid grid-cols-1 gap-3 border-b border-line px-4 py-3.5 sm:grid-cols-2 sm:px-5 lg:grid-cols-4">
             <div>
               <label htmlFor="j-cari" className="field-label">Cari</label>
               <div className="relative">
@@ -381,6 +397,28 @@ export default function JurnalPage() {
                 <option value="all">Semua proyek</option>
                 {proyeks.map((p) => (
                   <option key={p.id} value={p.id}>{p.nama}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="j-bulan" className="field-label">Periode</label>
+              <select id="j-bulan" className="control" value={filterBulan} onChange={(e) => { setFilterBulan(e.target.value); setPage(1); }}>
+                <option value="all">Semua periode</option>
+                {opsiPeriode.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="j-akun" className="field-label">Akun</label>
+              <select id="j-akun" className="control" value={filterAkun} onChange={(e) => { setFilterAkun(e.target.value); setPage(1); }}>
+                <option value="all">Semua akun</option>
+                {kelompokFilter.map((g) => (
+                  <optgroup key={g.kat} label={KATEGORI_AKUN_LABELS[g.kat]}>
+                    {g.akuns.map((a) => (
+                      <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}{a.status !== 'aktif' ? ' (nonaktif)' : ''}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -513,8 +551,12 @@ export default function JurnalPage() {
                       <td>
                         <select aria-label={`Akun baris ${n}`} className="control control-sm" value={row.akunId} onChange={(e) => updateRow(row.id, 'akunId', e.target.value)}>
                           <option value="">Pilih akun</option>
-                          {leafAkuns.map((a) => (
-                            <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
+                          {kelompokLeaf.map((g) => (
+                            <optgroup key={g.kat} label={KATEGORI_AKUN_LABELS[g.kat]}>
+                              {g.akuns.map((a) => (
+                                <option key={a.id} value={a.id}>{a.kodeAkun} - {a.namaAkun}</option>
+                              ))}
+                            </optgroup>
                           ))}
                         </select>
                       </td>

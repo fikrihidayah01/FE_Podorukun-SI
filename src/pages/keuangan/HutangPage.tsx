@@ -111,7 +111,9 @@ export default function HutangPage() {
   const activeTab = TABS.some((t) => t.key === tabParam) ? tabParam! : 'saldo';
   const setActiveTab = (key: string) => setSearchParams(key === 'saldo' ? {} : { tab: key }, { replace: true });
 
-  const monthOptions = useMemo(() => opsiBulan(), []);
+  const monthOptions = useMemo(() => opsiBulan(24), []);
+  // Periode dan kategori hanya memfilter saldo berjalan; tab lain menampilkan posisi terkini.
+  const tabSaldo = activeTab === 'saldo';
   const periodeLabel = formatBulan(selectedBulan);
   const proyekNama = (id?: string) => proyeks.find((p) => p.id === id)?.nama;
 
@@ -138,24 +140,26 @@ export default function HutangPage() {
     <>
       <PageHeader
         title="Hutang"
-        description={`Periode ${periodeLabel}`}
+        description={tabSaldo ? `Periode ${periodeLabel}` : 'Posisi terkini'}
         status={
-          <button
-            type="button"
-            onClick={handleToggleKunci}
-            aria-pressed={isPeriodeTerkunci}
-            title={currentPtId && !isPeriodeTerkunci ? 'Kunci periode ini' : undefined}
-            className="rounded-md"
-          >
-            <Badge tone={!currentPtId ? 'neutral' : isPeriodeTerkunci ? 'warning' : 'positive'}>
-              {isPeriodeTerkunci ? <PiLockSimple aria-hidden /> : <PiLockSimpleOpen aria-hidden />}
-              {!currentPtId
-                ? 'Status periode: pilih proyek'
-                : isPeriodeTerkunci
-                ? 'Periode terkunci'
-                : 'Periode terbuka · kunci'}
-            </Badge>
-          </button>
+          tabSaldo && (
+            <button
+              type="button"
+              onClick={handleToggleKunci}
+              aria-pressed={isPeriodeTerkunci}
+              title={currentPtId && !isPeriodeTerkunci ? 'Kunci periode ini' : undefined}
+              className="rounded-md"
+            >
+              <Badge tone={!currentPtId ? 'neutral' : isPeriodeTerkunci ? 'warning' : 'positive'}>
+                {isPeriodeTerkunci ? <PiLockSimple aria-hidden /> : <PiLockSimpleOpen aria-hidden />}
+                {!currentPtId
+                  ? 'Status periode: pilih proyek'
+                  : isPeriodeTerkunci
+                  ? 'Periode terkunci'
+                  : 'Periode terbuka · kunci'}
+              </Badge>
+            </button>
+          )
         }
         actions={
           <Button variant="primary" icon={PiPlus} onClick={() => setInputOpen(true)}>
@@ -172,7 +176,7 @@ export default function HutangPage() {
           </Notice>
         )}
         {kunciInfo && <Notice tone={kunciInfo.tone}>{kunciInfo.text}</Notice>}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-3xl">
+        <div className={`grid gap-3 lg:max-w-3xl ${tabSaldo ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-3'}`}>
           <div>
             <label htmlFor="f-proyek" className="field-label">Proyek</label>
             <select id="f-proyek" className="control" value={selectedProyek} onChange={(e) => { setSelectedProyek(e.target.value); setKunciInfo(null); }}>
@@ -182,50 +186,56 @@ export default function HutangPage() {
               ))}
             </select>
           </div>
-          <div>
-            <label htmlFor="f-kategori" className="field-label">Kategori</label>
-            <select
-              id="f-kategori"
-              className="control"
-              value={selectedKategori}
-              onChange={(e) => setSelectedKategori(e.target.value as KategoriHutang | '')}
-            >
-              <option value="">Semua kategori</option>
-              {(Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).map((k) => (
-                <option key={k} value={k}>{KATEGORI_HUTANG_LABELS[k]}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label htmlFor="f-bulan" className="field-label">Periode</label>
-            <select id="f-bulan" className="control" value={selectedBulan} onChange={(e) => setSelectedBulan(e.target.value)}>
-              {monthOptions.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
+          {tabSaldo && (
+            <>
+              <div>
+                <label htmlFor="f-kategori" className="field-label">Kategori</label>
+                <select
+                  id="f-kategori"
+                  className="control"
+                  value={selectedKategori}
+                  onChange={(e) => setSelectedKategori(e.target.value as KategoriHutang | '')}
+                >
+                  <option value="">Semua kategori</option>
+                  {(Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).map((k) => (
+                    <option key={k} value={k}>{KATEGORI_HUTANG_LABELS[k]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <label htmlFor="f-bulan" className="field-label">Periode</label>
+                <select id="f-bulan" className="control" value={selectedBulan} onChange={(e) => setSelectedBulan(e.target.value)}>
+                  {monthOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
 
-        <StatGrid>
-          <StatTile
-            emphasis
-            color={MODULE_ACCENT['/keuangan/hutang']}
-            icon={PiHandCoins}
-            label="Total hutang"
-            value={formatRupiah(totalOf(semuaSaldo))}
-            hint={selectedProyek ? proyekNama(selectedProyek) : 'Semua proyek'}
-          />
-          <StatTile color={KATEGORI_HUTANG_HEX.lahan} icon={PiMapTrifold} label="Hutang lahan" value={formatRupiah(totalOf(semuaSaldo, 'lahan'))} />
-          <StatTile color={KATEGORI_HUTANG_HEX.bank} icon={PiBank} label="Hutang bank" value={formatRupiah(totalOf(semuaSaldo, 'bank'))} />
-          <StatTile
-            color="#b45309"
-            icon={PiCalendarCheck}
-            label="Jatuh tempo 7 hari"
-            value={`${dueReminders.length} tagihan`}
-            tone={dueReminders.length > 0 ? 'warning' : 'default'}
-            hint={dueReminders[0] ? `Terdekat ${dueReminders[0].tanggalFormatted}` : 'Tidak ada pinjaman bank jatuh tempo'}
-          />
-        </StatGrid>
+        {tabSaldo && (
+          <StatGrid>
+            <StatTile
+              emphasis
+              color={MODULE_ACCENT['/keuangan/hutang']}
+              icon={PiHandCoins}
+              label="Total hutang"
+              value={formatRupiah(totalOf(semuaSaldo))}
+              hint={selectedProyek ? proyekNama(selectedProyek) : 'Semua proyek'}
+            />
+            <StatTile color={KATEGORI_HUTANG_HEX.lahan} icon={PiMapTrifold} label="Hutang lahan" value={formatRupiah(totalOf(semuaSaldo, 'lahan'))} />
+            <StatTile color={KATEGORI_HUTANG_HEX.bank} icon={PiBank} label="Hutang bank" value={formatRupiah(totalOf(semuaSaldo, 'bank'))} />
+            <StatTile
+              color="#b45309"
+              icon={PiCalendarCheck}
+              label="Jatuh tempo 7 hari"
+              value={`${dueReminders.length} tagihan`}
+              tone={dueReminders.length > 0 ? 'warning' : 'default'}
+              hint={dueReminders[0] ? `Terdekat ${dueReminders[0].tanggalFormatted}` : 'Tidak ada pinjaman bank jatuh tempo'}
+            />
+          </StatGrid>
+        )}
 
         <TabPanel idPrefix="hutang" activeTab={activeTab}>
           {activeTab === 'saldo' && (
@@ -386,10 +396,10 @@ export default function HutangPage() {
             </>
           )}
 
-          {activeTab === 'antar_proyek' && <AntarProyekTab selectedProyekId={selectedProyek} selectedBulan={periodeLabel} />}
-          {activeTab === 'pinjaman_bank' && <PinjamanBankTab selectedProyekId={selectedProyek} selectedBulan={periodeLabel} />}
-          {activeTab === 'agunan' && <AgunanShmTab selectedProyekId={selectedProyek} selectedProyekName={proyekNama(selectedProyek)} selectedBulan={periodeLabel} />}
-          {activeTab === 'kontraktor' && <KontraktorTab />}
+          {activeTab === 'antar_proyek' && <AntarProyekTab selectedProyekId={selectedProyek} />}
+          {activeTab === 'pinjaman_bank' && <PinjamanBankTab selectedProyekId={selectedProyek} />}
+          {activeTab === 'agunan' && <AgunanShmTab selectedProyekId={selectedProyek} selectedProyekName={proyekNama(selectedProyek)} />}
+          {activeTab === 'kontraktor' && <KontraktorTab selectedProyekId={selectedProyek} />}
         </TabPanel>
       </PageBody>
 

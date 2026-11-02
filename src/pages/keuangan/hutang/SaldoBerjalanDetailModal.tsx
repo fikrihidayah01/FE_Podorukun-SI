@@ -4,7 +4,8 @@ import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import Money from '../../../components/ui/Money';
 import Notice from '../../../components/ui/Notice';
-import { useHutangStore, KATEGORI_HUTANG_LABELS, type SaldoKodePembantu } from '../../../store/hutangStore';
+import { useHutangStore, KATEGORI_HUTANG_LABELS, mutasiTerbuku, type SaldoKodePembantu } from '../../../store/hutangStore';
+import Badge from '../../../components/ui/Badge';
 import { useCoaStore } from '../../../store/coaStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import { formatTanggal } from '../../../utils/format';
@@ -42,12 +43,15 @@ export default function SaldoBerjalanDetailModal({
   if (!rowData) return null;
 
   const entries = getMutasiByKodePembantu(rowData.kodePembantu.id)
-    .filter((m) => m.tanggal.startsWith(selectedBulan))
+    // Saldo awal bukan mutasi bulan berjalan; baris itu tampil di kartu hutang.
+    .filter((m) => m.tanggal?.startsWith(selectedBulan) && m.sumber !== 'saldo_awal')
     .map((m) => ({ ...m, akun: coaList.find((a) => a.id === m.akunCoaId) }));
 
   const proyekName = proyeks.find((p) => p.id === rowData.kodePembantu.proyekId)?.nama || '-';
-  const totalDebit = entries.filter((e) => e.jenisMutasi === 'debit').reduce((s, e) => s + e.nominal, 0);
-  const totalKredit = entries.filter((e) => e.jenisMutasi === 'kredit').reduce((s, e) => s + e.nominal, 0);
+  const terbuku = entries.filter(mutasiTerbuku);
+  const adaDraft = terbuku.length !== entries.length;
+  const totalDebit = terbuku.filter((e) => e.jenisMutasi === 'debit').reduce((s, e) => s + e.nominal, 0);
+  const totalKredit = terbuku.filter((e) => e.jenisMutasi === 'kredit').reduce((s, e) => s + e.nominal, 0);
 
   return (
     <Modal
@@ -128,9 +132,12 @@ export default function SaldoBerjalanDetailModal({
                   </tr>
                 ) : (
                   entries.map((e) => (
-                    <tr key={e.id}>
+                    <tr key={e.id} className={mutasiTerbuku(e) ? undefined : 'text-ink-3'}>
                       <td className="whitespace-nowrap tabular-nums">{formatTanggal(e.tanggal)}</td>
-                      <td className="text-ink">{e.uraian}</td>
+                      <td className="text-ink">
+                        {e.uraian}
+                        {!mutasiTerbuku(e) && <Badge tone="warning" className="ml-2">Draft</Badge>}
+                      </td>
                       <td>{e.akun ? `${e.akun.kodeAkun} - ${e.akun.namaAkun}` : <span className="text-ink-3">-</span>}</td>
                       <td>{e.referensi || <span className="text-ink-3">-</span>}</td>
                       <td className="num">{e.jenisMutasi === 'debit' ? <Money value={e.nominal} /> : <span className="text-ink-3">-</span>}</td>
@@ -142,7 +149,7 @@ export default function SaldoBerjalanDetailModal({
               {entries.length > 0 && (
                 <tfoot>
                   <tr>
-                    <td colSpan={4}>Total</td>
+                    <td colSpan={4}>{adaDraft ? 'Total terbuku (tanpa draft)' : 'Total'}</td>
                     <td className="num"><Money value={totalDebit} /></td>
                     <td className="num"><Money value={totalKredit} /></td>
                   </tr>

@@ -27,7 +27,7 @@ import Money from '../components/ui/Money';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
 import { StatGrid, StatTile } from '../components/ui/StatTile';
-import { bulanIni, formatBulan, formatRupiah, formatRupiahShort } from '../utils/format';
+import { bulanIni, formatBulan, formatRupiah, formatRupiahShort, hariIni } from '../utils/format';
 
 const HUTANG = MODULE_ACCENT['/keuangan/hutang'];
 const PIUTANG = MODULE_ACCENT['/keuangan/piutang'];
@@ -122,19 +122,22 @@ function KeuanganDashboard() {
   const reminders = getDueReminders(30);
   const drafts = jurnals.filter((j) => j.status === 'draft');
 
-  const now = new Date();
+  // Dibandingkan per tanggal kalender lokal: angsuran jatuh tempo hari ini belum dihitung menunggak.
+  const today = hariIni();
   const tagihan = kavlings
     .filter((k) => k.statusBast === 'belum_bast' && k.status !== 'batal')
     .map((k) => {
       const dibayar = k.totalDibayar;
       const tunggakan = k.periodeAngsuran
-        .filter((p) => new Date(p.tanggalJatuhTempo) < now)
+        .filter((p) => (p.tanggalJatuhTempo ?? '').slice(0, 10) < today)
         .reduce((s, p) => s + Math.max(0, p.tagihan - p.dibayar), 0);
       return { k, dibayar, sisa: k.sisa, tunggakan, pct: k.nilaiSppr ? dibayar / k.nilaiSppr : 0 };
     })
     .sort((a, b) => b.tunggakan - a.tunggakan);
   const totalSppr = tagihan.reduce((s, t) => s + t.k.nilaiSppr, 0);
   const totalDibayar = tagihan.reduce((s, t) => s + t.dibayar, 0);
+  // Sisa dari backend (sama dengan halaman Piutang), bukan SPPR dikurangi dibayar.
+  const totalSisa = tagihan.reduce((s, t) => s + t.sisa, 0);
   const totalTunggakan = tagihan.reduce((s, t) => s + t.tunggakan, 0);
   const pctTertagih = totalSppr ? Math.round((totalDibayar / totalSppr) * 100) : 0;
 
@@ -156,7 +159,7 @@ function KeuanganDashboard() {
           value={formatRupiah(sisaPokokBank)}
           hint={`${pinjamanAktif.length} pinjaman, ${totalPencairan ? Math.round((1 - sisaPokokBank / totalPencairan) * 100) : 0}% pokok terbayar`}
         />
-        <StatTile color={PIUTANG} icon={PiReceipt} label="Sisa tagihan user" value={formatRupiah(totalSppr - totalDibayar)} hint={`${pctTertagih}% dari SPPR sudah tertagih`} />
+        <StatTile color={PIUTANG} icon={PiReceipt} label="Sisa tagihan user" value={formatRupiah(totalSisa)} hint={`${pctTertagih}% dari SPPR sudah tertagih`} />
         <StatTile
           color={totalTunggakan > 0 ? '#b42318' : PIUTANG}
           icon={PiHourglassMedium}
