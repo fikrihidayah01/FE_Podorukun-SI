@@ -14,11 +14,10 @@ async function load(path, replacements = {}) {
 globalThis.window = { location: { origin: 'https://frontend.example' }, dispatchEvent: () => true };
 const values = new Map();
 globalThis.localStorage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: (key) => values.delete(key) };
-// Stub sonner: catat toast supaya bisa diperiksa tanpa DOM.
+const errors = await load('../src/lib/errors.ts');
+// Kumpulkan notifikasi yang dipancarkan (toast/popup) supaya bisa diperiksa tanpa DOM.
 const toasts = [];
-globalThis.__toasts = toasts;
-const sonnerStub = `data:text/javascript,${encodeURIComponent("const t = (kind) => (message, opts = {}) => globalThis.__toasts.push({ kind, message, ...opts }); export const toast = { error: t('error'), success: t('success') };")}`;
-const errors = await load('../src/lib/errors.ts', { "'sonner'": JSON.stringify(sonnerStub) });
+errors.module.subscribeNotices((notice) => toasts.push(notice));
 const api = await load('../src/lib/api.ts', { 'import.meta.env.VITE_API_BASE_URL': "'https://api.example/api/v1'", "'./errors'": JSON.stringify(errors.url) });
 const replacements = { "'../lib/api'": JSON.stringify(api.url), "'../lib/errors'": JSON.stringify(errors.url), "'zustand'": JSON.stringify(import.meta.resolve('zustand')) };
 const journal = (await load('../src/store/jurnalStore.ts', replacements)).module.useJurnalStore;
@@ -111,7 +110,7 @@ test('validation errors keep server message, context, and field details', async 
   assert.equal(err.code, 'VALIDATION');
   assert.match(err.message, /^Gagal menambah akun: Data yang Anda masukkan tidak valid/);
   assert.match(err.message, /Kolom 'kode': Wajib diisi\.; Kolom 'nama': Wajib diisi\./);
-  assert.equal(toasts.length, 0, 'galat isian ditampilkan oleh form, bukan toast global');
+  assert.equal(toasts.length, 0, 'galat isian ditampilkan oleh form, bukan notifikasi global');
 });
 
 test('legacy string error details are still readable', async () => {
@@ -122,15 +121,16 @@ test('legacy string error details are still readable', async () => {
   assert.deepEqual(body.errors, [{ message: 'Akun 1101 tidak ditemukan.' }]);
 });
 
-test('non-JSON gateway errors become a helpful message and a single toast with reference', async () => {
+test('non-JSON gateway errors become a helpful message and a single popup with reference', async () => {
   toasts.length = 0;
   globalThis.fetch = async () => new Response('<html>502 Bad Gateway</html>', { status: 502, headers: { 'x-request-id': 'abc-123' } });
   coa.setState({ error: null });
   await coa.getState().fetch();
   assert.match(coa.getState().error, /^Gagal memuat data akun: Server sedang tidak tersedia/);
   assert.equal(toasts.length, 1);
-  assert.equal(toasts[0].kind, 'error');
-  assert.match(toasts[0].description, /Kode referensi: abc-123/);
+  assert.equal(toasts[0].kind, 'popup');
+  assert.equal(toasts[0].tone, 'error');
+  assert.equal(toasts[0].reference, 'abc-123');
 });
 
 test('network failures throw ApiError status 0 and notify once', async () => {
@@ -140,7 +140,16 @@ test('network failures throw ApiError status 0 and notify once', async () => {
   assert.equal(err.status, 0);
   assert.match(err.message, /Tidak dapat terhubung ke server/);
   assert.equal(toasts.length, 1);
+  assert.equal(toasts[0].kind, 'popup');
   const silent = await api.module.fetchApi('/akun', { silent: true }).then(() => null, (e) => e);
   assert.equal(silent.status, 0);
   assert.equal(toasts.length, 1, 'silent tidak memunculkan toast');
+});
+
+test('rate limit and permission errors pass by as a warning toast', async () => {
+  toasts.length = 0;
+  globalThis.fetch = async () => Response.json({ message: 'Terlalu banyak permintaan. Coba lagi dalam 30 detik.', code: 'RATE_LIMITED' }, { status: 429 });
+  await api.module.fetchApi('/akun');
+  assert.equal(toasts.length, 1);
+  assert.deepEqual([toasts[0].kind, toasts[0].tone], ['toast', 'warning']);
 });

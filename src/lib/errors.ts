@@ -1,5 +1,3 @@
-import { toast } from 'sonner';
-
 /** Rincian galat per kolom/aturan dari backend. */
 export interface ApiErrorDetail {
   field?: string;
@@ -131,26 +129,105 @@ export function errorMessage(err: unknown, fallback = 'Terjadi kesalahan. Coba l
   return fallback;
 }
 
+// ── Notifikasi ────────────────────────────────────────────────────────────────
+// Modul ini tidak bergantung pada UI. Notifikasi dipancarkan ke "bus" dan ditampilkan
+// oleh <NotificationHost/> sebagai toast (lewat sebentar) atau popup (harus dikonfirmasi).
+
+export type NoticeTone = 'error' | 'warning' | 'success' | 'info';
+
+export interface Notice {
+  /** Notifikasi dengan id sama tidak ditampilkan dobel. */
+  id: string;
+  kind: 'toast' | 'popup';
+  tone: NoticeTone;
+  title: string;
+  lines: string[];
+  /** Kode referensi log server, ditampilkan agar bisa dilaporkan ke admin. */
+  reference?: string;
+  /** Label tombol konfirmasi popup. */
+  confirmLabel?: string;
+  /** Lama toast tampil (ms). */
+  duration?: number;
+  /** Dipanggil saat popup dikonfirmasi/ditutup. */
+  onClose?: () => void;
+}
+
+type NoticeListener = (notice: Notice) => void;
+const listeners = new Set<NoticeListener>();
+// Notifikasi sebelum host terpasang (mis. galat saat aplikasi baru dimuat) ditahan dulu.
+const backlog: Notice[] = [];
+
+export function subscribeNotices(listener: NoticeListener): () => void {
+  listeners.add(listener);
+  backlog.splice(0).forEach(listener);
+  return () => { listeners.delete(listener); };
+}
+
+function emit(notice: Notice) {
+  if (listeners.size === 0) backlog.push(notice);
+  else listeners.forEach((listener) => listener(notice));
+}
+
+let seq = 0;
+
+/**
+ * Popup yang menutupi layar dan harus dikonfirmasi pengguna.
+ * Promise selesai saat pengguna menekan tombol konfirmasi.
+ */
+export function showPopup(opts: Omit<Notice, 'id' | 'kind' | 'lines'> & { id?: string; lines?: string[] }): Promise<void> {
+  return new Promise((resolve) => {
+    emit({
+      ...opts,
+      id: opts.id ?? `popup-${++seq}`,
+      kind: 'popup',
+      lines: opts.lines ?? [],
+      onClose: () => { opts.onClose?.(); resolve(); },
+    });
+  });
+}
+
+/** Toast yang lewat sebentar di tengah atas layar. */
+export function showToast(opts: Omit<Notice, 'id' | 'kind' | 'lines'> & { id?: string; lines?: string[] }) {
+  emit({ ...opts, id: opts.id ?? `toast-${++seq}`, kind: 'toast', lines: opts.lines ?? [] });
+}
+
 const MAX_DETAILS = 4;
 
-/** Tampilkan toast galat dengan judul, rincian kolom, dan kode referensi (bila ada). */
-export function notifyError(err: unknown, fallback = 'Terjadi kesalahan. Coba lagi.') {
+/**
+ * Galat yang perlu perhatian pengguna (server/jaringan mati, sesi berakhir) tampil sebagai popup;
+ * galat lain sebagai toast. `mode` memaksa salah satunya.
+ */
+export function notifyError(err: unknown, opts: { fallback?: string; mode?: 'toast' | 'popup' } = {}) {
+  const fallback = opts.fallback ?? 'Terjadi kesalahan. Coba lagi.';
   if (err instanceof ApiError) {
     if (err.notified) return;
     err.notified = true;
-    const lines = err.details.map((d) => d.message).filter((m) => m !== err.summary);
+    const lines = err.details.map((d) => d.message).filter((m) => m !== err.summary && !err.summary.includes(m));
     const shown = lines.slice(0, MAX_DETAILS);
     if (lines.length > shown.length) shown.push(`…dan ${lines.length - shown.length} kesalahan lain.`);
-    const ref = err.requestId && err.status >= 500 ? `Kode referensi: ${err.requestId}` : '';
-    const description = [...shown, ref].filter(Boolean).join('\n') || undefined;
-    // id sama = toast lama diganti, bukan ditumpuk (mis. banyak request gagal karena jaringan putus)
-    toast.error(err.summary, { id: `${err.status}:${err.summary}`, description, duration: err.status >= 500 ? 10000 : 7000 });
+    const serious = err.status === 0 || err.status >= 500 || err.code === 'SESSION_EXPIRED';
+    const kind = opts.mode ?? (serious ? 'popup' : 'toast');
+    const notice = {
+      // id sama = tidak ditumpuk, mis. banyak request gagal sekaligus karena jaringan putus
+      id: `${err.status}:${err.summary}`,
+      tone: err.status === 429 || err.status === 403 ? 'warning' as const : 'error' as const,
+      title: err.summary,
+      lines: shown,
+      reference: err.status >= 500 ? err.requestId : undefined,
+    };
+    if (kind === 'popup') {
+      void showPopup({ ...notice, confirmLabel: err.code === 'SESSION_EXPIRED' ? 'Login ulang' : 'Mengerti' });
+    } else {
+      showToast({ ...notice, duration: 7000 });
+    }
     return;
   }
   const message = errorMessage(err, fallback);
-  toast.error(message, { id: message });
+  const notice = { id: message, tone: 'error' as const, title: message };
+  if (opts.mode === 'popup') void showPopup(notice);
+  else showToast(notice);
 }
 
-export function notifySuccess(message: string, description?: string) {
-  toast.success(message, { description });
+export function notifySuccess(title: string, description?: string) {
+  showToast({ tone: 'success', title, lines: description ? [description] : [], duration: 4000 });
 }

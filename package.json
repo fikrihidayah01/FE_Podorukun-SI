@@ -29,9 +29,9 @@
     "jspdf-autotable": "^5.0.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-hot-toast": "2.6.1",
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.3",
-    "sonner": "2.0.8",
     "summernote": "^0.9.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.15"
