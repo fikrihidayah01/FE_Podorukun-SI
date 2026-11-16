@@ -15,6 +15,7 @@ import ExportButton from '../../components/ui/ExportButton';
 import {
   useHutangStore,
   KATEGORI_HUTANG_LABELS,
+  kategoriSaldo,
   type KategoriHutang,
   type SaldoKodePembantu,
 } from '../../store/hutangStore';
@@ -32,6 +33,7 @@ import PinjamanBankTab from './hutang/PinjamanBankTab';
 import AgunanShmTab from './hutang/AgunanShmTab';
 import KontraktorTab from './hutang/KontraktorTab';
 import SaldoBerjalanDetailModal from './hutang/SaldoBerjalanDetailModal';
+import PenjualanUnitTab from './hutang/PenjualanUnitTab';
 
 const TABS = [
   { key: 'saldo', label: 'Saldo berjalan' },
@@ -39,6 +41,7 @@ const TABS = [
   { key: 'pinjaman_bank', label: 'Pinjaman bank' },
   { key: 'agunan', label: 'Dokumen legal' },
   { key: 'kontraktor', label: 'Kontraktor' },
+  { key: 'penjualan_unit', label: 'Penjualan unit' },
 ];
 
 export default function HutangPage() {
@@ -123,7 +126,7 @@ export default function HutangPage() {
   const dueReminders = getDueReminders(7);
 
   const totalOf = (rows: SaldoKodePembantu[], kat?: KategoriHutang) =>
-    rows.filter((r) => !kat || r.kodePembantu.kategori === kat).reduce((s, r) => s + r.saldoAkhir, 0);
+    rows.filter((r) => !kat || kategoriSaldo(r) === kat).reduce((s, r) => s + r.saldoAkhir, 0);
 
   const totals = {
     saldoAwal: saldoData.reduce((s, r) => s + r.saldoAwal, 0),
@@ -260,7 +263,7 @@ export default function HutangPage() {
                       ...saldoData.map((s) => ({
                         kodePembantu: s.kodePembantu.nama,
                         proyek: proyekNama(s.kodePembantu.proyekId) ?? '',
-                        kategori: KATEGORI_HUTANG_LABELS[s.kodePembantu.kategori],
+                        kategori: KATEGORI_HUTANG_LABELS[kategoriSaldo(s)],
                         saldoAwal: s.saldoAwal,
                         totalDebit: s.totalDebit,
                         totalKredit: s.totalKredit,
@@ -308,7 +311,7 @@ export default function HutangPage() {
                       </thead>
                       <tbody>
                         {saldoData.map((row) => (
-                          <tr key={row.kodePembantu.id}>
+                          <tr key={`${kategoriSaldo(row)}-${row.kodePembantu.id}`}>
                             <td>
                               <Link
                                 to={`/keuangan/hutang/detail/${row.kodePembantu.id}`}
@@ -319,7 +322,7 @@ export default function HutangPage() {
                               <p className="mt-0.5 text-xs text-ink-3">{proyekNama(row.kodePembantu.proyekId)}</p>
                             </td>
                             <td>
-                              <Badge color={KATEGORI_HUTANG_HEX[row.kodePembantu.kategori]}>{KATEGORI_HUTANG_LABELS[row.kodePembantu.kategori]}</Badge>
+                              <Badge color={KATEGORI_HUTANG_HEX[kategoriSaldo(row)]}>{KATEGORI_HUTANG_LABELS[kategoriSaldo(row)]}</Badge>
                             </td>
                             <td className="num">{row.saldoAwal ? <Money value={row.saldoAwal} /> : <span className="text-ink-3">-</span>}</td>
                             <td className="num">
@@ -373,7 +376,7 @@ export default function HutangPage() {
                           </div>
                         </div>
                       )}
-                      <dl className="grid grid-cols-2 gap-x-6 gap-y-4 px-4 py-4 sm:grid-cols-4 sm:px-5 xl:grid-cols-7">
+                      <dl className="grid grid-cols-2 gap-x-6 gap-y-4 px-4 py-4 sm:grid-cols-4 sm:px-5 xl:grid-cols-8">
                         {rekapKategori.map(({ kat, total }) => (
                           <div key={kat} className="min-w-0">
                             <dt className="flex items-center gap-2 text-[13px] font-semibold text-ink-3">
@@ -400,6 +403,7 @@ export default function HutangPage() {
           {activeTab === 'pinjaman_bank' && <PinjamanBankTab selectedProyekId={selectedProyek} />}
           {activeTab === 'agunan' && <AgunanShmTab selectedProyekId={selectedProyek} selectedProyekName={proyekNama(selectedProyek)} />}
           {activeTab === 'kontraktor' && <KontraktorTab selectedProyekId={selectedProyek} />}
+          {activeTab === 'penjualan_unit' && <PenjualanUnitTab selectedProyekId={selectedProyek} />}
         </TabPanel>
       </PageBody>
 

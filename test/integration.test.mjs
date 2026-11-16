@@ -74,15 +74,19 @@ test('legal mutations surface server rejection and preserve existing data', asyn
 
 const piutang = (await load('../src/store/piutangStore.ts', replacements)).module.usePiutangStore;
 test('receivable uses authoritative totals and schedule UUIDs, excluding cancellations', async () => {
-  globalThis.fetch = async () => ok([
-    { id: 'active', nilaiSppr: 1000, totalDibayar: 700, sisa: 300, periodeAngsuran: [{ jadwalId: 'schedule-uuid', periode: '2026-10', dibayar: 100 }], pembayaranLainnya: [] },
+  // /piutang = sudah BAST, /hutang/penjualan-unit = belum BAST; store menggabungkan keduanya.
+  globalThis.fetch = async (url) => ok(String(url).includes('/hutang/penjualan-unit') ? [
+    { id: 'pre-bast', statusBast: 'belum_bast', nilaiSppr: 500, totalDibayar: 100, sisa: 400, periodeAngsuran: [], pembayaranLainnya: [] },
+  ] : [
+    { id: 'active', statusBast: 'sudah_bast', nilaiSppr: 1000, totalDibayar: 700, sisa: 300, periodeAngsuran: [{ jadwalId: 'schedule-uuid', periode: '2026-10', dibayar: 100 }], pembayaranLainnya: [] },
     { id: 'cancelled', status: 'batal', nilaiSppr: 900, totalDibayar: 200, sisa: 0, periodeAngsuran: [], pembayaranLainnya: [] },
   ]);
   await piutang.getState().fetchItems();
   assert.equal(piutang.getState().getById('active').periodeAngsuran[0].id, 'schedule-uuid');
-  assert.equal(piutang.getState().getTotalDibayar(), 700);
-  assert.equal(piutang.getState().getTotalSisa(), 300);
-  assert.equal(piutang.getState().getTotalNilaiKontrak(), 1000);
+  assert.equal(piutang.getState().getById('pre-bast').statusBast, 'belum_bast');
+  assert.equal(piutang.getState().getTotalDibayar(), 800);
+  assert.equal(piutang.getState().getTotalSisa(), 700);
+  assert.equal(piutang.getState().getTotalNilaiKontrak(), 1500);
 });
 test('journal loads beyond backend default pagination', async () => {
   const visited = [];

@@ -13,7 +13,7 @@ import {
   PiBuildings,
 } from 'react-icons/pi';
 import { useAuthStore, ROLE_LABELS, type UserRole } from '../store/authStore';
-import { useHutangStore, KATEGORI_HUTANG_LABELS, type KategoriHutang } from '../store/hutangStore';
+import { useHutangStore, KATEGORI_HUTANG_LABELS, kategoriSaldo, type KategoriHutang } from '../store/hutangStore';
 import { usePiutangStore } from '../store/piutangStore';
 import { usePinjamanBankStore } from '../store/pinjamanBankStore';
 import { useJurnalStore } from '../store/jurnalStore';
@@ -100,7 +100,7 @@ function KeuanganDashboard() {
       key: k,
       label: KATEGORI_HUTANG_LABELS[k],
       color: KATEGORI_HUTANG_HEX[k],
-      value: saldo.filter((r) => r.kodePembantu.kategori === k).reduce((s, r) => s + r.saldoAkhir, 0),
+      value: saldo.filter((r) => kategoriSaldo(r) === k).reduce((s, r) => s + r.saldoAkhir, 0),
     }))
     .filter((k) => k.value > 0)
     .sort((a, b) => b.value - a.value);

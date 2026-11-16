@@ -10,7 +10,8 @@ export type KategoriHutang =
   | 'pemegang_saham'
   | 'karyawan'
   | 'antar_proyek'
-  | 'bank';
+  | 'bank'
+  | 'penjualan_unit';
 
 export const KATEGORI_HUTANG_LABELS: Record<KategoriHutang, string> = {
   lahan: 'Lahan',
@@ -20,7 +21,16 @@ export const KATEGORI_HUTANG_LABELS: Record<KategoriHutang, string> = {
   karyawan: 'Karyawan',
   antar_proyek: 'Antar proyek',
   bank: 'Bank',
+  penjualan_unit: 'Penjualan unit',
 };
+
+/**
+ * Kategori yang bisa dicatat lewat Input mutasi. Penjualan unit (uang pembeli
+ * sebelum BAST) hanya bergerak dari pembayaran PR Track, BAST, atau batal.
+ */
+export const KATEGORI_MUTASI_MANUAL = (Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).filter(
+  (k) => k !== 'penjualan_unit',
+);
 
 // ── Kode Pembantu (pihak hutang) ─────────────────────────────
 export interface KodePembantu {
@@ -61,13 +71,19 @@ export const mutasiTerbuku = (m: Pick<MutasiHutang, 'jurnalStatus'>) => m.jurnal
 
 // ── Saldo computed view ──────────────────────────────────────
 export interface SaldoKodePembantu {
-  kodePembantu: Omit<KodePembantu, 'kategori'> & { kategori: KategoriHutang };
+  kodePembantu: KodePembantu;
+  /** Kategori halaman Hutang. Untuk penjualan unit, kode pembantunya kategori pembeli. */
+  kategoriHutang?: KategoriHutang;
   saldoAwal: number;
   totalDebit: number;
   totalKredit: number;
   mutasiBulan: number; // net mutasi = kredit - debit
   saldoAkhir: number;
 }
+
+/** Kategori hutang satu baris saldo. */
+export const kategoriSaldo = (s: SaldoKodePembantu): KategoriHutang =>
+  s.kategoriHutang ?? (s.kodePembantu.kategori as KategoriHutang);
 
 // ── Store ────────────────────────────────────────────────────
 interface HutangState {
@@ -193,7 +209,7 @@ export const useHutangStore = create<HutangState>((set, get) => ({
   getSaldoPerKodePembantu: (_bulan, proyekId, kategori) => {
     let result = get().saldos;
     if (proyekId) result = result.filter((s) => s.kodePembantu.proyekId === proyekId);
-    if (kategori) result = result.filter((s) => s.kodePembantu.kategori === kategori);
+    if (kategori) result = result.filter((s) => kategoriSaldo(s) === kategori);
     return result;
   },
 
@@ -202,7 +218,7 @@ export const useHutangStore = create<HutangState>((set, get) => ({
   },
 
   getTotalByKategori: (kategori) => {
-    return get().saldos.filter((s) => s.kodePembantu.kategori === kategori).reduce((sum, s) => sum + s.saldoAkhir, 0);
+    return get().saldos.filter((s) => kategoriSaldo(s) === kategori).reduce((sum, s) => sum + s.saldoAkhir, 0);
   },
 
   getMutasiByKodePembantu: (kodePembantuId) => {

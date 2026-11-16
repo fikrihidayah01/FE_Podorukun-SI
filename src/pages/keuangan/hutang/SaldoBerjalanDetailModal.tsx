@@ -4,7 +4,7 @@ import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import Money from '../../../components/ui/Money';
 import Notice from '../../../components/ui/Notice';
-import { useHutangStore, KATEGORI_HUTANG_LABELS, mutasiTerbuku, type SaldoKodePembantu } from '../../../store/hutangStore';
+import { useHutangStore, KATEGORI_HUTANG_LABELS, kategoriSaldo, mutasiTerbuku, type SaldoKodePembantu } from '../../../store/hutangStore';
 import Badge from '../../../components/ui/Badge';
 import { useCoaStore } from '../../../store/coaStore';
 import { useProyekStore } from '../../../store/proyekStore';
@@ -58,7 +58,7 @@ export default function SaldoBerjalanDetailModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Rincian saldo ${rowData.kodePembantu.nama}`}
-      description={`${KATEGORI_HUTANG_LABELS[rowData.kodePembantu.kategori]}, ${proyekName}, ${periodeLabel}`}
+      description={`${KATEGORI_HUTANG_LABELS[kategoriSaldo(rowData)]}, ${proyekName}, ${periodeLabel}`}
       size="xl"
       footer={
         <>

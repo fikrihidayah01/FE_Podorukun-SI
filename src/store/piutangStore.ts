@@ -139,11 +139,16 @@ export const usePiutangStore = create<TagihanState>((set, get) => ({
   fetchItems: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetchApi('/piutang');
-      if (!response.ok) throw apiError(response, 'Gagal mengambil data piutang');
-      const data = await response.json();
+      // Piutang = penjualan sudah BAST. Penjualan belum BAST adalah hutang penjualan
+      // unit; keduanya tetap satu daftar di store supaya jadwal, aksi, dan dashboard
+      // bisa membaca kavling mana pun.
+      const [piutangRes, unitRes] = await Promise.all([fetchApi('/piutang'), fetchApi('/hutang/penjualan-unit')]);
+      if (!piutangRes.ok) throw apiError(piutangRes, 'Gagal mengambil data piutang');
+      if (!unitRes.ok) throw apiError(unitRes, 'Gagal mengambil data penjualan unit');
+      const [piutang, unit] = await Promise.all([piutangRes.json(), unitRes.json()]);
+      const data = { data: [...(unit?.data || []), ...(piutang?.data || [])] };
       set({
-        items: (data?.data || []).map((item: KavlingTagihan) => ({
+        items: (data.data as KavlingTagihan[]).map((item: KavlingTagihan) => ({
           ...item,
           periodeAngsuran: (item.periodeAngsuran ?? []).map((row) => ({ ...row, id: row.jadwalId || row.id })),
           pembayaranLainnya: item.pembayaranLainnya ?? [],

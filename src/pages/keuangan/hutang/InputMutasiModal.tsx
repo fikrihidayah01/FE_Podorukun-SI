@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useHutangStore, type KategoriHutang, KATEGORI_HUTANG_LABELS } from '../../../store/hutangStore';
+import { useHutangStore, type KategoriHutang, KATEGORI_HUTANG_LABELS, KATEGORI_MUTASI_MANUAL } from '../../../store/hutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import { useCoaStore } from '../../../store/coaStore';
 import Modal from '../../../components/ui/Modal';
@@ -153,7 +153,7 @@ export default function InputMutasiModal({ isOpen, onClose, bulan }: InputMutasi
               onChange={(e) => setForm({ ...form, kategori: e.target.value as KategoriHutang, kodePembantuId: '' })}
             >
               <option value="">Pilih kategori</option>
-              {(Object.keys(KATEGORI_HUTANG_LABELS) as KategoriHutang[]).map((k) => (
+              {KATEGORI_MUTASI_MANUAL.map((k) => (
                 <option key={k} value={k}>{KATEGORI_HUTANG_LABELS[k]}</option>
               ))}
             </select>

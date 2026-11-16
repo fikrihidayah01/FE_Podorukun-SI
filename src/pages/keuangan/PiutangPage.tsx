@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { PiArrowsClockwise, PiReceipt, PiFileText, PiCheckCircle, PiHourglassMedium } from 'react-icons/pi';
-import { usePiutangStore, TIPE_TRANSAKSI_LABELS, type StatusBast, type TipeTransaksi, type KavlingTagihan } from '../../store/piutangStore';
+import { usePiutangStore, TIPE_TRANSAKSI_LABELS, type TipeTransaksi, type KavlingTagihan } from '../../store/piutangStore';
 import { fetchApi } from '../../lib/api';
 import { useProyekStore } from '../../store/proyekStore';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
@@ -32,7 +32,6 @@ export default function PiutangPage() {
   }, [fetchItems]);
 
   const [selectedProyek, setSelectedProyek] = useState('');
-  const [selectedBast, setSelectedBast] = useState<StatusBast | 'semua'>('belum_bast');
   const [selectedTipe, setSelectedTipe] = useState<TipeTransaksi | ''>('');
   const [selectedKavlingId, setSelectedKavlingId] = useState<string | null>(null);
 
@@ -42,7 +41,6 @@ export default function PiutangPage() {
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);
 
   const periode = formatBulan(bulanIni());
-  const bastLabel = { belum_bast: 'Kavling belum serah terima', sudah_bast: 'Kavling sudah serah terima', semua: 'Semua kavling' }[selectedBast];
   const getProyekNama = (id: string) => proyeks.find((p) => p.id === id)?.nama ?? id;
 
   const filteredItems = useMemo(
@@ -51,10 +49,11 @@ export default function PiutangPage() {
         (kv) =>
           kv.status !== 'batal' &&
           (!selectedProyek || kv.proyekId === selectedProyek) &&
-          (selectedBast === 'semua' || kv.statusBast === selectedBast) &&
+          // Piutang hanya penjualan yang sudah BAST; yang belum ada di Hutang > Penjualan unit.
+          kv.statusBast === 'sudah_bast' &&
           (!selectedTipe || kv.tipeTransaksi === selectedTipe),
       ),
-    [items, selectedProyek, selectedBast, selectedTipe],
+    [items, selectedProyek, selectedTipe],
   );
 
   const totals = filteredItems.reduce(
@@ -83,8 +82,8 @@ export default function PiutangPage() {
   return (
     <>
       <PageHeader
-        title="Tagihan user"
-        description={`${bastLabel}, posisi ${periode}`}
+        title="Piutang user"
+        description={`Kavling sudah serah terima (BAST), posisi ${periode}`}
         actions={
           <Button variant="primary" icon={PiArrowsClockwise} loading={syncLoading} onClick={handleSinkron}>
             Sinkron Podorukuntrack
@@ -125,7 +124,7 @@ export default function PiutangPage() {
           </Notice>
         )}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-3xl">
+        <div className="grid grid-cols-2 gap-3 lg:max-w-2xl">
           <div>
             <label htmlFor="p-proyek" className="field-label">Proyek</label>
             <select id="p-proyek" className="control" value={selectedProyek} onChange={(e) => setSelectedProyek(e.target.value)}>
@@ -136,14 +135,6 @@ export default function PiutangPage() {
             </select>
           </div>
           <div>
-            <label htmlFor="p-bast" className="field-label">Status serah terima</label>
-            <select id="p-bast" className="control" value={selectedBast} onChange={(e) => setSelectedBast(e.target.value as StatusBast | 'semua')}>
-              <option value="belum_bast">Belum BAST</option>
-              <option value="sudah_bast">Sudah BAST</option>
-              <option value="semua">Semua status</option>
-            </select>
-          </div>
-          <div className="col-span-2 sm:col-span-1">
             <label htmlFor="p-tipe" className="field-label">Tipe transaksi</label>
             <select id="p-tipe" className="control" value={selectedTipe} onChange={(e) => setSelectedTipe(e.target.value as TipeTransaksi | '')}>
               <option value="">Semua tipe</option>
@@ -157,16 +148,15 @@ export default function PiutangPage() {
         <StatGrid columns={3}>
           <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak (SPPR)" value={formatRupiah(totals.nilai)} hint={`${filteredItems.length} kavling`} />
           <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar" value={formatRupiah(totals.dibayar)} />
-          <StatTile emphasis color="#047857" icon={PiHourglassMedium} label="Sisa tagihan" value={formatRupiah(totals.sisa)} />
+          <StatTile emphasis color="#047857" icon={PiHourglassMedium} label="Sisa piutang" value={formatRupiah(totals.sisa)} />
         </StatGrid>
 
         <Notice>
-          Sisa tagihan bersifat operasional dan belum diakui sebagai piutang di neraca. Saldo akuntansinya tercatat sebagai uang muka
-          penjualan.
+          Hanya penjualan yang sudah BAST. Penjualan yang belum serah terima tercatat sebagai hutang di Hutang, tab Penjualan unit.
         </Notice>
 
         <Panel
-          title="Tagihan per kavling"
+          title="Piutang per kavling"
           description="Klik baris untuk melihat jadwal angsuran dan realisasinya."
           flush
           actions={
@@ -178,8 +168,7 @@ export default function PiutangPage() {
                 { header: 'Tipe Transaksi', key: 'tipe', width: 15 },
                 { header: 'Nilai SPPR', key: 'nilaiSppr', isNumber: true, width: 18 },
                 { header: 'Total Dibayar', key: 'dibayar', isNumber: true, width: 18 },
-                { header: 'Sisa Tagihan', key: 'sisa', isNumber: true, width: 18 },
-                { header: 'Status BAST', key: 'statusBast', width: 15 },
+                { header: 'Sisa Piutang', key: 'sisa', isNumber: true, width: 18 },
               ]}
               getData={() => [
                 ...filteredItems.map((kv) => ({
@@ -190,15 +179,14 @@ export default function PiutangPage() {
                   nilaiSppr: kv.nilaiSppr,
                   dibayar: dibayarOf(kv),
                   sisa: sisaOf(kv),
-                  statusBast: kv.statusBast === 'belum_bast' ? 'Belum BAST' : 'Sudah BAST',
                 })),
-                { namaUser: 'TOTAL', nomorKavling: '', proyek: '', tipe: '', nilaiSppr: totals.nilai, dibayar: totals.dibayar, sisa: totals.sisa, statusBast: '' },
+                { namaUser: 'TOTAL', nomorKavling: '', proyek: '', tipe: '', nilaiSppr: totals.nilai, dibayar: totals.dibayar, sisa: totals.sisa },
               ]}
               opts={{
-                namaLaporan: 'Laporan Tagihan User per Kavling (Pre-BAST)',
+                namaLaporan: 'Laporan Piutang User per Kavling (Sudah BAST)',
                 proyek: selectedProyek ? getProyekNama(selectedProyek) : 'Semua Proyek',
                 periode,
-                filenameBase: buildFilename('Tagihan_User', selectedProyek ? getProyekNama(selectedProyek) : undefined, periode),
+                filenameBase: buildFilename('Piutang_User', selectedProyek ? getProyekNama(selectedProyek) : undefined, periode),
               }}
             />
           }
@@ -209,11 +197,11 @@ export default function PiutangPage() {
             <EmptyState
               compact
               icon={PiReceipt}
-              title="Tidak ada tagihan untuk filter ini"
-              description="Ubah proyek, status serah terima, atau tipe transaksi."
+              title="Tidak ada piutang untuk filter ini"
+              description="Ubah proyek atau tipe transaksi. Penjualan belum BAST ada di Hutang, tab Penjualan unit."
             />
           ) : (
-            <TableScroll label="Tagihan per kavling">
+            <TableScroll label="Piutang per kavling">
               <table className="tbl">
                 <thead>
                   <tr>

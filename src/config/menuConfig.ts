@@ -79,6 +79,7 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
             { label: 'Pinjaman bank', path: '/keuangan/hutang?tab=pinjaman_bank' },
             { label: 'Dokumen legal', path: '/keuangan/hutang?tab=agunan' },
             { label: 'Kontraktor', path: '/keuangan/hutang?tab=kontraktor' },
+            { label: 'Penjualan unit', path: '/keuangan/hutang?tab=penjualan_unit' },
           ],
         },
         {

@@ -50,6 +50,7 @@ export const KATEGORI_HUTANG_HEX: Record<KategoriHutang, string> = {
   pemegang_saham: '#0369a1',
   karyawan: '#be185d',
   ppn: '#5c4a38',
+  penjualan_unit: '#047857',
 };
 
 /** Latar dan teks badge yang diturunkan dari satu warna dasar. */
