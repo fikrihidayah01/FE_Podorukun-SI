@@ -337,7 +337,10 @@ export default function MasterPtPage() {
                             {t.tipeTransaksi}
                           </span>
                         </td>
-                        <td className="font-mono text-xs text-ink-2">{t.polaNomor}</td>
+                        <td className="font-mono text-xs text-ink-2">
+                          {t.polaNomor}
+                          {t.contohNomor && <span className="block text-ink-3">Contoh: {t.contohNomor}</span>}
+                        </td>
                         <td>
                           <Badge>{t.pasalIds.length} pasal</Badge>
                         </td>
@@ -391,7 +394,7 @@ export default function MasterPtPage() {
           </div>
           <Field label="Singkatan PT"><input className="control" value={ptForm.singkatan || ''} onChange={(e) => setPtForm((p) => ({ ...p, singkatan: e.target.value }))} /></Field>
           <Field label="Company PR Track" hint={companies.length === 0 ? 'Pilihan company tersedia setelah pembaruan backend diaktifkan dan data Track tersinkron.' : undefined}><select className="control" value={ptForm.trackCompanyId || ''} onChange={(e) => setPtForm((p) => ({ ...p, trackCompanyId: e.target.value || null }))}><option value="">Belum dihubungkan</option>{companies.map((c) => <option key={c.id} value={c.id}>{c.nama}</option>)}</select></Field>
-          
+
           <Field
             label="Perumahan yang Dinaungi"
             hint="Pilih satu atau beberapa perumahan yang dikelola PT ini (bisa lebih dari 1 perumahan)."
@@ -510,7 +513,7 @@ export default function MasterPtPage() {
                 }}
                 placeholder="TST/2026/KPR/01 atau PRSM/{TAHUN}/KPR/{NO}"
               />
-              
+
               {/* Interactive variable chips */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <span className="text-xs text-ink-3">Variabel opsional:</span>

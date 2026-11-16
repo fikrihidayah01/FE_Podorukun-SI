@@ -6,7 +6,15 @@ export type KategoriAkun = 'aktiva' | 'hutang' | 'modal' | 'pendapatan' | 'beban
 export type KlasifikasiAkun = 'neraca' | 'laba_rugi';
 export type TipeSaldo = 'd' | 'k';
 export type StatusAkun = 'aktif' | 'nonaktif';
-export type KategoriHutangPiutang = 'lahan' | 'bank' | 'antar_proyek' | 'ppn' | 'pihak_ketiga' | 'pemegang_saham' | 'karyawan' | 'kontraktor' | 'lain_lain';
+// Kode kategori dari tabel kategori_hutang_piutang (mis. pembeli, bank). Daftarnya dinamis.
+export type KategoriHutangPiutang = string;
+
+export interface KategoriHp {
+  id: string;
+  kode: string;
+  nama: string;
+  aktif: boolean;
+}
 
 export interface Akun {
   id: string;
@@ -16,14 +24,14 @@ export interface Akun {
   tipeSaldo: TipeSaldo;
   klasifikasi: KlasifikasiAkun;
   status: StatusAkun;
-  
+
   akunIndukId?: string | null;
-  
+
   wajibKodePembantu: boolean;
   wajibProyek: boolean;
   isKasBank: boolean;
   noRekening?: string | null;
-  
+
   kategoriHutangPiutang?: KategoriHutangPiutang | null;
 }
 
@@ -39,10 +47,12 @@ export interface RiwayatAkun {
 
 interface CoaState {
   items: Akun[];
+  kategoriHp: KategoriHp[];
   riwayat: RiwayatAkun[];
   isLoading: boolean;
   error: string | null;
   fetch: () => Promise<void>;
+  fetchKategoriHp: () => Promise<void>;
   fetchRiwayat: (id: string) => Promise<void>;
   add: (data: Omit<Akun, 'id'>, oleh?: string) => Promise<void>;
   update: (id: string, data: Partial<Omit<Akun, 'id'>>, oleh?: string) => Promise<void>;
@@ -51,6 +61,7 @@ interface CoaState {
 
 export const useCoaStore = create<CoaState>()((set) => ({
   items: [],
+  kategoriHp: [],
   riwayat: [],
   isLoading: false,
   error: null,
@@ -64,6 +75,17 @@ export const useCoaStore = create<CoaState>()((set) => ({
       set({ items: data.data || data, isLoading: false });
     } catch (err: any) {
       set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchKategoriHp: async () => {
+    try {
+      const res = await fetchApi('/kategori-hutang-piutang');
+      if (!res.ok) throw apiError(res, 'Gagal memuat kategori hutang/piutang');
+      const json = await res.json();
+      set({ kategoriHp: json.data || [] });
+    } catch (err: any) {
+      set({ error: err.message });
     }
   },
 
@@ -138,14 +160,3 @@ export const KLASIFIKASI_AKUN_LABELS: Record<KlasifikasiAkun, string> = {
   laba_rugi: 'Laba Rugi',
 };
 
-export const KATEGORI_HUTANG_PIUTANG_LABELS: Record<KategoriHutangPiutang, string> = {
-  lahan: 'Lahan',
-  bank: 'Bank',
-  antar_proyek: 'Antar Proyek',
-  ppn: 'PPN',
-  pihak_ketiga: 'Pihak Ketiga',
-  pemegang_saham: 'Pemegang Saham',
-  karyawan: 'Karyawan',
-  kontraktor: 'Kontraktor',
-  lain_lain: 'Lain-lain',
-};

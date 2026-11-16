@@ -16,33 +16,6 @@ export interface MasterPt {
   perumahanIds?: string[] | null;
 }
 
-const LOCAL_PT_PERUMAHAN_KEY = 'podorukun_pt_perumahan_map';
-
-function getLocalPtPerumahanMap(): Record<string, string[]> {
-  try {
-    const raw = localStorage.getItem(LOCAL_PT_PERUMAHAN_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveLocalPtPerumahan(ptId: string, ids: string[]) {
-  try {
-    const map = getLocalPtPerumahanMap();
-    map[ptId] = ids;
-    localStorage.setItem(LOCAL_PT_PERUMAHAN_KEY, JSON.stringify(map));
-  } catch {}
-}
-
-function removeLocalPtPerumahan(ptId: string) {
-  try {
-    const map = getLocalPtPerumahanMap();
-    delete map[ptId];
-    localStorage.setItem(LOCAL_PT_PERUMAHAN_KEY, JSON.stringify(map));
-  } catch {}
-}
-
 interface MasterPtState {
   items: MasterPt[];
   isLoading: boolean;
@@ -64,14 +37,11 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
       const res = await fetchApi('/master-pt');
       const json = await res.json();
       if (res.ok) {
-        const localMap = getLocalPtPerumahanMap();
-        const itemsWithPerumahan = (json.data || []).map((pt: MasterPt) => {
-          const ids = Array.isArray(pt.perumahanIds) && pt.perumahanIds.length > 0
-            ? pt.perumahanIds
-            : (localMap[pt.id] || (pt.perumahanId ? [pt.perumahanId] : []));
-          return { ...pt, perumahanIds: ids };
-        });
-        set({ items: itemsWithPerumahan, isLoading: false });
+        const items = (json.data || []).map((pt: MasterPt) => ({
+          ...pt,
+          perumahanIds: pt.perumahanIds ?? (pt.perumahanId ? [pt.perumahanId] : []),
+        }));
+        set({ items, isLoading: false });
       } else {
         set({ error: json.message || 'Gagal memuat PT', isLoading: false });
       }
@@ -88,11 +58,8 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
     });
     const json = await res.json();
     if (!res.ok) throw apiError(res, 'Gagal menambah PT');
-    
+
     const newId = json.data?.id || '';
-    if (newId && data.perumahanIds) {
-      saveLocalPtPerumahan(newId, data.perumahanIds);
-    }
 
     // Refresh list
     await get().fetch();
@@ -105,14 +72,11 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
       body: JSON.stringify(data),
     });
     if (!res.ok) throw apiError(res, 'Gagal mengubah PT');
-    
-    if (data.perumahanIds) {
-      saveLocalPtPerumahan(id, data.perumahanIds);
-    }
+    const json = await res.json();
+    const saved: MasterPt = json.data;
 
-    // Optimistic update or refresh
     set((state) => ({
-      items: state.items.map((item) => (item.id === id ? { ...item, ...data } : item)),
+      items: state.items.map((item) => (item.id === id ? { ...item, ...saved } : item)),
     }));
   },
 
@@ -121,8 +85,6 @@ export const useMasterPtStore = create<MasterPtState>((set, get) => ({
       method: 'DELETE',
     });
     if (!res.ok) throw apiError(res, 'Gagal menghapus PT');
-    
-    removeLocalPtPerumahan(id);
 
     set((state) => ({
       items: state.items.filter((item) => item.id !== id),

@@ -30,7 +30,6 @@ import {
   type StatusAkun,
   KATEGORI_AKUN_LABELS,
   KLASIFIKASI_AKUN_LABELS,
-  KATEGORI_HUTANG_PIUTANG_LABELS,
 } from '../../store/coaStore';
 import { useJurnalStore } from '../../store/jurnalStore';
 import { useSaldoAwalStore } from '../../store/saldoAwalStore';
@@ -59,7 +58,8 @@ const ATURAN = [
 ] as const;
 
 export default function DaftarAkunTab() {
-  const { items, riwayat, add, update, remove, isLoading, error, fetchRiwayat } = useCoaStore();
+  const { items, kategoriHp, fetchKategoriHp, riwayat, add, update, remove, isLoading, error, fetchRiwayat } = useCoaStore();
+  useEffect(() => { void fetchKategoriHp(); }, [fetchKategoriHp]);
   const jurnals = useJurnalStore((s) => s.items);
   const periodes = useSaldoAwalStore((s) => s.periodes);
   const userName = useAuthStore((s) => s.user?.name ?? 'Sistem');
@@ -228,10 +228,10 @@ export default function DaftarAkunTab() {
     else if (!/^\d{6}$/.test(kode)) e.kodeAkun = 'Kode akun harus 6 digit angka.';
     else if (items.some((a) => a.id !== editId && a.kodeAkun === kode)) e.kodeAkun = 'Kode akun ini sudah dipakai.';
     if (editId && form.akunIndukId && turunan.has(form.akunIndukId)) e.akunIndukId = 'Akun induk tidak boleh turunan dari akun ini.';
-    
+
     if (!form.namaAkun?.trim()) e.namaAkun = 'Nama akun wajib diisi.';
-    
-    
+
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -572,9 +572,11 @@ export default function DaftarAkunTab() {
                   onChange={(e) => setForm({ ...form, kategoriHutangPiutang: (e.target.value || undefined) as KategoriHutangPiutang | undefined })}
                 >
                   <option value="">Tidak dikelompokkan</option>
-                  {Object.entries(KATEGORI_HUTANG_PIUTANG_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
+                  {kategoriHp
+                    .filter((k) => k.aktif || k.kode === form.kategoriHutangPiutang)
+                    .map((k) => (
+                      <option key={k.kode} value={k.kode}>{k.nama}{k.aktif ? '' : ' (nonaktif)'}</option>
+                    ))}
                 </select>
               </Field>
             )}
