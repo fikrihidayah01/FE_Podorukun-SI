@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { PiArrowsClockwise, PiReceipt, PiFileText, PiCheckCircle, PiHourglassMedium } from 'react-icons/pi';
+import { PiArrowsClockwise, PiReceipt, PiFileText, PiCheckCircle, PiHourglassMedium, PiTrendUp } from 'react-icons/pi';
 import { usePiutangStore, TIPE_TRANSAKSI_LABELS, type TipeTransaksi, type KavlingTagihan } from '../../store/piutangStore';
 import { fetchApi } from '../../lib/api';
 import { useProyekStore } from '../../store/proyekStore';
@@ -13,7 +13,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import ExportButton from '../../components/ui/ExportButton';
 import { StatGrid, StatTile } from '../../components/ui/StatTile';
 import { buildFilename } from '../../utils/exportUtils';
-import { bulanIni, formatBulan, formatRupiah } from '../../utils/format';
+import { bulanIni, formatBulan, formatRupiah, formatTanggal } from '../../utils/format';
 import PiutangActions from './piutang/PiutangActions';
 import PembayaranTrackPanel from './piutang/PembayaranTrackPanel';
 import JadwalRealisasiModal from './piutang/JadwalRealisasiModal';
@@ -57,8 +57,14 @@ export default function PiutangPage() {
   );
 
   const totals = filteredItems.reduce(
-    (acc, kv) => ({ nilai: acc.nilai + kv.nilaiSppr, dibayar: acc.dibayar + dibayarOf(kv), sisa: acc.sisa + sisaOf(kv) }),
-    { nilai: 0, dibayar: 0, sisa: 0 },
+    (acc, kv) => ({
+      nilai: acc.nilai + kv.nilaiSppr,
+      dibayar: acc.dibayar + dibayarOf(kv),
+      sisa: acc.sisa + sisaOf(kv),
+      hpp: acc.hpp + (kv.nilaiHpp ?? 0),
+      laba: acc.laba + (kv.labaKotor ?? 0),
+    }),
+    { nilai: 0, dibayar: 0, sisa: 0, hpp: 0, laba: 0 },
   );
 
   const handleSinkron = async () => {
@@ -145,10 +151,17 @@ export default function PiutangPage() {
           </div>
         </div>
 
-        <StatGrid columns={3}>
+        <StatGrid>
           <StatTile color="#1e293b" icon={PiFileText} label="Nilai kontrak (SPPR)" value={formatRupiah(totals.nilai)} hint={`${filteredItems.length} kavling`} />
           <StatTile color="#0e6b45" icon={PiCheckCircle} label="Sudah dibayar" value={formatRupiah(totals.dibayar)} />
           <StatTile emphasis color="#047857" icon={PiHourglassMedium} label="Sisa piutang" value={formatRupiah(totals.sisa)} />
+          <StatTile
+            color="#7c3aed"
+            icon={PiTrendUp}
+            label="Laba kotor"
+            value={formatRupiah(totals.laba)}
+            hint={`Nilai SPPR - HPP ${formatRupiah(totals.hpp)}`}
+          />
         </StatGrid>
 
         <Notice>
@@ -169,6 +182,9 @@ export default function PiutangPage() {
                 { header: 'Nilai SPPR', key: 'nilaiSppr', isNumber: true, width: 18 },
                 { header: 'Total Dibayar', key: 'dibayar', isNumber: true, width: 18 },
                 { header: 'Sisa Piutang', key: 'sisa', isNumber: true, width: 18 },
+                { header: 'Tanggal BAST', key: 'tanggalBast', width: 14 },
+                { header: 'HPP', key: 'hpp', isNumber: true, width: 18 },
+                { header: 'Laba Kotor', key: 'laba', isNumber: true, width: 18 },
               ]}
               getData={() => [
                 ...filteredItems.map((kv) => ({
@@ -179,8 +195,14 @@ export default function PiutangPage() {
                   nilaiSppr: kv.nilaiSppr,
                   dibayar: dibayarOf(kv),
                   sisa: sisaOf(kv),
+                  tanggalBast: kv.tanggalBast ? formatTanggal(kv.tanggalBast) : '',
+                  hpp: kv.nilaiHpp ?? 0,
+                  laba: kv.labaKotor ?? 0,
                 })),
-                { namaUser: 'TOTAL', nomorKavling: '', proyek: '', tipe: '', nilaiSppr: totals.nilai, dibayar: totals.dibayar, sisa: totals.sisa },
+                {
+                  namaUser: 'TOTAL', nomorKavling: '', proyek: '', tipe: '', nilaiSppr: totals.nilai, dibayar: totals.dibayar, sisa: totals.sisa,
+                  tanggalBast: '', hpp: totals.hpp, laba: totals.laba,
+                },
               ]}
               opts={{
                 namaLaporan: 'Laporan Piutang User per Kavling (Sudah BAST)',
@@ -210,6 +232,8 @@ export default function PiutangPage() {
                     <th scope="col" className="num">Nilai SPPR</th>
                     <th scope="col" className="num">Dibayar</th>
                     <th scope="col" className="num">Sisa</th>
+                    <th scope="col" className="num">HPP (BAST)</th>
+                    <th scope="col" className="num">Laba kotor</th>
                     <th scope="col" className="w-14 text-center">Aksi</th>
                   </tr>
                 </thead>
@@ -244,6 +268,13 @@ export default function PiutangPage() {
                         <td className="num font-semibold">
                           {sisa === 0 ? <Badge tone="positive">Lunas</Badge> : <Money value={sisa} className="text-ink" />}
                         </td>
+                        <td className="num">
+                          {kv.nilaiHpp ? <Money value={kv.nilaiHpp} /> : <Badge tone="warning">HPP belum diisi</Badge>}
+                          {kv.tanggalBast && <p className="mt-0.5 text-xs text-ink-3">BAST {formatTanggal(kv.tanggalBast)}</p>}
+                        </td>
+                        <td className="num font-semibold">
+                          {kv.labaKotor == null ? <span className="text-ink-3">-</span> : <Money value={kv.labaKotor} className="text-ink" />}
+                        </td>
                         <td className="text-center">
                           <PiutangActions item={kv} />
                         </td>
@@ -257,6 +288,8 @@ export default function PiutangPage() {
                     <td className="num"><Money value={totals.nilai} /></td>
                     <td className="num"><Money value={totals.dibayar} /></td>
                     <td className="num"><Money value={totals.sisa} /></td>
+                    <td className="num"><Money value={totals.hpp} /></td>
+                    <td className="num"><Money value={totals.laba} /></td>
                     <td />
                   </tr>
                 </tfoot>

@@ -101,6 +101,11 @@ export interface KavlingTagihan {
   totalDibayar: number;
   sisa: number;
   status?: string;
+  tanggalBast?: string | null;
+  /** HPP yang diakui di jurnal BAST; null sebelum BAST. */
+  nilaiHpp?: number | null;
+  /** Nilai SPPR - HPP; null sebelum BAST. */
+  labaKotor?: number | null;
   tanggalAcuanAngsuran: number; // day of month 1-31
   periodeAwal: string; // 'YYYY-MM'
   totalBulanAngsuran: number;
