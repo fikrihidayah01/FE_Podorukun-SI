@@ -103,6 +103,19 @@ export default function LegalPage() {
     }
   }, [formPerumahanId, fetchPenjualanTersedia, fetchKavling]);
 
+  // Nomor kavling penjualan Track: backend mengirim `kavling` (kode unit).
+  const nomorKavlingOf = (p: any): string => String(p.kavling ?? p.kavlingNomor ?? '');
+  const urutKavling = (a: string, b: string) => a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' });
+  const penjualanUrut = useMemo(
+    () => [...penjualanList].sort((a, b) => urutKavling(nomorKavlingOf(a), nomorKavlingOf(b))),
+    [penjualanList],
+  );
+  // Kavling yang sudah punya penjualan di PR Track cukup tampil sekali, di grup otomatis.
+  const kavlingManual = useMemo(() => {
+    const terjual = new Set(penjualanList.map((p) => p.kavlingId || p.unitId).filter(Boolean));
+    return kavlingList.filter((k) => !terjual.has(k.id)).sort((a, b) => urutKavling(String(a.nomor), String(b.nomor)));
+  }, [kavlingList, penjualanList]);
+
   const hargaNett = (Number(hargaAwal) || 0) + (Number(bphtb) || 0) + (Number(ajbBbn) || 0);
   const sisaKpr = hargaNett - (Number(uangMuka) || 0);
 
@@ -427,9 +440,9 @@ export default function LegalPage() {
 
                     {penjualanList.length > 0 && (
                       <optgroup label="Unit Terjual (Data Penjualan PR Track - Otomatis)">
-                        {penjualanList.map((p) => {
+                        {penjualanUrut.map((p) => {
                           const val = `penjualan:${p.assignmentId || p.id}`;
-                          const kavNomor = p.kavlingNomor ? `Kavling ${p.kavlingNomor}` : 'Unit';
+                          const kavNomor = nomorKavlingOf(p) ? `Kavling ${nomorKavlingOf(p)}` : 'Kavling ?';
                           const namaPembeli = p.namaPembeli || p.pembeli?.nama || 'Pembeli';
                           const tipeTrx = p.tipeTransaksi ? ` · ${p.tipeTransaksi}` : '';
                           return (
@@ -441,9 +454,9 @@ export default function LegalPage() {
                       </optgroup>
                     )}
 
-                    {kavlingList.length > 0 && (
-                      <optgroup label="Semua Unit Kavling (Input Data Manual)">
-                        {kavlingList.map((k) => {
+                    {kavlingManual.length > 0 && (
+                      <optgroup label="Kavling Tanpa Penjualan PR Track (Input Data Manual)">
+                        {kavlingManual.map((k) => {
                           const val = `kavling:${k.id}`;
                           const label = `${k.nomor}${k.tipe ? ` (Tipe ${k.tipe})` : ''}${k.status ? ` - ${k.status}` : ''}`;
                           return (
