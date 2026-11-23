@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { PiArrowsClockwise, PiTrendUp } from 'react-icons/pi';
+import {
+  PiArrowsClockwise,
+  PiTrendUp,
+  PiFileText,
+  PiCheckCircle,
+  PiHourglassMedium,
+} from 'react-icons/pi';
 import {
   usePiutangStore,
   TIPE_TRANSAKSI_LABELS,
@@ -380,7 +386,7 @@ export default function TagihanUserPage() {
                     onClick={() => setFilterBast(opt)}
                     className={`inline-flex h-10 items-center justify-center border border-line px-4 text-sm font-medium transition-colors first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0 focus-visible:outline-offset-[-2px] cursor-pointer ${
                       isActive
-                        ? 'bg-ink text-white border-ink z-10'
+                        ? 'bg-[#cf1b1a] text-white border-[#cf1b1a] z-10 font-semibold shadow-xs'
                         : 'bg-surface text-ink-2 hover:bg-neutral-soft'
                     }`}
                     aria-pressed={isActive}
@@ -414,18 +420,21 @@ export default function TagihanUserPage() {
               label="Nilai kontrak (SPPR)"
               value={<Money value={totals.nilai} />}
               hint={`${filteredItems.length} kavling`}
+              icon={PiFileText}
               fullValue={formatRupiah(totals.nilai)}
             />
             <StatTile
               label="Uang muka diterima"
               value={<Money value={totals.dibayar} />}
               hint={<span className="text-[#c05600] font-medium text-xs">Hutang · 212007 Uang Muka Penjualan</span>}
+              icon={PiCheckCircle}
               fullValue={formatRupiah(totals.dibayar)}
             />
             <StatTile
               label="Sisa tagihan"
               value={<Money value={totals.sisa} />}
               hint="Operasional, belum tercatat di neraca"
+              icon={PiHourglassMedium}
               fullValue={formatRupiah(totals.sisa)}
             />
             <StatTile
@@ -442,18 +451,21 @@ export default function TagihanUserPage() {
               label="Nilai kontrak (SPPR)"
               value={<Money value={totals.nilai} />}
               hint={`${filteredItems.length} kavling`}
+              icon={PiFileText}
               fullValue={formatRupiah(totals.nilai)}
             />
             <StatTile
               label="Sudah dibayar"
               value={<Money value={totals.dibayar} />}
               hint="Pengurang piutang"
+              icon={PiCheckCircle}
               fullValue={formatRupiah(totals.dibayar)}
             />
             <StatTile
               label="Sisa piutang"
               value={<Money value={totals.sisa} />}
               hint="Aset · 113530 Piutang Penjualan"
+              icon={PiHourglassMedium}
               fullValue={formatRupiah(totals.sisa)}
             />
             <StatTile
@@ -470,18 +482,21 @@ export default function TagihanUserPage() {
               label="Total nilai kontrak"
               value={<Money value={totals.nilai} />}
               hint={`${filteredItems.length} kavling`}
+              icon={PiFileText}
               fullValue={formatRupiah(totals.nilai)}
             />
             <StatTile
               label="Total dibayar"
               value={<Money value={totals.dibayar} />}
               hint="Uang muka & angsuran"
+              icon={PiCheckCircle}
               fullValue={formatRupiah(totals.dibayar)}
             />
             <StatTile
               label="Total sisa tagihan"
               value={<Money value={totals.sisa} />}
               hint="Hutang uang muka & piutang"
+              icon={PiHourglassMedium}
               fullValue={formatRupiah(totals.sisa)}
             />
             <StatTile

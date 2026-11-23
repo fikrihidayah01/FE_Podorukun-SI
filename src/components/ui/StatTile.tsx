@@ -14,6 +14,8 @@ interface StatTileProps {
   tone?: 'default' | 'warning' | 'danger' | 'positive';
   /** Nilai lengkap untuk tooltip hover (opsional, default memakai string value) */
   fullValue?: string;
+  onClick?: () => void;
+  className?: string;
 }
 
 export function StatTile({
@@ -23,6 +25,8 @@ export function StatTile({
   icon: Icon,
   tone = 'default',
   fullValue,
+  onClick,
+  className,
 }: StatTileProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [pos, setPos] = useState<{ top: number; bottom: number; left: number } | null>(null);
@@ -57,9 +61,12 @@ export function StatTile({
 
   return (
     <div
+      onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden bg-white p-4 pt-5 sm:p-5 sm:pt-6 min-h-[114px] sm:min-h-[122px] transition-colors select-none cursor-default hover:bg-neutral-50/60 shadow-[inset_0_0_8px_rgba(207,27,26,0.12),inset_1px_1px_4px_rgba(207,27,26,0.18)]"
+      className={`group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden bg-white p-4 pt-5 sm:p-5 sm:pt-6 min-h-[114px] sm:min-h-[122px] transition-colors select-none shadow-[inset_0_0_8px_rgba(207,27,26,0.12),inset_1px_1px_4px_rgba(207,27,26,0.18)] ${
+        onClick ? 'cursor-pointer hover:bg-neutral-50/90' : 'cursor-default hover:bg-neutral-50/60'
+      } ${className ?? ''}`}
     >
       {Icon && (
         <Icon

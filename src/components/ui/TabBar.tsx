@@ -16,15 +16,16 @@ interface TabBarProps {
   idPrefix: string;
   label: string;
   className?: string;
+  accentColor?: string;
 }
 
 /**
  * Tab bergaris bawah yang menempel di dasar PageHeader.
  * Panah kiri/kanan, Home, dan End berpindah tab sesuai pola WAI-ARIA tabs.
  */
-export default function TabBar({ tabs, activeTab, onTabChange, idPrefix, label, className = '' }: TabBarProps) {
+export default function TabBar({ tabs, activeTab, onTabChange, idPrefix, label, className = '', accentColor }: TabBarProps) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const accent = accentFor(useLocation().pathname);
+  const accent = accentColor || accentFor(useLocation().pathname);
 
   const onKeyDown = (e: KeyboardEvent, index: number) => {
     let next = -1;

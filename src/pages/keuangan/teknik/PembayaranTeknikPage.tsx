@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PiFileText, PiCheckCircle, PiHourglassMedium } from 'react-icons/pi';
 import PageHeader, { PageBody } from '../../../components/ui/PageHeader';
 import Panel, { TableScroll } from '../../../components/ui/Panel';
 import TabBar from '../../../components/ui/TabBar';
+import { StatGrid, StatTile } from '../../../components/ui/StatTile';
 import { formatRupiah, hariIni } from '../../../utils/format';
 import { showToast } from '../../../store/toastStore';
 import { useTeknikStore, type PengajuanTeknikItem } from '../../../store/teknikStore';
@@ -102,34 +104,29 @@ export default function PembayaranTeknikPage() {
       />
 
       <PageBody>
-        {/* 3 Stat Tiles with top accent line */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-sm border-t-4 border-t-[#cf1b1a]">
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide">Belum dibayar</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-ink">
-              {formatRupiah(totalBelumDibayar)}
-            </p>
-            <p className="mt-1 text-xs text-ink-3">
-              {disetujuiItems.filter((i) => i.disetujui > i.totalDibayar).length} pengajuan
-            </p>
-          </div>
-
-          <div className="relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-sm border-t-4 border-t-[#cf1b1a]">
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide">Dicatat di sesi ini</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-ink">
-              {formatRupiah(pembayaranSesiIni)}
-            </p>
-            <p className="mt-1 text-xs text-ink-3">
-              {jumlahPembayaranSesiIni} pembayaran
-            </p>
-          </div>
-
-          <div className="relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-sm border-t-4 border-t-[#cf1b1a]">
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide">Jatuh tempo minggu ini</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-ink">1 cicilan</p>
-            <p className="mt-1 text-xs text-ink-3">Termin III G-03, pembayaran ke-3</p>
-          </div>
-        </div>
+        {/* 3 Stat Tiles */}
+        <StatGrid columns={3}>
+          <StatTile
+            label="Belum dibayar"
+            value={formatRupiah(totalBelumDibayar)}
+            hint={`${disetujuiItems.filter((i) => i.disetujui > i.totalDibayar).length} pengajuan`}
+            icon={PiFileText}
+            fullValue={formatRupiah(totalBelumDibayar)}
+          />
+          <StatTile
+            label="Dicatat di sesi ini"
+            value={formatRupiah(pembayaranSesiIni)}
+            hint={`${jumlahPembayaranSesiIni} pembayaran`}
+            icon={PiCheckCircle}
+            fullValue={formatRupiah(pembayaranSesiIni)}
+          />
+          <StatTile
+            label="Jatuh tempo minggu ini"
+            value="1 cicilan"
+            hint="Termin III G-03, pembayaran ke-3"
+            icon={PiHourglassMedium}
+          />
+        </StatGrid>
 
         {/* Two-Column Payment Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -144,11 +141,11 @@ export default function PembayaranTeknikPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-line text-left text-xs font-semibold text-ink-3 uppercase tracking-wide">
-                      <th className="px-4 py-3 sm:px-5">Pengajuan</th>
-                      <th className="px-4 py-3 text-right">Nilai kontrak</th>
-                      <th className="px-4 py-3 text-right">Disetujui</th>
-                      <th className="px-4 py-3 text-right">Dibayar</th>
-                      <th className="px-4 py-3 text-right">Sisa</th>
+                      <th className="px-4 py-3 sm:px-5 text-left">Pengajuan</th>
+                      <th className="px-4 py-3 text-left">Nilai kontrak</th>
+                      <th className="px-4 py-3 text-left">Disetujui</th>
+                      <th className="px-4 py-3 text-left">Dibayar</th>
+                      <th className="px-4 py-3 text-left">Sisa</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -165,7 +162,7 @@ export default function PembayaranTeknikPage() {
                               : 'hover:bg-neutral-soft/50'
                           }`}
                         >
-                          <td className="px-4 py-3 sm:px-5">
+                          <td className="px-4 py-3 sm:px-5 text-left">
                             <p className={`font-semibold ${isSelected ? 'text-[#cf1b1a]' : 'text-ink'}`}>
                               {item.judul}
                             </p>
@@ -173,16 +170,16 @@ export default function PembayaranTeknikPage() {
                               {item.kontraktorNama} · {item.progresInfo || 'Disetujui'}
                             </p>
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums text-ink-2">
+                          <td className="px-4 py-3 text-left tabular-nums text-ink-2">
                             {item.nilaiKontrakSpk ? formatRupiah(item.nilaiKontrakSpk) : '-'}
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums text-ink">
+                          <td className="px-4 py-3 text-left tabular-nums text-ink">
                             {formatRupiah(item.disetujui)}
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums text-ink-2">
+                          <td className="px-4 py-3 text-left tabular-nums text-ink-2">
                             {formatRupiah(item.totalDibayar)}
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums font-bold text-ink">
+                          <td className="px-4 py-3 text-left tabular-nums font-bold text-ink">
                             {formatRupiah(sisa)}
                           </td>
                         </tr>

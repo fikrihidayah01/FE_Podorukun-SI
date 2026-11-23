@@ -1,11 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PiImage, PiArrowRight, PiWarning } from 'react-icons/pi';
+import {
+  PiImage,
+  PiArrowRight,
+  PiWarning,
+  PiFileText,
+  PiHourglassMedium,
+  PiCheckCircle,
+  PiWarningCircle,
+} from 'react-icons/pi';
 import PageHeader, { PageBody } from '../../../components/ui/PageHeader';
 import Panel, { TableScroll } from '../../../components/ui/Panel';
 import Button from '../../../components/ui/Button';
 import Badge, { type Tone } from '../../../components/ui/Badge';
-import { StatGrid } from '../../../components/ui/StatTile';
+import { StatGrid, StatTile } from '../../../components/ui/StatTile';
 import TabBar from '../../../components/ui/TabBar';
 import { formatRupiah } from '../../../utils/format';
 import { showToast } from '../../../store/toastStore';
@@ -231,45 +239,41 @@ export default function PengajuanTeknikPage() {
           </label>
         </div>
 
-        {/* 4 Stat Tiles with top accent line */}
+        {/* 4 Stat Tiles */}
         <StatGrid>
-          <div className="relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-sm border-t-4 border-t-[#cf1b1a]">
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide">Perlu diperiksa</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-ink">
-              {perluDiperiksaItems.length} berkas
-            </p>
-            <p className="mt-1 text-xs text-ink-3">
-              Rp{(totalDiajukanPerluDiperiksa / 1_000_000).toFixed(2).replace('.', ',')} Jt diajukan
-            </p>
-          </div>
-
-          <div
+          <StatTile
+            label="Perlu diperiksa"
+            value={`${perluDiperiksaItems.length} berkas`}
+            hint={`Rp${(totalDiajukanPerluDiperiksa / 1_000_000).toFixed(2).replace('.', ',')} Jt diajukan`}
+            icon={PiFileText}
+            fullValue={`${perluDiperiksaItems.length} berkas (${formatRupiah(totalDiajukanPerluDiperiksa)})`}
+          />
+          <StatTile
+            label="Disetujui, belum dibayar"
+            value={`Rp${(totalDisetujuiBelumDibayar / 1_000_000).toFixed(1).replace('.', ',')} Jt`}
+            hint={
+              <span className="flex items-center gap-1 text-[#cf1b1a] font-semibold hover:underline">
+                <span>Catat pembayaran</span>
+                <PiArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            }
+            icon={PiHourglassMedium}
             onClick={() => navigate('/keuangan/teknik/pembayaran')}
-            className="group relative cursor-pointer overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-sm border-t-4 border-t-[#cf1b1a] hover:border-ink/30 transition-colors"
-          >
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide">Disetujui, belum dibayar</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-ink">
-              Rp{(totalDisetujuiBelumDibayar / 1_000_000).toFixed(1).replace('.', ',')} Jt
-            </p>
-            <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-[#cf1b1a] group-hover:underline">
-              <span>Catat pembayaran</span>
-              <PiArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-            </p>
-          </div>
-
-          <div className="relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-sm border-t-4 border-t-[#cf1b1a]">
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide">Dibayar bulan ini</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-ink">Rp0</p>
-            <p className="mt-1 text-xs text-ink-3">November 2026</p>
-          </div>
-
-          <div className="relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-sm border-t-4 border-t-[#cf1b1a]">
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide">Dikembalikan untuk revisi</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-ink">
-              {revisiItems.length} berkas
-            </p>
-            <p className="mt-1 text-xs text-ink-3">Menunggu Teknik</p>
-          </div>
+            fullValue={formatRupiah(totalDisetujuiBelumDibayar)}
+          />
+          <StatTile
+            label="Dibayar bulan ini"
+            value="Rp0"
+            hint="November 2026"
+            icon={PiCheckCircle}
+          />
+          <StatTile
+            label="Dikembalikan untuk revisi"
+            value={`${revisiItems.length} berkas`}
+            hint="Menunggu Teknik"
+            icon={PiWarningCircle}
+            tone={revisiItems.length > 0 ? 'warning' : 'default'}
+          />
         </StatGrid>
 
         {/* Two-Column Review Layout */}
@@ -285,10 +289,10 @@ export default function PengajuanTeknikPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-line text-left text-xs font-semibold text-ink-3 uppercase tracking-wide">
-                      <th className="px-4 py-3 sm:px-5">Berkas</th>
-                      <th className="px-4 py-3">Bidang</th>
-                      <th className="px-4 py-3 text-right">Diajukan</th>
-                      <th className="px-4 py-3 text-center">Status</th>
+                      <th className="px-4 py-3 sm:px-5 text-left">Berkas</th>
+                      <th className="px-4 py-3 text-left">Bidang</th>
+                      <th className="px-4 py-3 text-left">Diajukan</th>
+                      <th className="px-4 py-3 text-left">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -311,17 +315,17 @@ export default function PengajuanTeknikPage() {
                                 : 'hover:bg-neutral-soft/50'
                             }`}
                           >
-                            <td className="px-4 py-3 sm:px-5">
+                            <td className="px-4 py-3 sm:px-5 text-left">
                               <p className={`font-semibold ${isSelected ? 'text-[#cf1b1a]' : 'text-ink'}`}>
                                 {item.judul}
                               </p>
                               <p className="text-xs text-ink-3 mt-0.5">{item.subjudul}</p>
                             </td>
-                            <td className="px-4 py-3 text-ink-2 whitespace-nowrap">{item.bidang}</td>
-                            <td className="px-4 py-3 text-right tabular-nums font-medium text-ink">
+                            <td className="px-4 py-3 text-ink-2 whitespace-nowrap text-left">{item.bidang}</td>
+                            <td className="px-4 py-3 text-left tabular-nums font-medium text-ink">
                               {formatRupiah(item.diajukan)}
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-4 py-3 text-left">
                               <Badge tone={STATUS_TONE_MAP[item.status]}>
                                 {STATUS_LABEL_MAP[item.status]}
                               </Badge>

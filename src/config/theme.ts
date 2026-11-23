@@ -15,7 +15,8 @@ import type { UserRole } from '../store/authStore';
 export const MODULE_ACCENT: Record<string, string> = {
   '/dashboard': '#1a6b5a',
   '/keuangan/hutang': '#c2410c',
-  '/keuangan/piutang': '#047857',
+  '/keuangan/piutang': '#cf1b1a',
+  '/keuangan/teknik': '#cf1b1a',
   '/keuangan/coa': '#6d28d9',
   '/keuangan/jurnal': '#1a6b5a',
   '/keuangan/legal': '#0e7490',
