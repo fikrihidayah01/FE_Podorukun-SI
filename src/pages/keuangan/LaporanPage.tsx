@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PiFileText, PiMagnifyingGlass } from 'react-icons/pi';
+import { PiFileText, PiMagnifyingGlass, PiCircleNotch } from 'react-icons/pi';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
 import Button from '../../components/ui/Button';
 import Money from '../../components/ui/Money';
@@ -58,6 +58,7 @@ const LABELS: Record<string, string> = {
   saldoAkhir: 'Saldo akhir',
 };
 
+<<<<<<< HEAD
 /** Pecah saldo bertanda (positif = sisi normal akun) ke kolom debit/kredit agar neraca saldo bisa dicek seimbang. */
 function sisiSaldoAkhir(row: ReportRow): ReportRow {
   const saldo = Number(row.saldo) || 0;
@@ -73,6 +74,22 @@ const SALDO_AKUN_PASANGAN: [string, string, string][] = [
 ];
 
 const jumlah = (rows: ReportRow[], kolom: string) => rows.reduce((s, r) => s + (Number(r[kolom]) || 0), 0);
+=======
+function getLocalToday(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getLocalFirstDayOfMonth(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}-01`;
+}
+>>>>>>> f0bc659 (feat: update halaman keuangan)
 
 export default function LaporanPage() {
   const { items: akuns, fetch: fetchAkuns } = useCoaStore();
@@ -80,8 +97,13 @@ export default function LaporanPage() {
   const [jenis, setJenis] = useState('saldo-akun');
   const [proyekId, setProyekId] = useState('');
   const [akunId, setAkunId] = useState('');
+<<<<<<< HEAD
   const [dari, setDari] = useState(awalBulanIni());
   const [sampai, setSampai] = useState(hariIni());
+=======
+  const [dari, setDari] = useState(getLocalFirstDayOfMonth);
+  const [sampai, setSampai] = useState(getLocalToday);
+>>>>>>> f0bc659 (feat: update halaman keuangan)
   const [rows, setRows] = useState<ReportRow[] | null>(null);
   const [meta, setMeta] = useState<{ saldoAwal?: number; saldoAkhir?: number }>({});
   const [error, setError] = useState('');
@@ -93,37 +115,44 @@ export default function LaporanPage() {
     setMeta({});
   };
 
-  useEffect(() => {
-    void fetchAkuns();
-    void fetchProyeks();
-  }, [fetchAkuns, fetchProyeks]);
+  const load = async (overrides?: {
+    jenis?: string;
+    proyekId?: string;
+    akunId?: string;
+    dari?: string;
+    sampai?: string;
+  }) => {
+    const curJenis = overrides?.jenis ?? jenis;
+    const curProyekId = overrides?.proyekId ?? proyekId;
+    const curAkunId = overrides?.akunId ?? akunId;
+    const curDari = overrides?.dari ?? dari;
+    const curSampai = overrides?.sampai ?? sampai;
 
-  const load = async () => {
     setError('');
     setRows(null);
     setMeta({});
-    if (jenis === 'buku-besar' && (!akunId || dari > sampai)) {
+    if (curJenis === 'buku-besar' && (!curAkunId || curDari > curSampai)) {
       setError('Pilih akun dan rentang tanggal yang benar.');
       return;
     }
     setBusy(true);
     try {
       const query = new URLSearchParams();
-      if (proyekId) query.set('proyekId', proyekId);
-      if (jenis === 'buku-besar') {
-        query.set('akunId', akunId);
-        query.set('dari', dari);
+      if (curProyekId) query.set('proyekId', curProyekId);
+      if (curJenis === 'buku-besar') {
+        query.set('akunId', curAkunId);
+        query.set('dari', curDari);
       }
-      if (jenis === 'saldo-kode-pembantu') {
-        query.set('bulan', sampai.slice(0, 7));
+      if (curJenis === 'saldo-kode-pembantu') {
+        query.set('bulan', curSampai.slice(0, 7));
       } else {
-        query.set('sampai', sampai);
+        query.set('sampai', curSampai);
       }
-      const res = await fetchApi(`/laporan/${jenis}?${query}`);
+      const res = await fetchApi(`/laporan/${curJenis}?${query}`);
       const body = await res.json();
       if (!res.ok) throw apiError(res, 'Gagal memuat laporan');
       setRows(
-        jenis === 'saldo-kode-pembantu'
+        curJenis === 'saldo-kode-pembantu'
           ? body.data.map(
               (row: {
                 kodePembantu: { kode: string; nama: string };
@@ -147,6 +176,17 @@ export default function LaporanPage() {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    void fetchAkuns();
+    void fetchProyeks();
+    // Otomatis menampilkan default (Neraca Saldo, Semua Proyek, s/d hari ini) saat menu dibuka
+    void load({
+      jenis: 'saldo-akun',
+      proyekId: '',
+      sampai: getLocalToday(),
+    });
+  }, [fetchAkuns, fetchProyeks]);
 
   const columns =
     jenis === 'saldo-akun'
@@ -285,6 +325,26 @@ export default function LaporanPage() {
           <Notice tone="danger" className="mb-4">
             {error}
           </Notice>
+        )}
+
+        {busy && !rows && (
+          <Panel title={reportTitle} flush>
+            <div className="flex items-center justify-center py-16 text-sm text-ink-3">
+              <span className="flex items-center gap-2">
+                <PiCircleNotch className="h-5 w-5 animate-spin text-brand-600" />
+                <span>Memuat data laporan...</span>
+              </span>
+            </div>
+          </Panel>
+        )}
+
+        {!busy && !rows && !error && (
+          <EmptyState
+            compact
+            icon={PiFileText}
+            title="Pilih filter lalu klik Tampilkan"
+            description="Laporan akan dimuat berdasarkan jenis, proyek, dan rentang tanggal yang dipilih."
+          />
         )}
 
         {rows && (

@@ -20,6 +20,7 @@ import Badge from '../../components/ui/Badge';
 import Field from '../../components/ui/Field';
 import Notice from '../../components/ui/Notice';
 import EmptyState from '../../components/ui/EmptyState';
+import { showToast } from '../../store/toastStore';
 import {
   useCoaStore,
   type Akun,
@@ -260,8 +261,10 @@ export default function DaftarAkunTab() {
           return;
         }
         await update(editId, payload, userName);
+        showToast.success('Akun perkiraan berhasil diperbarui');
       } else {
         await add(payload, userName);
+        showToast.success('Akun perkiraan berhasil ditambahkan');
       }
       setModalOpen(false);
     } catch (err: any) {
@@ -622,7 +625,12 @@ export default function DaftarAkunTab() {
       <ConfirmDialog
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
-        onConfirm={() => deleteId && remove(deleteId)}
+        onConfirm={async () => {
+          if (deleteId) {
+            await remove(deleteId);
+            showToast.success('Akun perkiraan berhasil dihapus');
+          }
+        }}
         title="Hapus akun"
         message="Hapus akun ini? Akun yang dihapus tidak bisa dipulihkan."
         confirmLabel="Hapus akun"

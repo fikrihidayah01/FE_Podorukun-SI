@@ -59,7 +59,7 @@ export function StatTile({
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden bg-white p-4 pt-5 sm:p-5 sm:pt-6 min-h-[114px] sm:min-h-[122px] transition-colors select-none cursor-default hover:bg-neutral-50/60"
+      className="group relative flex min-w-0 flex-col justify-between gap-3 overflow-hidden bg-white p-4 pt-5 sm:p-5 sm:pt-6 min-h-[114px] sm:min-h-[122px] transition-colors select-none cursor-default hover:bg-neutral-50/60 shadow-[inset_0_0_8px_rgba(207,27,26,0.12),inset_1px_1px_4px_rgba(207,27,26,0.18)]"
     >
       {Icon && (
         <Icon
@@ -122,7 +122,7 @@ export function StatTile({
 }
 
 /**
- * Ringkasan angka dalam satu panel div utuh bersekat (card holder) dengan aksen garis merah dan inner shadow tipis di kiri atas.
+ * Ringkasan angka dalam satu panel div utuh bersekat (card holder) dengan aksen garis merah di atas.
  */
 export function StatGrid({ children, columns = 4 }: { children: ReactNode; columns?: 3 | 4 }) {
   const cols = columns === 3 ? 'sm:grid-cols-3 max-sm:[&>*:first-child]:col-span-2' : 'xl:grid-cols-4';
@@ -131,10 +131,6 @@ export function StatGrid({ children, columns = 4 }: { children: ReactNode; colum
       className={`relative grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line ${cols}`}
     >
       <div className="absolute inset-x-0 top-0 h-1.5 bg-[#cf1b1a] z-10" aria-hidden />
-      <div
-        className="pointer-events-none absolute inset-0 z-20 rounded-2xl shadow-[inset_2px_2px_6px_rgba(0,0,0,0.08)]"
-        aria-hidden
-      />
       {children}
     </div>
   );

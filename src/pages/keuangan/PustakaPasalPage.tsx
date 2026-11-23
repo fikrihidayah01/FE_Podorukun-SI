@@ -10,6 +10,7 @@ import Button, { IconButton } from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Field from '../../components/ui/Field';
 import EmptyState from '../../components/ui/EmptyState';
+import { showToast } from '../../store/toastStore';
 
 const BERLAKU_LABEL: Record<BerlakuPasal, string> = {
   semua: 'Semua transaksi',
@@ -95,8 +96,13 @@ export default function PustakaPasalPage() {
     if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
 
     await runAction(async () => {
-      if (editingId) await update(editingId, form);
-      else await add(form);
+      if (editingId) {
+        await update(editingId, form);
+        showToast.success('Pasal berhasil diperbarui');
+      } else {
+        await add(form);
+        showToast.success('Pasal berhasil ditambahkan');
+      }
       setModalOpen(false);
     });
   };

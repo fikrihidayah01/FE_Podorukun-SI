@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PiCaretLeft, PiCaretRight } from 'react-icons/pi';
 import { fetchApi } from '../../../lib/api';
+import { showToast } from '../../../store/toastStore';
 import { usePiutangStore } from '../../../store/piutangStore';
 import { useProyekStore } from '../../../store/proyekStore';
 import Panel, { TableScroll } from '../../../components/ui/Panel';
@@ -192,7 +193,11 @@ export default function PembayaranTrackPanel() {
 
   const process = async (id?: string) => {
     setBusy(true); setError('');
+<<<<<<< HEAD
     try { const res = await fetchApi(`/pembayaran-track/${id ? id + '/proses' : 'proses'}`, { method: 'POST' }); if (!res.ok) throw apiError(res, 'Gagal memproses pembayaran'); await refresh(); }
+=======
+    try { const res = await fetchApi(`/pembayaran-track/${id ? id + '/proses' : 'proses'}`, { method: 'POST' }); const body = await res.json(); if (!res.ok) throw new Error(body.message || 'Gagal memproses pembayaran'); await refresh(); showToast.success('Pembayaran berhasil diproses'); }
+>>>>>>> f0bc659 (feat: update halaman keuangan)
     catch (err) { setError(err instanceof Error ? err.message : 'Gagal memproses pembayaran'); }
     finally { setBusy(false); }
   };
@@ -207,6 +212,7 @@ export default function PembayaranTrackPanel() {
       const res = await fetchApi(`/pembayaran-track/${target.payment.id}/verifikasi`, { method: 'POST', body: JSON.stringify(payload) });
       if (!res.ok) throw apiError(res, 'Gagal menyimpan keputusan');
       setTarget(null); await refresh();
+      showToast.success('Keputusan verifikasi berhasil disimpan');
     } catch (err) { setDialogError(err instanceof Error ? err.message : 'Gagal menyimpan keputusan'); }
     finally { setBusy(false); }
   };

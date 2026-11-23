@@ -10,6 +10,7 @@ import Button, { IconButton } from '../../components/ui/Button';
 import Field from '../../components/ui/Field';
 import EmptyState from '../../components/ui/EmptyState';
 import SummernoteEditor from '../../components/ui/SummernoteEditor';
+import { showToast } from '../../store/toastStore';
 
 function timeAgo(iso: string) {
   const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -68,6 +69,7 @@ export default function SrpPage() {
     if (editingId) update(editingId, { judul: formJudul.trim(), content: formContent });
     else create(formJudul.trim(), formContent);
     closeModal();
+    showToast.success('Surat Rekomendasi Penjualan berhasil disimpan');
   };
 
   const openFullPage = () => {

@@ -20,7 +20,11 @@ import EmptyState from '../../components/ui/EmptyState';
 import { formatTanggal, hariIni, opsiBulan } from '../../utils/format';
 import { useHutangStore } from '../../store/hutangStore';
 import { fetchApi } from '../../lib/api';
+<<<<<<< HEAD
 import { apiError } from '../../lib/errors';
+=======
+import { showToast } from '../../store/toastStore';
+>>>>>>> f0bc659 (feat: update halaman keuangan)
 
 const STATUS: Record<JurnalStatus, { label: string; tone: Tone }> = {
   draft: { label: 'Draft', tone: 'warning' },
@@ -295,6 +299,7 @@ export default function JurnalPage() {
       });
       setFormOpen(false);
       setPage(1);
+      showToast.success(status === 'diposting' ? 'Jurnal berhasil diposting' : 'Draft jurnal berhasil disimpan');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Gagal menyimpan jurnal';
       const jurnalId = (error as { jurnalId?: string }).jurnalId;
@@ -761,8 +766,14 @@ export default function JurnalPage() {
               if (!response.ok) throw apiError(response, 'Gagal mengunggah bukti');
               await fetch();
               setDetailJurnal(useJurnalStore.getState().items.find((j) => j.id === detailJurnal.id) || null);
+<<<<<<< HEAD
               setDetailError('');
             } catch (error) { setDetailError(error instanceof Error ? error.message : 'Gagal mengunggah bukti'); }
+=======
+              setUploadError('');
+              showToast.success('Lampiran bukti berhasil diunggah');
+            } catch (error) { setUploadError(error instanceof Error ? error.message : 'Gagal mengunggah bukti'); }
+>>>>>>> f0bc659 (feat: update halaman keuangan)
             finally { setUploading(false); }
           }} />
         </Field>}
@@ -870,6 +881,7 @@ export default function JurnalPage() {
           const res = await fetchApi(`/jurnal/${detailJurnal.id}/balik`, { method: 'POST', body: JSON.stringify({ tanggal: reverseDate, keterangan: reverseReason }) });
           if (!res.ok) throw apiError(res, 'Gagal membuat jurnal balik');
           await fetch(); setDetailJurnal(null); setReverseOpen(false);
+          showToast.success('Jurnal pembalik berhasil dibuat');
         } catch (err) { setReverseError(err instanceof Error ? err.message : 'Gagal membuat jurnal balik'); }
         finally { setReverseBusy(false); }
       }}>{reverseBusy ? 'Memproses…' : 'Konfirmasi pembalikan'}</Button></>}>
@@ -882,6 +894,7 @@ export default function JurnalPage() {
           if (!deleteTarget) return;
           await remove(deleteTarget.id);
           setDetailJurnal(null);
+          showToast.success('Draft jurnal berhasil dihapus');
         }}
         title="Hapus draft jurnal"
         message={`Hapus draft ${deleteTarget?.nomorJurnal ?? ''}? Jurnal yang dihapus tidak bisa dipulihkan.`}

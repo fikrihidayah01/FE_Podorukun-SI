@@ -14,6 +14,7 @@ import Button, { IconButton } from '../../components/ui/Button';
 import Field from '../../components/ui/Field';
 import Notice from '../../components/ui/Notice';
 import Modal from '../../components/ui/Modal';
+import { showToast } from '../../store/toastStore';
 
 const STATUS_OPT: { value: StatusDokumen; label: string; cls: string }[] = [
   { value: 'draft', label: 'Draft', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -222,6 +223,7 @@ function LegalEditorBody() {
       fasilitasTambahan: dataForm.fasilitasTambahan,
     });
     setPanelDataOpen(false);
+    showToast.success('Data utama dokumen berhasil disimpan');
   });
 
   const movePasal = (index: number, direction: 'up' | 'down') => {
@@ -290,6 +292,7 @@ function LegalEditorBody() {
       baris,
     });
     setJadwalOpen(false);
+    showToast.success('Jadwal pembayaran berhasil disimpan');
   });
 
   const totalJadwal = dokumen.jadwalPembayaran?.baris.reduce((s, b) => s + b.jumlah, 0) || 0;

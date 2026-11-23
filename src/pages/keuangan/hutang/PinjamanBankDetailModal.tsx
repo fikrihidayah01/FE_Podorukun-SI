@@ -1,4 +1,5 @@
 import { fetchApi } from '../../../lib/api';
+import { showToast } from '../../../store/toastStore';
 import { useEffect, useMemo, useState } from 'react';
 import { PiPlus } from 'react-icons/pi';
 import { usePinjamanBankStore, type PinjamanBank, type JenisPembayaran } from '../../../store/pinjamanBankStore';
@@ -118,6 +119,7 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
       const res = await fetchApi(`/pinjaman/transaksi/${rincianId}/rincian`, { method: 'PATCH', body: JSON.stringify({ nominalPokok: Number(rincianPokok), nominalBunga: Number(rincianBunga) }) });
       if (!res.ok) throw apiError(res, 'Gagal menyimpan rincian');
       await fetchEntries(fresh.id); await usePinjamanBankStore.getState().fetch(); setRincianId('');
+      showToast.success('Rincian pokok & bunga berhasil disimpan');
     } catch (err) { setPayError(err instanceof Error ? err.message : 'Gagal menyimpan rincian'); }
     finally { setSaving(false); }
   };
@@ -146,6 +148,7 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
       });
       setPayForm(emptyPayment(fresh.pola));
       setPayError('');
+      showToast.success('Pembayaran angsuran berhasil dicatat');
     } catch (error) {
       setPayError(error instanceof Error ? error.message : 'Gagal mencatat pembayaran');
     } finally { setSaving(false); }
@@ -162,6 +165,7 @@ export default function PinjamanBankDetailModal({ pinjaman, isOpen, onClose }: P
       setTopUpForm(INITIAL_TOPUP);
       setTopUpError('');
       setShowTopUp(false);
+      showToast.success('Top-up pinjaman berhasil dicatat');
     } catch (error) {
       setTopUpError(error instanceof Error ? error.message : 'Gagal mencatat top-up');
     } finally { setSaving(false); }

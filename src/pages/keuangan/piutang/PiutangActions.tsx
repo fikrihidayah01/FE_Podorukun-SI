@@ -9,6 +9,7 @@ import {
   PiProhibit,
 } from 'react-icons/pi';
 import { fetchApi } from '../../../lib/api';
+import { showToast } from '../../../store/toastStore';
 import { usePiutangStore, type KavlingTagihan } from '../../../store/piutangStore';
 import { useCoaStore } from '../../../store/coaStore';
 import Button from '../../../components/ui/Button';
@@ -121,6 +122,8 @@ export default function PiutangActions({ item }: { item: KavlingTagihan }) {
       });
       if (!res.ok) throw apiError(res, 'Gagal menyimpan transaksi piutang');
       await usePiutangStore.getState().fetchItems();
+      const actionLabel = labels[action] || 'Aksi';
+      showToast.success(`${actionLabel} berhasil dicatat`);
       setAction('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal menyimpan');

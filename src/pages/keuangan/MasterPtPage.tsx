@@ -17,6 +17,7 @@ import Button, { IconButton } from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Field from '../../components/ui/Field';
 import EmptyState from '../../components/ui/EmptyState';
+import { showToast } from '../../store/toastStore';
 
 const TIPE_OPSI: TipeTransaksi[] = ['Cash', 'KPR', 'In House'];
 
@@ -150,8 +151,13 @@ export default function MasterPtPage() {
     };
 
     await runAction(async () => {
-      if (editingPtId) await updatePt(editingPtId, payload);
-      else await addPt(payload);
+      if (editingPtId) {
+        await updatePt(editingPtId, payload);
+        showToast.success('Data Master PT berhasil diperbarui');
+      } else {
+        await addPt(payload);
+        showToast.success('Data Master PT berhasil ditambahkan');
+      }
       setPtModalOpen(false);
     });
   };
@@ -186,8 +192,13 @@ export default function MasterPtPage() {
     }
 
     await runAction(async () => {
-      if (editingTmplId) await updateTemplate(editingTmplId, tmplForm);
-      else await addTemplate(tmplForm);
+      if (editingTmplId) {
+        await updateTemplate(editingTmplId, tmplForm);
+        showToast.success('Template dokumen berhasil diperbarui');
+      } else {
+        await addTemplate(tmplForm);
+        showToast.success('Template dokumen berhasil ditambahkan');
+      }
       setTmplModalOpen(false);
     });
   };

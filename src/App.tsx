@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router-dom';
 import NotificationHost from './components/NotificationHost';
 import { router } from './router';
 import { useAuthStore } from './store/authStore';
+import ToastContainer from './components/ui/ToastContainer';
 
 export default function App() {
   const initAuth = useAuthStore((state) => state.initAuth);
@@ -14,7 +15,11 @@ export default function App() {
   return (
     <>
       <RouterProvider router={router} />
+<<<<<<< HEAD
       <NotificationHost />
+=======
+      <ToastContainer />
+>>>>>>> f0bc659 (feat: update halaman keuangan)
     </>
   );
 }

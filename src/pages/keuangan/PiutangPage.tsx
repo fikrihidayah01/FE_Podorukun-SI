@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { PiArrowsClockwise, PiReceipt, PiFileText, PiCheckCircle, PiHourglassMedium, PiTrendUp } from 'react-icons/pi';
 import { usePiutangStore, TIPE_TRANSAKSI_LABELS, type TipeTransaksi, type KavlingTagihan } from '../../store/piutangStore';
 import { fetchApi } from '../../lib/api';
+import { showToast } from '../../store/toastStore';
 import { useProyekStore } from '../../store/proyekStore';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
 import Panel, { TableScroll } from '../../components/ui/Panel';
@@ -77,9 +78,11 @@ export default function PiutangPage() {
 
       await fetchItems();
       setSyncedAt(new Date());
+      showToast.success('Sinkronisasi Podorukuntrack berhasil');
     } catch (err: any) {
       setApiError(true);
       setSyncErrorMessage(err.message || 'API tidak merespons atau sinkronisasi gagal.');
+      showToast.error(err.message || 'Sinkronisasi gagal');
     } finally {
       setSyncLoading(false);
     }

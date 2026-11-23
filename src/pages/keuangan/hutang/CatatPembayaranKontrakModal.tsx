@@ -7,6 +7,7 @@ import Field from '../../../components/ui/Field';
 import Notice from '../../../components/ui/Notice';
 import Money from '../../../components/ui/Money';
 import { formatRupiah } from '../../../utils/format';
+import { showToast } from '../../../store/toastStore';
 import JurnalPreview from './JurnalPreview';
 
 interface CatatPembayaranKontrakModalProps {
@@ -48,6 +49,7 @@ export default function CatatPembayaranKontrakModal({ kontrak, isOpen, onClose }
       keterangan: form.keterangan.trim() || undefined,
     });
     onClose();
+    showToast.success('Pembayaran termin kontraktor berhasil disimpan');
     } catch (err) { setError(err instanceof Error ? err.message : 'Gagal menyimpan pembayaran'); }
     finally { setSaving(false); }
   };

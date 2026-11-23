@@ -10,6 +10,7 @@ import {
 } from '../../../store/shmStore';
 import { usePinjamanBankStore } from '../../../store/pinjamanBankStore';
 import { useProyekStore, type KavlingUnit } from '../../../store/proyekStore';
+import { showToast } from '../../../store/toastStore';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import Field from '../../../components/ui/Field';
@@ -117,6 +118,7 @@ export default function ShmFormModal({ isOpen, onClose, defaultProyekId }: ShmFo
 
       resetForm();
       onClose();
+      showToast.success('Data agunan SHM berhasil disimpan');
     } catch (err: any) {
       setErrorMessage(err.message || 'Gagal menyimpan SHM');
     } finally {

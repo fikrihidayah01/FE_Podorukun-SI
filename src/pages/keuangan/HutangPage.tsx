@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { PiPlus, PiLockSimple, PiLockSimpleOpen, PiArrowSquareOut, PiHandCoins, PiMapTrifold, PiBank, PiCalendarCheck } from 'react-icons/pi';
 import PageHeader, { PageBody } from '../../components/ui/PageHeader';
 import TabBar, { TabPanel } from '../../components/ui/TabBar';
+import { showToast } from '../../store/toastStore';
 import Panel, { TableScroll } from '../../components/ui/Panel';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -74,6 +75,7 @@ export default function HutangPage() {
 
   const handleToggleKunci = () => {
     if (!selectedProyek) {
+<<<<<<< HEAD
       setKunciInfo({ tone: 'info', text: 'Pilih proyek spesifik terlebih dahulu untuk melihat atau mengunci periode buku.' });
       return;
     }
@@ -93,6 +95,27 @@ export default function HutangPage() {
     if (!currentPtId) return;
     await tutupPeriode(currentPtId, selectedBulan);
     setKunciInfo({ tone: 'positive', text: `Periode ${periodeLabel} untuk ${currentPt?.namaPt} berhasil dikunci.` });
+=======
+      showToast.info('Pilih proyek spesifik terlebih dahulu sebelum mengunci periode buku.', 'Perhatian');
+      return;
+    }
+    if (!currentPtId) {
+      showToast.info('Proyek yang dipilih belum terhubung ke Master PT. Hubungkan proyek ke PT di pengaturan sebelum mengunci periode.', 'Perhatian');
+      return;
+    }
+    if (isPeriodeTerkunci) {
+      showToast.info(`Periode ${periodeLabel} untuk ${currentPt?.namaPt || 'PT ini'} sudah terkunci dan tidak dapat dibuka kembali.`, 'Informasi');
+      return;
+    }
+    const confirm = window.confirm(`Kunci periode ${periodeLabel} untuk ${currentPt?.namaPt}? Ditolak jika masih ada jurnal draft di bulan ini.`);
+    if (!confirm) return;
+    try {
+      await tutupPeriode(currentPtId, selectedBulan);
+      showToast.success(`Periode ${periodeLabel} berhasil ditutup dan dikunci.`);
+    } catch (err: any) {
+      showToast.error(err.message || 'Gagal menutup periode');
+    }
+>>>>>>> f0bc659 (feat: update halaman keuangan)
   };
 
   useEffect(() => {
