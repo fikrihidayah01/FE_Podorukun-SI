@@ -13,12 +13,17 @@ import LaporanPage from '../pages/keuangan/LaporanPage';
 import HutangPage from '../pages/keuangan/HutangPage';
 import DetailKodePembantuPage from '../pages/keuangan/hutang/DetailKodePembantuPage';
 import PiutangPage from '../pages/keuangan/PiutangPage';
+import AngsuranKreditPage from '../pages/keuangan/piutang/AngsuranKreditPage';
+import TagihanUserPage from '../pages/keuangan/piutang/TagihanUserPage';
+import BastPembeliPage from '../pages/keuangan/piutang/BastPembeliPage';
 import CoaPage from '../pages/keuangan/CoaPage';
 import JurnalPage from '../pages/keuangan/JurnalPage';
 import LegalPage from '../pages/keuangan/LegalPage';
 import LegalEditorPage from '../pages/keuangan/LegalEditorPage';
 import MasterPtPage from '../pages/keuangan/MasterPtPage';
 import PustakaPasalPage from '../pages/keuangan/PustakaPasalPage';
+import PengajuanTeknikPage from '../pages/keuangan/teknik/PengajuanTeknikPage';
+import PembayaranTeknikPage from '../pages/keuangan/teknik/PembayaranTeknikPage';
 
 export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -40,20 +45,27 @@ export const router = createBrowserRouter([
             children: [
               { path: '/keuangan/hutang', element: <HutangPage /> },
               { path: '/keuangan/hutang/detail/:kodePembantuId', element: <DetailKodePembantuPage /> },
-              { path: '/keuangan/piutang', element: <PiutangPage /> },
+              { path: '/keuangan/piutang', element: <Navigate to="/keuangan/piutang/tagihan-user" replace /> },
+              { path: '/keuangan/piutang/angsuran-kredit', element: <AngsuranKreditPage /> },
+              { path: '/keuangan/piutang/tagihan-user', element: <TagihanUserPage /> },
+              { path: '/keuangan/piutang/bast/:id', element: <BastPembeliPage /> },
+              { path: '/keuangan/piutang/lama', element: <PiutangPage /> },
               { path: '/keuangan/coa', element: <CoaPage /> },
               { path: '/keuangan/jurnal', element: <JurnalPage /> },
               { path: '/keuangan/legal', element: <LegalPage /> },
               { path: '/keuangan/legal/:id', element: <LegalEditorPage /> },
               { path: '/keuangan/master-pt', element: <MasterPtPage /> },
               { path: '/keuangan/pustaka-pasal', element: <PustakaPasalPage /> },
+              { path: '/keuangan/teknik', element: <Navigate to="/keuangan/teknik/pengajuan" replace /> },
+              { path: '/keuangan/teknik/pengajuan', element: <PengajuanTeknikPage /> },
+              { path: '/keuangan/teknik/pembayaran', element: <PembayaranTeknikPage /> },
               // Rute SRP lama — dipertahankan agar tidak 404
               { path: '/keuangan/srp', element: <Navigate to="/keuangan/legal" replace /> },
               { path: '/keuangan/srp/:id', element: <Navigate to="/keuangan/legal" replace /> },
 
               // Rute lama yang belum punya halaman sendiri
               { path: '/keuangan/laporan', element: <LaporanPage /> },
-              { path: '/keuangan/tagihan', element: <Navigate to="/keuangan/piutang" replace /> },
+              { path: '/keuangan/tagihan', element: <Navigate to="/keuangan/piutang/tagihan-user" replace /> },
               { path: '/keuangan/pengeluaran', element: <Navigate to="/keuangan/jurnal" replace /> },
             ],
           },
@@ -64,6 +76,8 @@ export const router = createBrowserRouter([
               { path: '/teknisi/pekerjaan', element: <PlaceholderPage title="Pekerjaan" /> },
               { path: '/teknisi/jadwal', element: <PlaceholderPage title="Jadwal" /> },
               { path: '/teknisi/laporan', element: <PlaceholderPage title="Laporan Teknis" /> },
+              { path: '/teknisi/pengajuan', element: <PengajuanTeknikPage /> },
+              { path: '/teknisi/pembayaran', element: <PembayaranTeknikPage /> },
             ],
           },
 

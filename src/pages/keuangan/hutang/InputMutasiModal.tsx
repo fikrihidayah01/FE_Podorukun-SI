@@ -110,12 +110,8 @@ export default function InputMutasiModal({ isOpen, onClose, bulan }: InputMutasi
       useHutangStore.getState().fetchMutasiAntarProyek();
       if (kpId) useHutangStore.getState().fetchMutasiByKodePembantu(kpId);
 
-<<<<<<< HEAD
       resetAndClose();
-=======
-      handleClose();
       showToast.success('Mutasi hutang berhasil disimpan');
->>>>>>> f0bc659 (feat: update halaman keuangan)
     } catch (err: any) {
       setSaveError(err.message || 'Gagal menyimpan mutasi');
     } finally { setSaving(false); }

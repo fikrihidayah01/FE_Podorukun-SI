@@ -1,16 +1,16 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import toast, { Toaster, type Toast } from 'react-hot-toast';
 import type { IconType } from 'react-icons';
-import { PiCheckCircle, PiInfo, PiWarning, PiWarningCircle, PiX } from 'react-icons/pi';
+import { PiCheckCircle, PiInfo, PiWarning, PiWarningCircle } from 'react-icons/pi';
 import Button from './ui/Button';
 import { subscribeNotices, type Notice, type NoticeTone } from '../lib/errors';
+import { useToastStore } from '../store/toastStore';
 
-const TONE: Record<NoticeTone, { Icon: IconType; icon: string; bar: string; badge: string }> = {
-  error: { Icon: PiWarningCircle, icon: 'text-danger', bar: 'bg-danger', badge: 'bg-danger-soft' },
-  warning: { Icon: PiWarning, icon: 'text-warning', bar: 'bg-warning', badge: 'bg-warning-soft' },
-  success: { Icon: PiCheckCircle, icon: 'text-positive', bar: 'bg-positive', badge: 'bg-positive-soft' },
-  info: { Icon: PiInfo, icon: 'text-brand-600', bar: 'bg-brand-600', badge: 'bg-brand-50' },
+const TONE: Record<NoticeTone, { Icon: IconType; icon: string; badge: string }> = {
+  error: { Icon: PiWarningCircle, icon: 'text-danger', badge: 'bg-danger-soft' },
+  warning: { Icon: PiWarning, icon: 'text-warning', badge: 'bg-warning-soft' },
+  success: { Icon: PiCheckCircle, icon: 'text-positive', badge: 'bg-positive-soft' },
+  info: { Icon: PiInfo, icon: 'text-brand-600', badge: 'bg-brand-50' },
 };
 
 function Reference({ value }: { value: string }) {
@@ -18,39 +18,6 @@ function Reference({ value }: { value: string }) {
     <p className="mt-2 text-xs text-ink-3">
       Kode referensi: <span className="select-all font-mono text-ink-2">{value}</span>
     </p>
-  );
-}
-
-/** Toast: kartu yang lewat sebentar di tengah atas, di atas semua lapisan termasuk dialog. */
-function ToastCard({ t, notice }: { t: Toast; notice: Notice }) {
-  const tone = TONE[notice.tone];
-  return (
-    <div
-      role={notice.tone === 'error' ? 'alert' : 'status'}
-      className={`pointer-events-auto relative flex w-[min(30rem,calc(100vw-2rem))] items-start gap-3 overflow-hidden rounded-xl border border-line bg-surface py-3.5 pl-5 pr-3 shadow-pop transition-all duration-200 ${
-        t.visible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
-      }`}
-    >
-      <span className={`absolute inset-y-0 left-0 w-1 ${tone.bar}`} aria-hidden />
-      <tone.Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone.icon}`} aria-hidden />
-      <div className="min-w-0 flex-1 text-sm leading-relaxed">
-        <p className="font-semibold text-ink">{notice.title}</p>
-        {notice.lines.length > 0 && (
-          <ul className="mt-1 space-y-0.5 text-ink-2">
-            {notice.lines.map((line) => <li key={line}>{line}</li>)}
-          </ul>
-        )}
-        {notice.reference && <Reference value={notice.reference} />}
-      </div>
-      <button
-        type="button"
-        onClick={() => toast.dismiss(t.id)}
-        className="-mr-1 shrink-0 rounded-lg p-1 text-ink-3 hover:bg-neutral-soft hover:text-ink"
-        aria-label="Tutup notifikasi"
-      >
-        <PiX className="h-4 w-4" aria-hidden />
-      </button>
-    </div>
   );
 }
 
@@ -125,7 +92,13 @@ export default function NotificationHost() {
 
   useEffect(() => subscribeNotices((notice) => {
     if (notice.kind === 'toast') {
-      toast.custom((t) => <ToastCard t={t} notice={notice} />, { id: notice.id, duration: notice.duration ?? 6000 });
+      const message = notice.lines.length > 0 ? notice.lines.join('. ') : '';
+      useToastStore.getState().addToast({
+        type: notice.tone,
+        title: notice.title,
+        message,
+        duration: notice.duration ?? 6000,
+      });
       return;
     }
     if (Date.now() - (closedAt.current.get(notice.id) ?? 0) < POPUP_COOLDOWN_MS) {
@@ -149,10 +122,6 @@ export default function NotificationHost() {
     setPopups((queue) => queue.slice(1));
   };
 
-  return (
-    <>
-      <Toaster position="top-center" gutter={10} containerStyle={{ top: 20, zIndex: 9999 }} />
-      {current && <Popup key={current.id} notice={current} onConfirm={confirm} />}
-    </>
-  );
+  if (!current) return null;
+  return <Popup key={current.id} notice={current} onConfirm={confirm} />;
 }

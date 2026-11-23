@@ -1,18 +1,23 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { PiCheckCircle, PiXCircle, PiInfo, PiX } from 'react-icons/pi';
+import { PiCheckCircle, PiXCircle, PiWarning, PiInfo, PiX } from 'react-icons/pi';
 import { useToastStore, type ToastItem } from '../../store/toastStore';
 
 const ICONS = {
   success: {
-    badge: 'bg-emerald-100 text-emerald-600',
-    border: 'border-emerald-500',
+    badge: 'bg-[#D1FADF] text-[#039855]',
+    border: 'border-[#12B76A]',
     Icon: PiCheckCircle,
   },
   error: {
     badge: 'bg-rose-100 text-rose-600',
     border: 'border-rose-500',
     Icon: PiXCircle,
+  },
+  warning: {
+    badge: 'bg-amber-100 text-amber-600',
+    border: 'border-amber-500',
+    Icon: PiWarning,
   },
   info: {
     badge: 'bg-blue-100 text-blue-600',
@@ -49,7 +54,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
     <div
       role="status"
       aria-live="polite"
-      className={`pointer-events-auto flex w-full max-w-md items-center gap-4 rounded-[20px] border-[1.5px] ${conf.border} bg-white px-5 py-4 shadow-xl shadow-black/10 transition-all duration-200 ease-out ${
+      className={`pointer-events-auto flex w-full max-w-md items-start gap-4 rounded-[20px] border-[1.5px] ${conf.border} bg-white px-5 py-4 shadow-xl shadow-black/10 transition-all duration-200 ease-out ${
         isVisible ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-4 opacity-0 scale-95'
       }`}
     >
@@ -59,7 +64,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
       </div>
 
       {/* Content */}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 pt-0.5">
         <h4 className="text-base font-bold tracking-tight text-ink">
           {toast.title}
         </h4>
@@ -73,7 +78,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
         type="button"
         onClick={handleClose}
         aria-label="Tutup notifikasi"
-        className="tap-target -mr-1 -mt-1 shrink-0 p-1.5 text-ink-3 transition-colors hover:text-ink cursor-pointer rounded-lg hover:bg-neutral-100"
+        className="tap-target -mr-1 -mt-0.5 self-start shrink-0 p-1.5 text-ink-3 transition-colors hover:text-ink cursor-pointer rounded-lg hover:bg-neutral-100"
       >
         <PiX className="h-4 w-4" />
       </button>

@@ -58,7 +58,6 @@ const LABELS: Record<string, string> = {
   saldoAkhir: 'Saldo akhir',
 };
 
-<<<<<<< HEAD
 /** Pecah saldo bertanda (positif = sisi normal akun) ke kolom debit/kredit agar neraca saldo bisa dicek seimbang. */
 function sisiSaldoAkhir(row: ReportRow): ReportRow {
   const saldo = Number(row.saldo) || 0;
@@ -74,22 +73,6 @@ const SALDO_AKUN_PASANGAN: [string, string, string][] = [
 ];
 
 const jumlah = (rows: ReportRow[], kolom: string) => rows.reduce((s, r) => s + (Number(r[kolom]) || 0), 0);
-=======
-function getLocalToday(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function getLocalFirstDayOfMonth(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  return `${year}-${month}-01`;
-}
->>>>>>> f0bc659 (feat: update halaman keuangan)
 
 export default function LaporanPage() {
   const { items: akuns, fetch: fetchAkuns } = useCoaStore();
@@ -97,13 +80,8 @@ export default function LaporanPage() {
   const [jenis, setJenis] = useState('saldo-akun');
   const [proyekId, setProyekId] = useState('');
   const [akunId, setAkunId] = useState('');
-<<<<<<< HEAD
   const [dari, setDari] = useState(awalBulanIni());
   const [sampai, setSampai] = useState(hariIni());
-=======
-  const [dari, setDari] = useState(getLocalFirstDayOfMonth);
-  const [sampai, setSampai] = useState(getLocalToday);
->>>>>>> f0bc659 (feat: update halaman keuangan)
   const [rows, setRows] = useState<ReportRow[] | null>(null);
   const [meta, setMeta] = useState<{ saldoAwal?: number; saldoAkhir?: number }>({});
   const [error, setError] = useState('');
@@ -184,7 +162,7 @@ export default function LaporanPage() {
     void load({
       jenis: 'saldo-akun',
       proyekId: '',
-      sampai: getLocalToday(),
+      sampai: hariIni(),
     });
   }, [fetchAkuns, fetchProyeks]);
 

@@ -27,22 +27,8 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  const handleDevAutoLogin = async (role: UserRole = 'keuangan') => {
-    const devEmail = `${role}@example.test`;
-    const devPass = 'password';
-    setEmail(devEmail);
-    setPassword(devPass);
-    setLoading(true);
-    try {
-      await login(devEmail, devPass);
-      if (!useAuthStore.getState().isAuthenticated) {
-        devLogin(role);
-      }
-    } catch {
-      devLogin(role);
-    } finally {
-      setLoading(false);
-    }
+  const handleDevAutoLogin = (role: UserRole = 'keuangan') => {
+    devLogin(role);
   };
 
   if (isInitializing) {
@@ -122,22 +108,22 @@ export default function LoginPage() {
                 </span>
               </div>
               <p className="mt-1 text-[11px] text-amber-800/80">
-                Pilih role di bawah untuk langsung masuk otomatis:
+                Gunakan tombol di bawah untuk masuk dalam mode simulasi UI & data referensi tanpa kredensial remote server:
               </p>
               <div className="mt-2.5 flex flex-wrap gap-2">
                 <button
                   type="button"
                   disabled={loading}
                   onClick={() => handleDevAutoLogin('keuangan')}
-                  className="flex-1 rounded-md bg-amber-600 px-2.5 py-1.5 font-bold text-white shadow-sm hover:bg-amber-700 active:scale-95 disabled:opacity-50"
+                  className="flex-1 rounded-md bg-amber-600 px-2.5 py-1.5 font-bold text-white shadow-sm hover:bg-amber-700 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
-                  ⚡ Keuangan
+                  ⚡ Keuangan (Simulasi)
                 </button>
                 <button
                   type="button"
                   disabled={loading}
                   onClick={() => handleDevAutoLogin('admin')}
-                  className="rounded-md border border-amber-400 bg-white px-2.5 py-1.5 font-semibold text-amber-900 shadow-sm hover:bg-amber-100 active:scale-95 disabled:opacity-50"
+                  className="rounded-md border border-amber-400 bg-white px-2.5 py-1.5 font-semibold text-amber-900 shadow-sm hover:bg-amber-100 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   Admin
                 </button>
@@ -145,11 +131,14 @@ export default function LoginPage() {
                   type="button"
                   disabled={loading}
                   onClick={() => handleDevAutoLogin('teknisi')}
-                  className="rounded-md border border-amber-400 bg-white px-2.5 py-1.5 font-semibold text-amber-900 shadow-sm hover:bg-amber-100 active:scale-95 disabled:opacity-50"
+                  className="rounded-md border border-amber-400 bg-white px-2.5 py-1.5 font-semibold text-amber-900 shadow-sm hover:bg-amber-100 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   Teknisi
                 </button>
               </div>
+              <p className="mt-2 text-[10px] text-amber-700/70 italic">
+                * Untuk terhubung langsung dengan database live, gunakan form di atas dengan email & password yang terdaftar di remote server.
+              </p>
             </div>
           )}
         </div>

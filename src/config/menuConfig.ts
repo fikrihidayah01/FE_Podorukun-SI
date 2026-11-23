@@ -87,6 +87,10 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
           path: '/keuangan/piutang',
           icon: PiReceipt,
           allowedRoles: ['keuangan'],
+          children: [
+            { label: 'Tagihan user', path: '/keuangan/piutang/tagihan-user' },
+            { label: 'Angsuran kredit', path: '/keuangan/piutang/angsuran-kredit' },
+          ],
         },
         {
           label: 'Akun (COA)',
@@ -125,6 +129,16 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
           children: [
             { label: 'Master PT', path: '/keuangan/master-pt' },
             { label: 'Template Dokumen', path: '/keuangan/master-pt?tab=template' },
+          ],
+        },
+        {
+          label: 'Teknik',
+          path: '/keuangan/teknik',
+          icon: PiHardHat,
+          allowedRoles: ['keuangan'],
+          children: [
+            { label: 'Pengajuan Teknik', path: '/keuangan/teknik/pengajuan' },
+            { label: 'Pembayaran Teknik', path: '/keuangan/teknik/pembayaran' },
           ],
         },
         {
@@ -168,6 +182,16 @@ const menuConfig: Record<UserRole, MenuGroup[]> = {
           path: '/teknisi/laporan',
           icon: PiClipboardText,
           allowedRoles: ['teknisi'],
+        },
+        {
+          label: 'Teknik',
+          path: '/teknisi/pengajuan',
+          icon: PiHardHat,
+          allowedRoles: ['teknisi'],
+          children: [
+            { label: 'Pengajuan Teknik', path: '/teknisi/pengajuan' },
+            { label: 'Pembayaran Teknik', path: '/teknisi/pembayaran' },
+          ],
         },
       ],
     },

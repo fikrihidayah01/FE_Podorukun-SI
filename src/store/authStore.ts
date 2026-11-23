@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { fetchApi, setTokens, clearTokens, tryRefresh, getRefreshToken, SESSION_EXPIRED_EVENT } from '../lib/api';
+import { fetchApi, setTokens, clearTokens, tryRefresh, getAccessToken, getRefreshToken, SESSION_EXPIRED_EVENT } from '../lib/api';
 import { errorMessage } from '../lib/errors';
 
 export type UserRole = 'admin' | 'keuangan' | 'teknisi' | 'marketing' | 'kontraktor';
@@ -50,11 +50,38 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
 
   initAuth: async () => {
-    // Try to get current user from existing token/cookie
-    let user = await fetchMe();
+    // Mode simulasi dev lokal tetap aktif setelah reload halaman
+    if (typeof window !== 'undefined' && localStorage.getItem('si_dev_user') === 'true') {
+      const savedRole = (localStorage.getItem('si_dev_role') as UserRole) || 'keuangan';
+      set({
+        user: {
+          id: 'dev-user-1',
+          name: `Dev ${savedRole.charAt(0).toUpperCase() + savedRole.slice(1)}`,
+          role: savedRole,
+          email: `${savedRole}@example.test`,
+        },
+        isAuthenticated: true,
+        isInitializing: false,
+      });
+      return;
+    }
 
-    if (!user) {
-      // Token may have expired — attempt one silent refresh before giving up
+    const accessToken = getAccessToken();
+    const refreshToken = getRefreshToken();
+
+    // Jika tidak ada token sama sekali di localStorage, pengguna memang belum masuk.
+    // Hindari pemanggilan jaringan ke /auth/me atau /auth/refresh yang pasti menghasilkan 401.
+    if (!accessToken && !refreshToken) {
+      set({ user: null, isAuthenticated: false, isInitializing: false });
+      return;
+    }
+
+    let user: AuthUser | null = null;
+    if (accessToken) {
+      user = await fetchMe();
+    }
+
+    if (!user && refreshToken) {
       const newToken = await tryRefresh();
       if (newToken) {
         user = await fetchMe();
@@ -72,6 +99,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ error: null });
     try {
+      localStorage.removeItem('si_dev_user');
+      localStorage.removeItem('si_dev_role');
       const res = await fetchApi('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
@@ -101,6 +130,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   devLogin: (role = 'keuangan') => {
+    localStorage.setItem('si_dev_user', 'true');
+    localStorage.setItem('si_dev_role', role);
     set({
       user: {
         id: 'dev-user-1',
@@ -114,6 +145,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    localStorage.removeItem('si_dev_user');
+    localStorage.removeItem('si_dev_role');
     try {
       const refreshToken = getRefreshToken();
       await fetchApi('/auth/logout', { method: 'POST', body: JSON.stringify(refreshToken ? { refreshToken } : {}), silent: true });

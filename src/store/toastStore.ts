@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface ToastItem {
   id: string;
@@ -47,6 +47,14 @@ export const showToast = {
   error: (message: string, title = 'Gagal', duration = 5000) => {
     return useToastStore.getState().addToast({
       type: 'error',
+      title,
+      message,
+      duration,
+    });
+  },
+  warning: (message: string, title = 'Peringatan', duration = 4000) => {
+    return useToastStore.getState().addToast({
+      type: 'warning',
       title,
       message,
       duration,

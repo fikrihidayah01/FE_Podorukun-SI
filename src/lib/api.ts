@@ -5,6 +5,11 @@ export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').rep
 // API selalu memakai token eksplisit (Bearer token di localStorage) tanpa cookie agar kompatibel lintas-origin.
 export const API_CREDENTIALS: RequestCredentials = 'omit';
 
+export function isDevUser(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('si_dev_user') === 'true';
+}
+
 export function getAccessToken(): string | null {
   return localStorage.getItem('si_access_token');
 }
@@ -25,6 +30,10 @@ export function clearTokens() {
   localStorage.removeItem('si_refresh_token');
 }
 
+let isRefreshing = false;
+let refreshSubscribers: ((newToken: string | null) => void)[] = [];
+let refreshFailedUntil = 0;
+
 /**
  * Attempt a silent token refresh.
  * Backend accepts refreshToken in JSON body OR via HttpOnly cookie.
@@ -32,20 +41,23 @@ export function clearTokens() {
  */
 export async function tryRefresh(): Promise<string | null> {
   const storedRefreshToken = getRefreshToken();
+  // Tanpa refresh token atau jika refresh baru saja gagal, jangan kirim permintaan sia-sia
+  if (!storedRefreshToken) return null;
+  if (Date.now() < refreshFailedUntil) return null;
 
   try {
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: API_CREDENTIALS,
-      ...(storedRefreshToken
-        ? {
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken: storedRefreshToken }),
-          }
-        : {}),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: storedRefreshToken }),
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      refreshFailedUntil = Date.now() + 10000;
+      clearTokens();
+      return null;
+    }
 
     const data = await res.json();
     const newAccessToken = data?.data?.accessToken || data?.accessToken;
@@ -55,14 +67,14 @@ export async function tryRefresh(): Promise<string | null> {
       setTokens(newAccessToken, newRefreshToken);
       return newAccessToken;
     }
+    refreshFailedUntil = Date.now() + 10000;
+    clearTokens();
     return null;
   } catch {
+    refreshFailedUntil = Date.now() + 10000;
     return null;
   }
 }
-
-let isRefreshing = false;
-let refreshSubscribers: ((newToken: string | null) => void)[] = [];
 
 function onRefreshed(newToken: string | null) {
   refreshSubscribers.forEach((cb) => cb(newToken));
@@ -145,6 +157,15 @@ export async function fetchApi(endpoint: string, options: ApiRequestInit = {}): 
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  // Jika sedang dalam simulasi dev tanpa token remote resmi, jangan kirim request terlindungi
+  // yang pasti 401 dan memicu badai galat di console/toast.
+  if (!token && isDevUser() && !isAuthEndpoint) {
+    return new Response(JSON.stringify({ success: true, message: 'Dev simulated response', data: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const config: RequestInit = {
     ...init,
     headers,
@@ -156,24 +177,29 @@ export async function fetchApi(endpoint: string, options: ApiRequestInit = {}): 
   try {
     response = await send(url, config);
 
-    // On 401, attempt a single silent refresh then replay the request
+    // On 401, attempt a single silent refresh then replay the request if refresh token exists
     if (response.status === 401 && !isAuthEndpoint) {
-      let newAccessToken: string | null;
-      if (!isRefreshing) {
-        isRefreshing = true;
-        newAccessToken = await tryRefresh();
-        isRefreshing = false;
-        onRefreshed(newAccessToken);
-      } else {
-        // Another request already triggered a refresh — wait for it to complete
-        newAccessToken = await new Promise<string | null>((resolve) => addRefreshSubscriber(resolve));
-      }
-
-      if (newAccessToken) {
-        headers.set('Authorization', `Bearer ${newAccessToken}`);
-        response = await send(url, { ...config, headers });
-      } else {
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) {
         sessionExpired = true;
+      } else {
+        let newAccessToken: string | null;
+        if (!isRefreshing) {
+          isRefreshing = true;
+          newAccessToken = await tryRefresh();
+          isRefreshing = false;
+          onRefreshed(newAccessToken);
+        } else {
+          // Another request already triggered a refresh — wait for it to complete
+          newAccessToken = await new Promise<string | null>((resolve) => addRefreshSubscriber(resolve));
+        }
+
+        if (newAccessToken) {
+          headers.set('Authorization', `Bearer ${newAccessToken}`);
+          response = await send(url, { ...config, headers });
+        } else {
+          sessionExpired = true;
+        }
       }
     }
   } catch (err) {

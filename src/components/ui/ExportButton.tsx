@@ -1,11 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { PiMicrosoftExcelLogo, PiFilePdf, PiCircleNotch, PiCaretDown } from 'react-icons/pi';
 import { exportExcel, exportPDF, type ExportColumn, type ExportOptions } from '../../utils/exportUtils';
-<<<<<<< HEAD
 import { errorMessage } from '../../lib/errors';
-=======
 import { showToast } from '../../store/toastStore';
->>>>>>> f0bc659 (feat: update halaman keuangan)
 
 interface ExportButtonProps {
   getColumns: () => ExportColumn[];
@@ -64,12 +61,8 @@ export default function ExportButton({ getColumns, getData, opts, className = ''
         showToast.success('File PDF berhasil diunduh');
       }
     } catch (e) {
-<<<<<<< HEAD
       setError(`Ekspor gagal: ${errorMessage(e, 'alasan tidak diketahui')}. Coba lagi.`);
-=======
-      setError('Ekspor gagal. Coba lagi.');
       showToast.error('Ekspor data gagal');
->>>>>>> f0bc659 (feat: update halaman keuangan)
       console.error(e);
     } finally {
       setLoading(null);

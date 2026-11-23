@@ -15,11 +15,8 @@ export default function App() {
   return (
     <>
       <RouterProvider router={router} />
-<<<<<<< HEAD
       <NotificationHost />
-=======
       <ToastContainer />
->>>>>>> f0bc659 (feat: update halaman keuangan)
     </>
   );
 }
