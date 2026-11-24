@@ -245,7 +245,7 @@ export default function PembayaranTeknikPage() {
                     <button
                       type="button"
                       onClick={() => setNominalBayarInput(String(Math.round(selectedItem.disetujui / 3)))}
-                      className="rounded-lg border border-line bg-canvas/80 px-2.5 py-1 text-xs font-medium text-ink-2 hover:bg-neutral-soft cursor-pointer transition-colors"
+                      className="rounded-lg border border-[#cf1b1a] bg-transparent px-3 py-1 text-xs font-semibold text-[#cf1b1a] hover:bg-red-50/40 cursor-pointer transition-colors"
                     >
                       1/3 termin · {formatRupiah(Math.round(selectedItem.disetujui / 3))}
                     </button>
@@ -253,7 +253,7 @@ export default function PembayaranTeknikPage() {
                   <button
                     type="button"
                     onClick={() => setNominalBayarInput(String(sisaBelumDibayar))}
-                    className="rounded-lg border border-line bg-canvas/80 px-2.5 py-1 text-xs font-medium text-ink-2 hover:bg-neutral-soft cursor-pointer transition-colors"
+                    className="rounded-lg border border-[#cf1b1a] bg-transparent px-3 py-1 text-xs font-semibold text-[#cf1b1a] hover:bg-red-50/40 cursor-pointer transition-colors"
                   >
                     Semua sisa
                   </button>

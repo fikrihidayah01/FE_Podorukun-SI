@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   PiArrowsClockwise,
   PiTrendUp,
@@ -27,81 +27,12 @@ import ExportButton from '../../../components/ui/ExportButton';
 import { StatGrid, StatTile } from '../../../components/ui/StatTile';
 import TabBar from '../../../components/ui/TabBar';
 import { buildFilename } from '../../../utils/exportUtils';
-import { formatRupiah, formatTanggal, formatBulan, bulanIni } from '../../../utils/format';
+import { formatRupiah, formatBulan, bulanIni } from '../../../utils/format';
 import PiutangActions from './PiutangActions';
 import JadwalRealisasiModal from './JadwalRealisasiModal';
+import PembayaranTrackPanel from './PembayaranTrackPanel';
 
 type FilterBast = 'belum_bast' | 'sudah_bast' | 'semua';
-
-interface PembayaranTrackItem {
-  id: string;
-  tanggal: string;
-  kavling: string;
-  user: string;
-  jenis: string;
-  nominal: number;
-  perlakuanBadge: string;
-  perlakuanType: 'uang_muka' | 'dijadwalkan';
-  alasan: string;
-}
-
-const DEFAULT_TRACK_PAYMENTS: PembayaranTrackItem[] = [
-  {
-    id: '1',
-    tanggal: '2026-11-10',
-    kavling: '14',
-    user: 'Demo 02',
-    jenis: 'Angsuran pembeli',
-    nominal: 7000000,
-    perlakuanBadge: '212007 Uang muka',
-    perlakuanType: 'uang_muka',
-    alasan: 'Dijurnal otomatis: kavling belum BAST',
-  },
-  {
-    id: '2',
-    tanggal: '2026-07-15',
-    kavling: 'C-05',
-    user: 'Demo 03',
-    jenis: 'Pencairan KPR',
-    nominal: 540000000,
-    perlakuanBadge: 'Dijadwalkan · 4 tahap',
-    perlakuanType: 'dijadwalkan',
-    alasan: 'Tidak dijurnal. Tahap I dan II cair (270 Jt) sudah dicatat dari mutasi bank.',
-  },
-  {
-    id: '3',
-    tanggal: '2026-06-02',
-    kavling: 'E-15',
-    user: 'Demo 05',
-    jenis: 'Pencairan KPR',
-    nominal: 468000000,
-    perlakuanBadge: 'Dijadwalkan · 4 tahap',
-    perlakuanType: 'dijadwalkan',
-    alasan: 'Tidak dijurnal. Tahap I cair (140,4 Jt) sudah dicatat dari mutasi bank.',
-  },
-  {
-    id: '4',
-    tanggal: '2026-05-25',
-    kavling: 'E-15',
-    user: 'Demo 05',
-    jenis: 'DP',
-    nominal: 52000000,
-    perlakuanBadge: '212007 Uang muka',
-    perlakuanType: 'uang_muka',
-    alasan: 'Dijurnal otomatis: kavling belum BAST',
-  },
-  {
-    id: '5',
-    tanggal: '2026-09-10',
-    kavling: 'C-05',
-    user: 'Demo 03',
-    jenis: 'DP',
-    nominal: 60000000,
-    perlakuanBadge: '212007 Uang muka',
-    perlakuanType: 'uang_muka',
-    alasan: 'Dijurnal otomatis: kavling belum BAST',
-  },
-];
 
 const DEFAULT_TAGIHAN_ITEMS: KavlingTagihan[] = [
   {
@@ -583,67 +514,8 @@ export default function TagihanUserPage() {
           </TableScroll>
         </Panel>
 
-        {/* Pembayaran dari Podorukuntrack */}
-        <Panel
-          title="Pembayaran dari Podorukuntrack"
-          description={
-            <span>
-              DP dan angsuran pembeli dijurnal otomatis menurut tanggal BAST. Pencairan KPR tercatat di PR Track sebagai
-              satu pembayaran, tidak dijurnal, dan dipecah per tahap di{' '}
-              <Link to="/keuangan/piutang/angsuran-kredit" className="text-[#cf1b1a] font-medium hover:underline">
-                Angsuran kredit
-              </Link>
-              .
-            </span>
-          }
-          flush
-        >
-          <TableScroll label="Tabel pembayaran dari Podorukuntrack">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left text-xs font-semibold text-ink-3 uppercase tracking-wide">
-                  <th className="px-4 py-3 sm:px-5">Tanggal</th>
-                  <th className="px-4 py-3">Kavling · jenis</th>
-                  <th className="px-4 py-3 text-right">Nominal</th>
-                  <th className="px-4 py-3">Perlakuan di SI</th>
-                  <th className="px-4 py-3">Alasan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {DEFAULT_TRACK_PAYMENTS.map((p) => (
-                  <tr key={p.id} className="hover:bg-neutral-soft/40 transition-colors">
-                    <td className="px-4 py-3 sm:px-5 text-ink-2 whitespace-nowrap tabular-nums">
-                      {formatTanggal(p.tanggal)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-ink">
-                        {p.kavling} · {p.user}
-                      </p>
-                      <p className="text-xs text-ink-3 mt-0.5">{p.jenis}</p>
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium text-ink">
-                      {formatRupiah(p.nominal)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.perlakuanType === 'uang_muka' ? (
-                        <span className="inline-flex items-center rounded-md bg-[#fef3eb] px-2.5 py-1 text-xs font-medium text-[#b54708] border border-[#fecdca]">
-                          {p.perlakuanBadge}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-md bg-[#f4f3ff] px-2.5 py-1 text-xs font-medium text-[#5925dc] border border-[#d9d6fe]">
-                          {p.perlakuanBadge}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-ink-3 text-xs sm:text-sm">
-                      {p.alasan}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableScroll>
-        </Panel>
+        {/* Pembayaran dari Podorukuntrack (termasuk fitur verifikasi ACC & Tolak) */}
+        <PembayaranTrackPanel />
 
         {/* Modal Jadwal Realisasi */}
         {selectedKavlingId && (
